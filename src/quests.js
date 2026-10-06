@@ -52,11 +52,13 @@ export class Quests {
     const g = this.g;
     const advance = (s) => () => { this.stage = s; g.onQuestChanged(); };
     const close = { label: 'ลาก่อน', fn: () => {} };
+    const brew = { label: 'ปรุงยา (หม้อต้มยา)', fn: () => g.openMenu('alchemy') };
     const shop = {
       label: `ซื้อยาฟื้นพลัง (${POTION_PRICE} เหรียญ)`,
       fn: () => {
-        if (g.coins >= POTION_PRICE) { g.coins -= POTION_PRICE; g.potions++; g.audio.coin(); g.ui.toast('ได้รับยาฟื้นพลัง ×1  [Q] เพื่อดื่ม'); }
-        else g.ui.toast('เหรียญไม่พอ...');
+        if (g.coins < POTION_PRICE) g.ui.toast('เหรียญไม่พอ...');
+        else if (!g.bag.canAdd('potion')) g.ui.toast('กระเป๋าเต็ม — จัดกระเป๋าก่อน [I]');
+        else { g.coins -= POTION_PRICE; g.bag.add('potion'); g.audio.coin(); g.ui.toast('ได้รับยาฟื้นพลัง ×1  [Q] เพื่อดื่ม'); }
         g.updateHud();
       },
       keepOpen: true,
@@ -104,11 +106,11 @@ export class Quests {
             [T, 'ข้าต้มให้ได้ แต่ต้องใช้แก่นวิญญาณบึงห้าดวง ไปฟันดวงไฟลอยในบึงมาให้ข้า'],
             [T, 'ระวังตัวด้วยล่ะ พวกมันกัดเจ็บนะ ไอ้หนู... ถ้าบาดเจ็บก็มาซื้อยาจากข้าได้'],
           ],
-          options: [{ label: 'ข้าจะไปล่าดวงไฟ', fn: advance(4) }, shop],
+          options: [{ label: 'ข้าจะไปล่าดวงไฟ', fn: advance(4) }, brew, shop],
         };
         case 4: return {
           lines: [[T, `ยังได้แค่ ${this.essence} ดวง ต้องการห้าดวงนะ... ดวงไฟชอบลอยอยู่แถวบึงทางใต้`]],
-          options: [shop, close],
+          options: [brew, shop, close],
         };
         case 5: return {
           lines: [
@@ -120,9 +122,20 @@ export class Quests {
         };
         default: return {
           lines: [[T, this.stage >= 7 ? 'ฮึ่ม ฮึ่ม... ดวงจันทร์หายป่วยแล้ว เจ้าทำได้ดีนี่' : 'ฮึ่มม... ฝนตกดีนะคืนนี้ จะซื้ออะไรไหม?']],
-          options: [shop, close],
+          options: [brew, shop, close],
         };
       }
+    }
+
+    if (npc === 'smith') {
+      const S = 'ลุงทั่ง ช่างตีเหล็ก';
+      return {
+        lines: [
+          [S, 'อ้อ ผู้เดินทาง... ดาบเจ้าทื่อยังกับช้อนกินข้าว'],
+          [S, 'เอาเขี้ยวหมาป่าเงา แร่เหล็กมืดจากหน้าผาทางเหนือ หรือของแปลก ๆ ที่เจ้าเจอมาให้ข้า แล้วข้าจะตีให้คมกริบ'],
+        ],
+        options: [{ label: 'อัปเกรดอุปกรณ์', fn: () => g.openMenu('smith') }, close],
+      };
     }
 
     if (npc === 'keeper') {
@@ -146,7 +159,7 @@ export class Quests {
             g.sleepUntil(dn.isNight ? 0.36 : 0.8);
           },
         },
-        shop,
+        { label: 'เปิดร้าน (ซื้อ / ขายสมบัติ / กระเป๋าใหญ่)', fn: () => g.openMenu('shop') },
         { label: 'ถามเรื่องปราสาทที่ลอยอยู่บนฟ้า', keepOpen: true, fn: sub([
           [K, 'อา... ปราสาทแขวนฟ้า เมื่อก่อนมันตั้งอยู่บนพื้นดินเหมือนบ้านทั่วไป'],
           [K, 'จนคืนที่ดวงจันทร์ล้มป่วย แผ่นดินใต้ปราสาทก็ลอยขึ้นไปทั้งก้อน โซ่เหล็กพวกนั้นคือสิ่งเดียวที่ไม่ให้มันลอยหายไปในวังวนบนฟ้า'],

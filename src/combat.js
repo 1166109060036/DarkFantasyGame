@@ -129,7 +129,6 @@ export class Combat {
       this.boss.obj.visible = false;
       this.boss.shadow.visible = false;
     }
-    this.applySword();
   }
 
   // everything forgets you when you die or rest
@@ -146,6 +145,7 @@ export class Combat {
   get busy() { return !!this.swing || this.dodgeT > 0 || this.staggerT > 0; }
 
   spend(n) {
+    if (this.g.buffs.tonic > 0) n *= 0.5;
     this.stamina = Math.max(0, this.stamina - n);
     this.lastUse = this.g.time;
     if (this.stamina <= 0) this.exhausted = true;
@@ -168,7 +168,7 @@ export class Combat {
     this.targetT = Math.max(0, this.targetT - dt);
 
     if (p.sprinting) this.spend(13 * dt);
-    if (t - this.lastUse > 0.9) this.stamina = Math.min(this.maxStamina, this.stamina + (this.blocking ? 12 : 32) * dt);
+    if (t - this.lastUse > 0.9) this.stamina = Math.min(this.maxStamina, this.stamina + (this.blocking ? 12 : 32) * (g.buffs.tonic > 0 ? 2 : 1) * dt);
     if (this.exhausted && this.stamina > 35) this.exhausted = false;
 
     if (frozen) { this.blocking = false; this.charging = false; return; }
@@ -251,7 +251,7 @@ export class Combat {
 
   damageEnemy(e, heavy, dir) {
     const g = this.g, def = e.def;
-    const dmg = (heavy ? 3 : 1) * this.swordMul;
+    const dmg = (heavy ? 3 : 1) * g.damageMul;
     e.hp -= dmg;
     e.flash = 1;
     e.vel.addScaledVector(V.set(dir.x, 0, dir.z).normalize(), (heavy ? 7 : 3) / def.weight);
@@ -278,22 +278,14 @@ export class Combat {
     g.addCoins(a + Math.floor(Math.random() * (b - a + 1)));
     g.hud.grin();
     if (e.type === 'wisp') g.quests.onWispKilled();
+    g.loot.dropFrom(e);
     if (def.boss) {
       this.bossDefeated = true;
       this.swordMul = 1.6;
-      this.applySword();
       g.ui.banner('ชนะ', `${def.name} พ่ายแพ้`);
       setTimeout(() => g.ui.toast('ได้รับ ดาบแห่งราชาหิน — พลังโจมตี ×1.6'), 1800);
       g.audio.chime();
       g.save();
-    }
-  }
-
-  applySword() {
-    const blade = this.g.view.userData.sword.children[0];
-    if (this.swordMul > 1) {
-      blade.material = blade.material.clone();
-      blade.material.emissive = new THREE.Color(0.18, 0.32, 0.55);
     }
   }
 
@@ -339,6 +331,7 @@ export class Combat {
       if (this.stamina > 0) dmg *= 0.12;
       else { dmg *= 0.6; this.staggerT = 0.7; this.blocking = false; g.ui.combatText('การ์ดแตก!', 'bad'); }
     }
+    dmg *= g.armorMul;
     p.hurt(dmg, g.time);
     // the status-bar face flinches toward whoever landed the blow
     const rightDot = (-dx * Math.cos(p.yaw) + dz * Math.sin(p.yaw)) / Math.max(d, 1e-3);

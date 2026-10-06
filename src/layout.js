@@ -67,3 +67,6 @@ export const WOLF_PACKS = [[-125, -15, 3], [-205, 75, 2], [-95, 95, 2], [-150, -
 export const LEECH_SPAWNS = [[-60, 182], [12, 205], [-128, 232], [35, 250], [-85, 150], [-10, 240]];
 // The stone knight guards the east end of the bridge to the stone king.
 export const KNIGHT_POS = { x: HEAD.x + 52, z: HEAD.z };
+
+// The blacksmith's open-air forge on the west side of the village.
+export const SMITH = { x: 52, z: 14 };

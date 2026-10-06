@@ -185,3 +185,74 @@ button.ghost { background: transparent; font-size: 15px; color: var(--dim); }
   #stick { top: calc(100% - var(--bar) - 85px); }
   #dlg-text { font-size: 16px; }
 }
+
+/* ---------- RE4-style attaché case ---------- */
+#bag { position: fixed; inset: 0; z-index: 35; display: flex; align-items: center; justify-content: center; background: rgba(2, 3, 8, 0.72); touch-action: none; }
+.bag-case {
+  padding: 14px 18px 18px; border-radius: 6px; max-width: 98vw;
+  background: linear-gradient(#3a2a1e, #2a1d14); border: 3px solid #120c08;
+  box-shadow: inset 0 0 0 2px #5a4230, inset 0 0 40px rgba(0, 0, 0, 0.6), 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+.bag-head { display: flex; gap: 16px; align-items: baseline; margin-bottom: 10px; color: #d8c8a8; }
+.bag-title { font-family: 'Cinzel', var(--font); font-size: 20px; color: var(--gold); }
+#bag-size { font-size: 13px; color: #a89878; }
+#bag-coins { margin-left: auto; color: var(--gold); }
+.bag-body { display: flex; gap: 18px; align-items: flex-start; }
+#bag-grid {
+  position: relative; flex: 0 0 auto; background-color: #141a16;
+  background-image: linear-gradient(rgba(140, 170, 140, 0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(140, 170, 140, 0.18) 1px, transparent 1px);
+  border: 3px solid #0c0a08; box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.8);
+}
+.bag-item {
+  position: absolute; box-sizing: border-box; border: 1px solid rgba(220, 210, 180, 0.35); background: rgba(60, 70, 60, 0.35); cursor: grab;
+}
+.bag-item:hover, .bag-item.sel { border-color: #f0d890; background: rgba(110, 100, 60, 0.4); }
+.bag-item.k-treasure { background: rgba(90, 70, 20, 0.35); }
+.bag-item.k-use { background: rgba(90, 30, 30, 0.3); }
+.bag-item img { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); image-rendering: pixelated; pointer-events: none; }
+.bag-item .count { position: absolute; right: 3px; bottom: 1px; font-size: 13px; color: #fff; text-shadow: 0 1px 2px #000, 0 0 3px #000; pointer-events: none; }
+#bag-held { position: fixed; pointer-events: none; z-index: 40; opacity: 0.92; }
+#bag-held .bag-item { position: relative; border-color: #f0d890; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7); }
+.bag-ghost { position: absolute; pointer-events: none; box-sizing: border-box; border: 2px dashed; }
+.bag-ghost.ok { border-color: #7fe07f; background: rgba(80, 200, 80, 0.15); }
+.bag-ghost.bad { border-color: #ff6a5a; background: rgba(220, 60, 50, 0.18); }
+.bag-side { width: 230px; display: flex; flex-direction: column; gap: 10px; color: var(--ink); }
+#bag-info { min-height: 92px; padding: 8px 10px; background: rgba(0, 0, 0, 0.35); border: 1px solid #5a4230; }
+#bag-info .name { color: var(--gold); font-size: 16px; margin-bottom: 4px; }
+#bag-info .desc { font-size: 13px; color: #c8bca8; line-height: 1.45; }
+#bag-pending { padding: 8px; border: 1px dashed #f0d890; background: rgba(80, 60, 20, 0.3); animation: blink 1.2s infinite; }
+#bag-pending .lbl { font-size: 12px; color: #f0d890; margin-bottom: 6px; }
+#bag-pending-slot { min-height: 40px; cursor: grab; }
+.bag-buttons { display: grid; gap: 6px; }
+.bag-buttons button { min-width: 0; font-size: 15px; padding: 7px 10px; }
+#bag-drop { border-style: dashed; }
+#bag-menu { position: fixed; z-index: 41; display: flex; flex-direction: column; background: #1a140e; border: 1px solid #a88a50; }
+#bag-menu button { min-width: 120px; font-size: 15px; padding: 7px 14px; background: transparent; border: none; text-align: left; }
+#bag-menu button:hover { background: rgba(240, 216, 144, 0.18); }
+/* ---------- service screens ---------- */
+#svc { z-index: 35; background: rgba(2, 3, 8, 0.65); }
+.svc-panel { width: min(620px, 94vw); }
+.svc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.svc-head h2 { margin: 0; }
+#svc-coins { color: var(--gold); }
+#svc-tabs { display: flex; gap: 6px; margin-top: 8px; }
+#svc-tabs button { min-width: 0; padding: 5px 18px; font-size: 15px; }
+#svc-tabs button.on { border-color: var(--gold); color: var(--gold); }
+#svc-list { display: flex; flex-direction: column; gap: 6px; max-height: 56vh; overflow: auto; margin-top: 6px; }
+.svc-row { display: flex; align-items: center; gap: 10px; padding: 7px 9px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--edge); }
+.svc-icon { width: 40px; height: 40px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
+.svc-icon img { max-width: 40px; max-height: 40px; image-rendering: pixelated; }
+.svc-main { flex: 1; min-width: 0; }
+.svc-title { color: var(--ink); font-size: 16px; }
+.svc-title .pips { color: var(--gold); letter-spacing: 2px; }
+.svc-sub { font-size: 12px; color: var(--dim); }
+.svc-costs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 3px; }
+.cost { font-size: 12px; display: inline-flex; align-items: center; gap: 3px; }
+.cost img { width: 16px; height: 16px; image-rendering: pixelated; }
+.cost.ok { color: #9fe09f; } .cost.no { color: #ff8a7a; }
+.svc-row button { min-width: 92px; font-size: 14px; padding: 6px 10px; }
+.svc-row button:disabled { opacity: 0.4; cursor: default; }
+.svc-empty { color: var(--dim); padding: 20px; text-align: center; }
+#buffs { position: absolute; left: 12px; bottom: calc(var(--bar) + 10px); display: flex; gap: 6px; }
+.buff { font-size: 13px; padding: 3px 8px; background: rgba(4, 8, 24, 0.75); border: 1px solid var(--edge); }
+@media (pointer: coarse) { .bag-side { width: 170px; } .bag-side .small { display: none; } }

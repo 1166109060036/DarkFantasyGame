@@ -247,7 +247,8 @@ export class DoomHud {
 
     const kingly = s.swordMul > 1;
     this.paint('wpn', `${kingly}|${s.attacking}`, () => drawSword(this.wpn, kingly, s.attacking));
-    this.paint('wname', kingly, () => { this.wpnName.textContent = kingly ? 'ดาบแห่งราชาหิน ×1.6' : 'ดาบเก่า ×1.0'; });
+    const wname = `${kingly ? 'ดาบแห่งราชาหิน' : 'ดาบเก่า'}${s.swordLv ? ` +${s.swordLv}` : ''} ×${(s.damageMul ?? s.swordMul).toFixed(1)}`;
+    this.paint('wname', wname, () => { this.wpnName.textContent = wname; });
     this.paint('items', `${s.potions}|${s.coins}`, () => { this.potions.textContent = s.potions; this.coins.textContent = s.coins; });
   }
 }

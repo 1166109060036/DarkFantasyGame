@@ -201,5 +201,17 @@ export class AudioSys {
     [196, 294, 392].forEach((f, i) => this.tone({ freq: f, dur: 2.4, type: 'triangle', gain: 0.06, delay: i * 0.18 }));
     this.tone({ freq: 98, dur: 3, type: 'sine', gain: 0.1 });
   }
+  pickup(kind) {
+    if (kind === 'treasure') { this.coin(); this.tone({ freq: 2200, dur: 0.4, type: 'triangle', gain: 0.05, delay: 0.15 }); return; }
+    this.tone({ freq: kind === 'use' ? 660 : 520, dur: 0.12, type: 'triangle', gain: 0.08 });
+    this.tone({ freq: kind === 'use' ? 990 : 780, dur: 0.18, type: 'triangle', gain: 0.07, delay: 0.07 });
+  }
+  harvest(type) {
+    if (type === 'ore') { [0, 0.18, 0.36].forEach((d) => { this.burst({ dur: 0.08, freq: 2600, q: 8, gain: 0.3, delay: d }); this.tone({ freq: 1400, dur: 0.15, type: 'square', gain: 0.04, delay: d }); }); return; }
+    this.burst({ dur: 0.25, freq: 1800, q: 1, gain: 0.12, sweep: 0.6 });
+  }
+  chest() { this.burst({ dur: 0.5, freq: 300, q: 3, gain: 0.25, sweep: 1.6 }); this.chime(); }
+  brew() { for (let i = 0; i < 6; i++) this.tone({ freq: 200 + Math.random() * 300, dur: 0.15, type: 'sine', gain: 0.08, delay: i * 0.09, slide: 1.8 }); }
+  anvil() { [0, 0.3, 0.6].forEach((d) => { this.tone({ freq: 1760, dur: 0.6, type: 'triangle', gain: 0.09, delay: d, slide: 0.99 }); this.burst({ dur: 0.06, freq: 3500, q: 6, gain: 0.3, delay: d }); }); }
   ui() { this.tone({ freq: 520, dur: 0.08, type: 'triangle', gain: 0.06 }); }
 }

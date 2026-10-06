@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { fbm } from './noise.js';
 import { clamp, lerp, smoothstep, distToPolyline } from './util.js';
-import { PASTURE, TOAD, TEMPLE, RIVER, RAIL, PATHS, CASTLE, HEAD, STREAM, TAVERN, HOUSES } from './layout.js';
+import { PASTURE, TOAD, TEMPLE, RIVER, RAIL, PATHS, CASTLE, HEAD, STREAM, TAVERN, HOUSES, SMITH } from './layout.js';
 
 export const HALF = 320;
 export const SEG = 256;
@@ -27,8 +27,10 @@ function sites() {
   // flatten targets are the natural ground height at each site centre
   if (!siteHeights) {
     siteHeights = {
-      village: baseHeight(TAVERN.x, TAVERN.z, false),
-      houses: HOUSES.map(([hx, hz]) => baseHeight(hx, hz, false)),
+      // every building stands on dry ground, however low the land around it
+      village: Math.max(baseHeight(TAVERN.x, TAVERN.z, false), 0.9),
+      houses: HOUSES.map(([hx, hz]) => Math.max(baseHeight(hx, hz, false), 0.9)),
+      smith: Math.max(baseHeight(SMITH.x, SMITH.z, false), 0.9),
     };
   }
   return siteHeights;
@@ -77,8 +79,11 @@ export function baseHeight(x, z, withSites = true) {
 
   if (withSites) {
     const s = sites();
+    // a low, dry mound under the whole village so it doesn't sit in the marsh
+    h = Math.max(h, lerp(0.9, h, smoothstep(34, 52, Math.hypot(x - 66, z - 6))));
     h = plateau(h, x, z, TAVERN.x, TAVERN.z, 11, 22, s.village);
     HOUSES.forEach(([hx, hz], i) => { h = plateau(h, x, z, hx, hz, 5, 10, s.houses[i]); });
+    h = plateau(h, x, z, SMITH.x - 0.7, SMITH.z, 5, 10, s.smith);
   }
 
   // world edge mountains

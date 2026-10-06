@@ -18,7 +18,7 @@ export class Input {
       if (e.repeat) return;
       this.keys.add(e.code);
       const map = {
-        KeyE: 'interact', KeyF: 'interact', Space: 'jump', KeyQ: 'potion', KeyM: 'map', Tab: 'map',
+        KeyE: 'interact', KeyF: 'interact', Space: 'jump', KeyQ: 'potion', KeyM: 'map', Tab: 'bag', KeyI: 'bag', KeyR: 'rotate',
         Enter: 'confirm', ArrowUp: 'up', ArrowDown: 'down', KeyW: 'up', KeyS: 'down',
         Digit1: 'opt1', Digit2: 'opt2', Digit3: 'opt3', Digit4: 'opt4', Escape: 'escape',
         KeyC: 'dodge', ControlLeft: 'dodge',

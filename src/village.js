@@ -4,8 +4,8 @@ import * as THREE from 'three';
 import { part } from './util.js';
 import { block, slab, r } from './builder.js';
 import { gable, cyl } from './giants.js';
-import { TAVERN, HOUSES } from './layout.js';
-import { createCandleHead, createPatron } from './characters.js';
+import { TAVERN, HOUSES, SMITH } from './layout.js';
+import { createCandleHead, createPatron, createSmith } from './characters.js';
 
 const C = (r_, g, b) => new THREE.Color(r_, g, b);
 const WARM = C(1.25, 0.62, 0.24);
@@ -167,7 +167,39 @@ export function buildVillage(B, Cw, terrain, scene, M, fx) {
     return p;
   });
 
+  // ---------------- the blacksmith's forge
+  const sx = SMITH.x, sz = SMITH.z, sg = terrain.getHeight(sx, sz);
+  const fx0 = sx - 3, fz0 = sz;
+  slab(B, Cw, 'stone', fx0, fz0, 1.8, 1.8, sg - 0.5, sg + 1.1, { color: C(0.62, 0.6, 0.64) });
+  block(B, Cw, 'plain', { x: fx0 + 0.92, y: sg + 0.65, z: fz0, w: 0.06, h: 0.6, d: 0.9, color: C(0.03, 0.02, 0.02), collide: false });
+  block(B, Cw, 'stone', { x: fx0, y: sg + 2.6, z: fz0, w: 0.9, h: 3, d: 0.9, collide: false });
+  for (let i = 0; i < 4; i++) B.add('glow', part(new THREE.OctahedronGeometry(0.22, 0), C(1.9, 0.6 + i * 0.1, 0.15), { pos: [fx0 + 0.6, sg + 0.6, fz0 - 0.3 + i * 0.2], scale: [1, 1.6, 1] }));
+  // anvil on a stump
+  B.add('wood', part(cyl(0.38, 0.42, 0.6, 8, 1), C(0.55, 0.42, 0.32), { pos: [sx + 1.6, sg + 0.3, sz + 1.2] }));
+  B.add('metal', part(new THREE.BoxGeometry(0.75, 0.22, 0.32), C(0.32, 0.33, 0.38), { pos: [sx + 1.6, sg + 0.72, sz + 1.2] }));
+  B.add('metal', part(new THREE.ConeGeometry(0.14, 0.4, 4), C(0.32, 0.33, 0.38), { pos: [sx + 2.15, sg + 0.74, sz + 1.2], rot: [0, 0, -Math.PI / 2] }));
+  Cw.addCircle(sx + 1.6, sz + 1.2, 0.5);
+  // lean-to roof and a rack of blades
+  for (const [px, pz] of [[-4, -1.6], [-4, 1.6], [2.6, -1.6], [2.6, 1.6]]) block(B, Cw, 'wood', { x: sx + px, y: sg + 1.5, z: sz + pz, w: 0.18, h: 3, d: 0.18 });
+  block(B, Cw, 'wood', { x: sx - 0.7, y: sg + 3.1, z: sz, w: 7.2, h: 0.12, d: 4.0, rz: 0.08, color: C(0.4, 0.32, 0.3), collide: false });
+  for (let i = 0; i < 4; i++) B.add('metal', part(new THREE.BoxGeometry(0.06, 1.1, 0.02), C(0.6, 0.62, 0.68), { pos: [sx - 1.2 + i * 0.3, sg + 0.9, sz - 1.75], rot: [0, 0, 0.1] }));
+  const forgeFire = new THREE.Sprite(M.fireSprite);
+  forgeFire.position.set(fx0 + 0.8, sg + 0.7, fz0);
+  forgeFire.scale.setScalar(1.8);
+  scene.add(forgeFire);
+  fx.fires.push({ s: forgeFire, base: 1.8, ph: 2 });
+  const forgeLight = new THREE.PointLight(0xff6a20, 8, 12, 1.6);
+  forgeLight.position.set(fx0 + 1.2, sg + 1.2, fz0);
+  scene.add(forgeLight);
+  fx.lights.push({ l: forgeLight, base: 8 });
+  const smith = createSmith(M);
+  smith.position.set(sx, sg, sz);
+  smith.rotation.y = Math.PI / 2;
+  scene.add(smith);
+  Cw.addCircle(sx, sz, 0.55);
+
   return {
+    smith: { obj: smith, pos: new THREE.Vector3(sx, sg, sz) },
     keeper: { obj: keeper, pos: new THREE.Vector3(tx - 1, y0, tz + 2.2) },
     patrons,
     indoor: { minX: tx - 7, maxX: tx + 7, minZ: tz - 5, maxZ: tz + 5, maxY: y0 + H },

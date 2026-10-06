@@ -11,6 +11,11 @@ import { createToad, createCrow, createViewModel, blobShadow } from './character
 import { Flock, Particles } from './entities.js';
 import { Combat } from './combat.js';
 import { DoomHud } from './hud.js';
+import { Inventory } from './inventory.js';
+import { BagUI } from './bagui.js';
+import { Loot } from './loot.js';
+import { Menus } from './menus.js';
+import { ITEMS } from './items.js';
 import { Player } from './player.js';
 import { Input } from './input.js';
 import { AudioSys } from './audio.js';
@@ -42,7 +47,8 @@ class Game {
     this.state = 'loading';
     this.time = 0;
     this.coins = 0;
-    this.potions = 1;
+    this.gear = { sword: 0, cloak: 0, lantern: 0 };
+    this.buffs = { tonic: 0, oil: 0, sight: 0 };
     this.checkpoint = { x: SPAWN.x, z: SPAWN.z };
     this.endingBeam = null;
     this.discovered = new Set();
@@ -127,6 +133,7 @@ class Game {
       crow: { obj: crow, pos: crowPos, name: 'โกวัก ผู้เลี้ยงแกะ' },
       toad: { obj: toad, pos: toadPos, name: 'ยายคางคก' },
       keeper: { obj: this.village.keeper.obj, pos: this.village.keeper.pos, name: 'เทียนหลอม' },
+      smith: { obj: this.village.smith.obj, pos: this.village.smith.pos, name: 'ลุงทั่ง' },
     };
 
     // crow-headed guardian statues at the temple
@@ -143,6 +150,7 @@ class Game {
       { id: 'toad', pos: toadPos, r: 3.8, label: 'คุยกับยายคางคก' },
       { id: 'altar', pos: this.altar, r: 3.2, label: 'ตรวจดูแท่นบูชา', checkpoint: { x: TEMPLE.x, z: TEMPLE.z + 14 } },
       { id: 'keeper', pos: this.village.keeper.pos, r: 3.0, label: 'คุยกับเทียนหลอม เจ้าของโรงเตี๊ยม', checkpoint: { x: TAVERN.x, z: TAVERN.z - 8 } },
+      { id: 'smith', pos: this.village.smith.pos, r: 3.2, label: 'คุยกับลุงทั่ง ช่างตีเหล็ก' },
     ];
 
     this.audio = new AudioSys();
@@ -176,6 +184,14 @@ class Game {
     this.quests = new Quests(this);
     this.combat = new Combat(this);
     this.hud = new DoomHud();
+    this.bag = new Inventory();
+    this.bag.add('potion', 1);
+    this.loot = new Loot(this);
+    this.bagUI = new BagUI(this);
+    this.menus = new Menus(this);
+    // a private copy of the blade material so oil / the king's sword can make it glow
+    const blade = this.view.userData.sword.children[0];
+    blade.material = blade.material.clone();
 
     this.applySettings();
     this.bindUI();
@@ -306,7 +322,8 @@ class Game {
   save() {
     if (this.state === 'title' || this.state === 'loading') return;
     store.set(SAVE_KEY, {
-      quests: this.quests.serialize(), combat: this.combat.serialize(), coins: this.coins, potions: this.potions, hp: this.player.hp,
+      quests: this.quests.serialize(), combat: this.combat.serialize(), coins: this.coins, hp: this.player.hp,
+      bag: this.bag.serialize(), gear: this.gear, loot: this.loot.serialize(),
       pos: { x: this.player.pos.x, z: this.player.pos.z }, yaw: this.player.yaw, checkpoint: this.checkpoint,
       time: this.dayNight.t, discovered: [...this.discovered],
     });
@@ -317,7 +334,11 @@ class Game {
     if (!d) return;
     this.quests.load(d.quests || {});
     this.coins = d.coins ?? 0;
-    this.potions = d.potions ?? 1;
+    if (d.bag) this.bag.load(d.bag);
+    else { this.bag.items = []; this.bag.add('potion', Math.max(0, d.potions ?? 1)); }   // saves from before the bag existed
+    Object.assign(this.gear, d.gear || {});
+    this.loot.load(d.loot);
+    this.onGearChanged();
     this.checkpoint = d.checkpoint || this.checkpoint;
     if (typeof d.time === 'number') this.dayNight.t = d.time;
     this.discovered = new Set(d.discovered || []);
@@ -342,7 +363,7 @@ class Game {
   }
 
   updateHud() {
-    this.ui.setStats(this.player.hp, this.player.maxHp, this.coins, this.potions, this.combat.stamina, this.combat.exhausted);
+    this.ui.setStats(this.player.hp, this.player.maxHp, this.coins, this.potionCount, this.combat.stamina, this.combat.exhausted);
   }
 
   onQuestChanged(saveNow = true) {
@@ -381,6 +402,87 @@ class Game {
     }, 2200);
   }
 
+  get potionCount() { return this.bag.count('potion') + this.bag.count('potion_big'); }
+
+  // ---------------------------------------------------------------- bag, services, items
+  // The world freezes while the case or a service screen is open (like RE4).
+  openBag(pending = null) {
+    this.state = 'bag';
+    this.ui.setPrompt(null);
+    if (document.pointerLockElement) document.exitPointerLock();
+    this.bagUI.show(pending);
+  }
+
+  onBagClosed() { this.resumePlay(); }
+
+  openMenu(kind) {
+    this.state = 'menu';
+    this.ui.setPrompt(null);
+    if (document.pointerLockElement) document.exitPointerLock();
+    this.menus.show(kind);
+  }
+
+  onMenuClosed() { this.resumePlay(); }
+
+  resumePlay() {
+    this.state = 'play';
+    this.updateHud();
+    this.save();
+    this.input.requestLock();
+  }
+
+  // Use a consumable from the bag. Returns true when it was used up.
+  useItem(it) {
+    const def = ITEMS[it.id], p = this.player;
+    if (def.heal) {
+      if (p.hp >= p.maxHp) { this.ui.toast('เลือดเต็มอยู่แล้ว'); return false; }
+      p.hp = Math.min(p.maxHp, p.hp + def.heal);
+      this.ui.toast(`ดื่ม${def.name}`);
+    } else if (def.buff) {
+      const [name, secs] = def.buff;
+      this.buffs[name] = secs;
+      this.ui.toast(`${def.name} — ${secs} วินาที`);
+    } else return false;
+    this.audio.drink();
+    if (it.count > 1) { it.count--; this.bag.changed(); } else this.bag.removeItem(it);
+    this.updateHud();
+    return true;
+  }
+
+  quickHeal() {
+    const it = this.bag.items.filter((i) => i.id === 'potion').concat(this.bag.items.filter((i) => i.id === 'potion_big'))[0];
+    if (!it) { this.ui.toast('ไม่มียาฟื้นพลัง — ปรุงได้ที่ยายคางคก หรือซื้อที่โรงเตี๊ยม'); return; }
+    this.useItem(it);
+  }
+
+  // damage multiplier for the player's blows, and the share of incoming damage that gets through
+  get damageMul() { return this.combat.swordMul * (1 + this.gear.sword * 0.2) * (this.buffs.oil > 0 ? 1.5 : 1); }
+
+  get armorMul() { return 1 - this.gear.cloak * 0.08; }
+
+  onGearChanged() {
+    const lv = this.gear.lantern;
+    this.lantern.distance = 16 * (1 + lv * 0.35);
+    this.vmLight.distance = 3 * (1 + lv * 0.3);
+    this.updateHud();
+  }
+
+  updateBuffs(dt) {
+    let html = '';
+    const names = { tonic: 'ยาบำรุงแรง', oil: 'น้ำมันดาบ', sight: 'ตาแมว' };
+    for (const k of Object.keys(this.buffs)) {
+      if (this.buffs[k] <= 0) continue;
+      this.buffs[k] = Math.max(0, this.buffs[k] - dt);
+      if (this.buffs[k] > 0) html += `<span class="buff">${names[k]} ${Math.ceil(this.buffs[k])}s</span>`;
+    }
+    if (html !== this._buffHTML) { this._buffHTML = html; document.getElementById('buffs').innerHTML = html; }
+    // blade glow: amber while oiled, cold blue for the stone king's sword
+    const mat = this.view.userData.sword.children[0].material;
+    if (this.buffs.oil > 0) mat.emissive.setRGB(0.55 + Math.sin(this.time * 9) * 0.08, 0.22, 0.04);
+    else if (this.combat.swordMul > 1) mat.emissive.setRGB(0.18, 0.32, 0.55);
+    else mat.emissive.setRGB(0, 0, 0);
+  }
+
   interact(id) {
     const it = this.interactables.find((i) => i.id === id);
     this.checkpoint = it.checkpoint || { x: this.npcs[id].pos.x + 2, z: this.npcs[id].pos.z + 2 };
@@ -414,7 +516,8 @@ class Game {
     const sky = this.sky.material.uniforms;
     this.scene.fog.color.setRGB(...P.fog);
     this.scene.background.copy(this.scene.fog.color);
-    this.scene.fog.density = P.density - 0.001 + rainI * 0.004;
+    const sight = this.buffs.sight > 0 ? 1 - P.day : 0;   // cat's-eye potion: see through the night
+    this.scene.fog.density = (P.density - 0.001 + rainI * 0.004) * (1 - sight * 0.45);
     sky.uHorizon.value.copy(this.scene.fog.color);
     sky.uZenith.value.setRGB(...P.zenith);
     sky.uCloudDark.value.setRGB(...P.cloudDark);
@@ -430,7 +533,7 @@ class Game {
     const dim = 1 - this.indoor * 0.65;
     this.hemi.color.setRGB(...P.hemiSky);
     this.hemi.groundColor.setRGB(...P.hemiGround);
-    this.hemi.intensity = (P.hemiI + flash * 4) * dim;
+    this.hemi.intensity = (P.hemiI + flash * 4) * dim * (1 + sight * 1.3);
     this.moon.color.setRGB(...P.light);
     this.moon.intensity = P.lightI * dim;
     this.moon.position.copy(dn.lightDirection(MOON_DIR)).multiplyScalar(100);
@@ -462,11 +565,8 @@ class Game {
     p.update(dt, input, this.time, frozen, c.playerMods());
 
     if (!frozen) {
-      if (input.consume('potion')) {
-        if (this.potions > 0 && p.hp < p.maxHp) {
-          this.potions--; p.hp = Math.min(p.maxHp, p.hp + 50); this.audio.drink(); this.ui.toast('ดื่มยาฟื้นพลัง +50');
-        } else if (this.potions <= 0) this.ui.toast('ไม่มียาฟื้นพลัง — ซื้อได้จากยายคางคก');
-      }
+      if (input.consume('potion')) this.quickHeal();
+      if (input.consume('bag')) { this.openBag(); return; }
       // nearest interactable in front of the player
       let best = null, bd = Infinity;
       const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
@@ -474,9 +574,16 @@ class Game {
         const dx = it.pos.x - p.pos.x, dz = it.pos.z - p.pos.z, d = Math.hypot(dx, dz);
         if (d < it.r && d < bd && (d < 1.5 || (dx * fx + dz * fz) / d > 0.2) && Math.abs(it.pos.y - p.pos.y) < 3) { bd = d; best = it; }
       }
+      // loose items, herbs, ore and chests compete with NPCs for the prompt
+      const lt = this.loot.nearest(p.pos, fx, fz);
       const verb = input.touch ? '✋' : '[E]';
-      ui.setPrompt(best ? `${verb} ${best.label}` : null);
-      if (best && input.consume('interact')) { ui.setPrompt(null); this.interact(best.id); }
+      if (lt && lt.d < bd) {
+        ui.setPrompt(`${verb} ${lt.label}`);
+        if (input.consume('interact')) { ui.setPrompt(null); lt.act(); }
+      } else {
+        ui.setPrompt(best ? `${verb} ${best.label}` : null);
+        if (best && input.consume('interact')) { ui.setPrompt(null); this.interact(best.id); }
+      }
     } else {
       ui.setPrompt(null);
     }
@@ -494,6 +601,7 @@ class Game {
     }
 
     c.updateEnemies(dt, true);
+    this.updateBuffs(dt);
     this.checkDiscoveries();
     const v = this.village.indoor;
     const inside = p.pos.x > v.minX && p.pos.x < v.maxX && p.pos.z > v.minZ && p.pos.z < v.maxZ && p.pos.y < v.maxY;
@@ -508,6 +616,11 @@ class Game {
 
   frame() {
     let dt = Math.min(0.05, this.clock.getDelta());
+    // the world holds still behind the case, shops and the pause menu
+    const halted = this.state === 'bag' || this.state === 'menu' || this.state === 'paused';
+    if (halted) dt = 0;
+    if (this.state === 'bag') this.bagUI.update(this.input);
+    if (this.state === 'menu') this.menus.update(this.input);
     // hit-stop: freeze the world for a heartbeat on heavy blows and parries
     if (this.combat.hitStop > 0) { this.combat.hitStop -= dt; dt *= 0.08; }
     this.time += dt;
@@ -565,8 +678,9 @@ class Game {
     this.sky.position.copy(this.camera.position);
 
     this.flock.update(dt, this.time, p);
-    if (this.state !== 'play') this.combat.updateEnemies(dt, false);
+    if (this.state !== 'play' && !halted) this.combat.updateEnemies(dt, false);
     this.particles.update(dt);
+    this.loot.update(dt, this.time);
 
     // NPC idle animation
     const crow = this.npcs.crow.obj;
@@ -587,21 +701,21 @@ class Game {
     // lantern follows the player; view model bobs
     const flick = 1 + Math.sin(this.time * 13) * 0.04 + Math.sin(this.time * 7.3) * 0.05;
     this.lantern.position.copy(this.camera.position).add(new THREE.Vector3(0, -0.3, 0));
-    this.lantern.intensity = this.state === 'title' ? 0 : 6 * flick * this.dayNight.p.lantern * (1 - this.indoor * 0.6);
+    this.lantern.intensity = this.state === 'title' ? 0 : 6 * flick * this.dayNight.p.lantern * (1 - this.indoor * 0.6) * (1 + this.gear.lantern * 0.35);
     this.viewCam.position.copy(this.camera.position);
     this.viewCam.quaternion.copy(this.camera.quaternion);
     const lan = this.view.userData.lantern;
     lan.position.set(-0.3, -0.36 + p.bob * 0.7 + Math.sin(this.time * 1.7) * 0.006, -0.5);
     lan.rotation.z = Math.sin(p.bobT) * 0.08 * p.moving;
     this.view.userData.flame.scale.setScalar(flick);
-    this.view.visible = this.state === 'play' || this.state === 'paused';
+    this.view.visible = this.state === 'play' || halted;
     if (this.state !== 'play') this.combat.updateViewModel(dt);
 
     if (this.state !== 'title' && this.state !== 'loading') {
       const c = this.combat;
       this.hud.update(dt, {
         hp: p.hp, maxHp: p.maxHp, stamina: c.stamina, exhausted: c.exhausted, dead: this.state === 'dead' || p.hp <= 0,
-        attacking: !!c.swing || (c.charging && c.heavyReady), swordMul: c.swordMul, potions: this.potions, coins: this.coins, time: this.time,
+        attacking: !!c.swing || (c.charging && c.heavyReady), swordMul: c.swordMul, swordLv: this.gear.sword, damageMul: this.damageMul, potions: this.potionCount, coins: this.coins, time: this.time,
       });
     }
     this.clockTimer = (this.clockTimer || 0) - dt;
@@ -610,7 +724,7 @@ class Game {
       this.ui.setClock(this.dayNight.clockText());
       this.ui.setQuest(this.quests.objective());
     }
-    if (this.state === 'play' || this.state === 'paused') {
+    if (this.state === 'play' || halted) {
       this.ui.updateCompass(wrapHeading(-p.yaw), p.pos.x, p.pos.z, this.quests.markers());
     }
 

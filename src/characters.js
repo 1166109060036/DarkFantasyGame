@@ -364,3 +364,38 @@ export function createStoneKnight(M) {
   g.userData = { arm, eye };
   return g;
 }
+
+// Uncle Thang the blacksmith: broad, bald, bearded, leather apron, hammer over his shoulder.
+export function createSmith(M) {
+  const g = new THREE.Group();
+  const skin = C(0.62, 0.46, 0.36), apron = C(0.36, 0.24, 0.16), shirt = C(0.42, 0.4, 0.38);
+  g.add(meshOf([
+    part(new THREE.CylinderGeometry(0.17, 0.15, 0.85, 6), C(0.2, 0.18, 0.18), { pos: [0.17, 0.42, 0] }),
+    part(new THREE.CylinderGeometry(0.17, 0.15, 0.85, 6), C(0.2, 0.18, 0.18), { pos: [-0.17, 0.42, 0] }),
+    part(new THREE.CylinderGeometry(0.52, 0.42, 0.95, 8), shirt, { pos: [0, 1.3, 0], scale: [1, 1, 0.75] }),
+    part(new THREE.SphereGeometry(0.48, 8, 6), shirt, { pos: [0, 1.72, 0], scale: [1.15, 0.5, 0.8] }),
+    part(new THREE.CylinderGeometry(0.13, 0.11, 0.85, 6), skin, { pos: [0.58, 1.35, 0.05], rot: [0, 0, 0.25] }),
+    part(new THREE.CylinderGeometry(0.13, 0.11, 0.85, 6), skin, { pos: [-0.58, 1.3, 0.1], rot: [-0.3, 0, -0.2] }),
+    part(sphere(0.12, 6, 5), skin, { pos: [0.68, 0.92, 0.08] }),
+    part(sphere(0.12, 6, 5), skin, { pos: [-0.66, 0.92, 0.3] }),
+  ], M.plain));
+  g.add(meshOf([
+    part(new THREE.BoxGeometry(0.72, 1.15, 0.06), apron, { pos: [0, 1.05, 0.34], rot: [-0.06, 0, 0] }),
+    part(new THREE.BoxGeometry(0.06, 0.06, 0.6), apron, { pos: [0.3, 1.75, 0.05] }),
+    part(new THREE.BoxGeometry(0.06, 0.06, 0.6), apron, { pos: [-0.3, 1.75, 0.05] }),
+  ], M.wood));
+  g.add(meshOf([
+    part(sphere(0.25, 9, 7), skin, { pos: [0, 2.05, 0.05], scale: [1, 1.05, 1] }),
+    part(sphere(0.07, 5, 4), skin, { pos: [0, 2.03, 0.3] }),
+    part(sphere(0.2, 7, 5), C(0.62, 0.6, 0.58), { pos: [0, 1.86, 0.15], scale: [1.05, 1.1, 0.8] }),
+    part(sphere(0.035, 4, 3), C(0.05, 0.04, 0.03), { pos: [0.09, 2.1, 0.26] }),
+    part(sphere(0.035, 4, 3), C(0.05, 0.04, 0.03), { pos: [-0.09, 2.1, 0.26] }),
+    part(new THREE.BoxGeometry(0.24, 0.04, 0.04), C(0.55, 0.53, 0.5), { pos: [0, 2.18, 0.24] }),
+  ], M.plain));
+  // hammer resting on the shoulder
+  g.add(meshOf([
+    part(new THREE.CylinderGeometry(0.035, 0.035, 0.9, 5), C(0.45, 0.32, 0.2), { pos: [0.55, 1.95, -0.05], rot: [0.2, 0, -0.9] }),
+    part(new THREE.BoxGeometry(0.16, 0.26, 0.16), C(0.4, 0.42, 0.48), { pos: [0.2, 2.2, -0.12], rot: [0.2, 0, -0.9] }),
+  ], M.metal));
+  return g;
+}
