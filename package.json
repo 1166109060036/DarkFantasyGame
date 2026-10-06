@@ -1,0 +1,49 @@
+{
+  "name": "moonmire",
+  "productName": "Moonmire",
+  "version": "0.3.0",
+  "description": "MOONMIRE - PS2-style open-world dark fantasy adventure",
+  "main": "electron/main.cjs",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable nsis --x64",
+    "dist:dir": "electron-builder --dir"
+  },
+  "build": {
+    "appId": "com.moonmire.game",
+    "productName": "Moonmire",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "index.html",
+      "css/**",
+      "src/**",
+      "vendor/**",
+      "fonts/**",
+      "electron/**",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "icon": "build/icon.png",
+      "artifactName": "Moonmire-${version}-${arch}-${os}.${ext}"
+    },
+    "portable": {
+      "artifactName": "Moonmire-Portable-${version}.exe"
+    },
+    "nsis": {
+      "artifactName": "Moonmire-Setup-${version}.exe",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Moonmire"
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3"
+  },
+  "author": "Moonmire"
+}

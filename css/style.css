@@ -18,6 +18,7 @@ html, body {
   image-rendering: pixelated; image-rendering: crisp-edges;
 }
 .hidden { display: none !important; }
+body:not(.desktop) .desktop-only { display: none !important; }
 
 /* ---------- HUD ---------- */
 #hud { position: fixed; inset: 0; pointer-events: none; text-shadow: 0 1px 2px #000, 0 0 6px #000; }

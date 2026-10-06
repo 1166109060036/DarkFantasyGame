@@ -3,11 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-47SYuv52ST9yQ76ncm8OHvWn4zem0EXrZt9l4WuC2XY='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'">
   <meta name="theme-color" content="#050a1c">
   <title>Moonmire — ตำนานบึงจันทรา</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Pridi:wght@300;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="fonts/fonts.css">
   <link rel="stylesheet" href="css/style.css">
   <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
 </head>
@@ -84,7 +83,9 @@
       <label>เสียง <input id="set-vol" type="range" min="0" max="1" step="0.05"></label>
       <div class="buttons">
         <button id="btn-resume">เล่นต่อ</button>
+        <button id="btn-fullscreen" class="ghost desktop-only">สลับเต็มจอ (F11)</button>
         <button id="btn-restart" class="ghost">เริ่มใหม่ทั้งหมด</button>
+        <button id="btn-quit" class="ghost desktop-only">ออกจากเกม</button>
       </div>
       <p class="small controls">เวลาในเกม 1 วัน = 15 นาที · พักที่โรงเตี๊ยมเพื่อข้ามเวลาได้<br>WASD เดิน · Shift วิ่ง · Space กระโดด · คลิกซ้าย ฟันดาบ · E คุย/ใช้ · Q ดื่มยา · M แผนที่ · Esc หยุด</p>
     </div>
@@ -98,8 +99,9 @@
       <div class="buttons">
         <button id="btn-new">เริ่มการเดินทาง</button>
         <button id="btn-continue" class="hidden">เล่นต่อจากที่บันทึกไว้</button>
+        <button id="btn-quit-title" class="ghost desktop-only">ออกจากเกม</button>
       </div>
-      <p class="small">คลิกเพื่อเริ่ม · แนะนำให้ใส่หูฟัง</p>
+      <p class="small">คลิกเพื่อเริ่ม · แนะนำให้ใส่หูฟัง<span class="desktop-only"> · F11 เต็มจอ</span></p>
     </div>
   </div>
 

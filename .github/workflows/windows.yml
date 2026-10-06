@@ -1,0 +1,63 @@
+name: Build Windows app
+
+on:
+  push:
+    branches: [main, 'claude/**']
+    paths-ignore: ['docs/**', '**.md']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build portable .exe and installer
+        run: npx electron-builder --win portable nsis --x64 --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - id: ver
+        shell: bash
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Moonmire-Windows-${{ steps.ver.outputs.version }}
+          path: dist/*.exe
+          if-no-files-found: error
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.version }}-build.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: Moonmire ${{ steps.ver.outputs.version }} สำหรับ Windows (build ${{ github.run_number }})
+          files: dist/*.exe
+          make_latest: true
+          body: |
+            ## ดาวน์โหลดแล้วเล่นได้เลย (Windows 10/11, 64-bit)
+
+            - **Moonmire-Portable-${{ steps.ver.outputs.version }}.exe**: ไม่ต้องติดตั้ง ดับเบิลคลิกแล้วเล่น
+            - **Moonmire-Setup-${{ steps.ver.outputs.version }}.exe**: ตัวติดตั้ง สร้างไอคอนบนเดสก์ท็อปและเมนู Start
+
+            ครั้งแรกที่เปิด Windows อาจขึ้นหน้าต่าง "Windows protected your PC" เพราะไฟล์ยังไม่ได้เซ็นชื่อดิจิทัล
+            ให้กด **More info** แล้วกด **Run anyway**
+
+            F11 สลับเต็มจอ · Esc หยุดเกม · เซฟอัตโนมัติ
+
+            build จาก commit ${{ github.sha }}

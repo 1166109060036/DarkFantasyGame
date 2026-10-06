@@ -209,6 +209,14 @@ class Game {
     on('btn-continue', () => this.start(true));
     on('btn-resume', () => this.resume());
     on('btn-restart', () => { store.del(SAVE_KEY); location.reload(); });
+    // desktop build (Electron) only
+    if (window.desktop) {
+      document.body.classList.add('desktop');
+      const quit = () => { this.save(); window.desktop.quit(); };
+      on('btn-quit', quit);
+      on('btn-quit-title', quit);
+      on('btn-fullscreen', () => window.desktop.toggleFullscreen());
+    }
     on('btn-ending-continue', () => { document.getElementById('ending').classList.add('hidden'); this.resume(); });
     const bind = (id, key, parse = Number) => {
       const el = document.getElementById(id);
