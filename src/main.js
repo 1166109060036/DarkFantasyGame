@@ -186,6 +186,7 @@ class Game {
 
     this.player.place(SPAWN.x, SPAWN.z, Math.atan2(-(SPAWN.toward.x - SPAWN.x), -(SPAWN.toward.z - SPAWN.z)));
     this.state = 'title';
+    this.startMenuMusic();
     document.getElementById('loading').classList.add('hidden');
     document.getElementById('btn-continue').classList.toggle('hidden', !store.get(SAVE_KEY));
 
@@ -251,6 +252,7 @@ class Game {
 
   start(continueGame) {
     this.audio.init();
+    this.audio.stopMusic(2);
     this.audio.setVolume(this.settings.volume);
     if (continueGame) this.load();
     document.getElementById('title').classList.add('hidden');
@@ -267,6 +269,19 @@ class Game {
       setTimeout(() => this.ui.toast('ฝนเย็นเยียบตกลงบนบึง... เดินตามรางรถไฟขึ้นไปทางเหนือ'), 600);
       if (!this.input.touch) setTimeout(() => this.ui.toast('WASD เดิน · Shift วิ่ง · คลิก ฟัน · คลิกขวา ป้องกัน · C หลบ · E คุย · M แผนที่'), 3200);
     }
+  }
+
+  // Title-screen music. Browsers only allow sound after the first click or key press, so the
+  // audio context is resumed on that first gesture (the desktop app may play it right away).
+  startMenuMusic() {
+    this.audio.playMusic('audio/menu.mp3');
+    const unlock = () => {
+      if (this.state === 'title') { this.audio.init(); this.audio.playMusic('audio/menu.mp3'); }
+      removeEventListener('pointerdown', unlock);
+      removeEventListener('keydown', unlock);
+    };
+    addEventListener('pointerdown', unlock);
+    addEventListener('keydown', unlock);
   }
 
   pause() {

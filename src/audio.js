@@ -51,6 +51,64 @@ export class AudioSys {
     return s;
   }
 
+  // ---------------------------------------------------------------- menu music
+  // The clip is short, so it loops by overlapping copies with a crossfade instead of a hard cut.
+  async playMusic(url, { volume = 0.7, fade = 2.5, overlap = 2.0 } = {}) {
+    this.init();
+    if (!this.ctx) return;
+    const ctx = this.ctx;
+    if (!this.musicBuf) {
+      try {
+        const res = await fetch(url);
+        this.musicBuf = await ctx.decodeAudioData(await res.arrayBuffer());
+      } catch (e) {
+        console.warn('menu music failed to load', e);
+        return;
+      }
+    }
+    if (this.music) return;
+    const bus = ctx.createGain();
+    bus.gain.setValueAtTime(0.0001, ctx.currentTime);
+    bus.gain.exponentialRampToValueAtTime(volume, ctx.currentTime + fade);
+    bus.connect(this.master);
+    const m = (this.music = { bus, sources: new Set(), timer: 0 });
+    const dur = this.musicBuf.duration, step = dur - overlap;
+    let next = ctx.currentTime + 0.05;
+    const schedule = () => {
+      if (this.music !== m) return;
+      // keep two plays queued ahead of the clock
+      while (next < ctx.currentTime + dur) {
+        const src = ctx.createBufferSource();
+        src.buffer = this.musicBuf;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, next);
+        g.gain.linearRampToValueAtTime(1, next + overlap);
+        g.gain.setValueAtTime(1, next + dur - overlap);
+        g.gain.linearRampToValueAtTime(0.0001, next + dur);
+        src.connect(g).connect(bus);
+        src.start(next);
+        src.stop(next + dur + 0.05);
+        m.sources.add(src);
+        src.onended = () => m.sources.delete(src);
+        next += step;
+      }
+      m.timer = setTimeout(schedule, 1000);
+    };
+    schedule();
+  }
+
+  stopMusic(fade = 1.5) {
+    const m = this.music;
+    if (!m) return;
+    this.music = null;
+    clearTimeout(m.timer);
+    const t = this.ctx.currentTime;
+    m.bus.gain.cancelScheduledValues(t);
+    m.bus.gain.setValueAtTime(Math.max(m.bus.gain.value, 0.0001), t);
+    m.bus.gain.exponentialRampToValueAtTime(0.0001, t + fade);
+    setTimeout(() => { m.sources.forEach((s) => { try { s.stop(); } catch { /* already stopped */ } }); m.bus.disconnect(); }, fade * 1000 + 100);
+  }
+
   setVolume(v) {
     this.volume = v;
     if (this.master) this.master.gain.value = v;

@@ -23,6 +23,7 @@
       "src/**",
       "vendor/**",
       "fonts/**",
+      "audio/**",
       "electron/**",
       "package.json"
     ],
