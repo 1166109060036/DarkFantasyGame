@@ -1,0 +1,172 @@
+// Low-poly characters assembled from primitives (PS2 budget: a few hundred triangles each).
+import * as THREE from 'three';
+import { part, mergeGeometries } from './util.js';
+
+const C = (r, g, b) => new THREE.Color(r, g, b);
+const sphere = (r, w = 10, h = 8) => new THREE.SphereGeometry(r, w, h);
+
+function meshOf(parts, mat) {
+  const m = new THREE.Mesh(mergeGeometries(parts), mat);
+  return m;
+}
+
+export function blobShadow(M, size = 1.6) {
+  const g = new THREE.PlaneGeometry(size, size);
+  g.rotateX(-Math.PI / 2);
+  const m = new THREE.Mesh(g, M.shadow);
+  m.renderOrder = 1;
+  return m;
+}
+
+// The toad crone: sits under the giant mushroom, cradling a pot of gold (image 2).
+export function createToad(M) {
+  const g = new THREE.Group();
+  const skin = [
+    part(sphere(0.75, 12, 10), 0xffffff, { pos: [0, 0.72, 0], scale: [1.05, 0.95, 0.9] }),
+    part(sphere(0.55, 12, 8), 0xffffff, { pos: [0, 1.58, 0.08], scale: [1.18, 0.68, 1.0] }),
+    part(sphere(0.16, 8, 6), 0xffffff, { pos: [-0.3, 1.78, 0.32] }),
+    part(sphere(0.16, 8, 6), 0xffffff, { pos: [0.3, 1.78, 0.32] }),
+    part(sphere(0.22, 8, 6), 0xd8d0c0, { pos: [-0.45, 0.12, 0.62], scale: [1, 0.45, 1.5] }),
+    part(sphere(0.22, 8, 6), 0xd8d0c0, { pos: [0.45, 0.12, 0.62], scale: [1, 0.45, 1.5] }),
+    part(sphere(0.13, 6, 5), 0xffffff, { pos: [-0.36, 1.0, 0.66], scale: [1.3, 0.8, 1] }),
+    part(sphere(0.13, 6, 5), 0xffffff, { pos: [0.3, 1.02, 0.7], scale: [1.3, 0.8, 1] }),
+  ];
+  g.add(meshOf(skin, M.toadSkin));
+  const cloth = [
+    part(new THREE.LatheGeometry([
+      new THREE.Vector2(1.0, 0.05), new THREE.Vector2(0.98, 0.4), new THREE.Vector2(0.85, 0.85),
+      new THREE.Vector2(0.62, 1.2), new THREE.Vector2(0.45, 1.32),
+    ], 12, Math.PI * 0.12, Math.PI * 1.76), 0xffffff, { pos: [0, 0, 0] }),
+  ];
+  g.add(meshOf(cloth, M.cloth));
+  const plain = [
+    part(new THREE.TorusGeometry(0.48, 0.17, 6, 12), C(0.42, 0.25, 0.16), { pos: [0, 1.3, 0.02], rot: [Math.PI / 2 + 0.15, 0, 0], scale: [1.1, 1, 1] }),
+    part(new THREE.CylinderGeometry(0.4, 0.48, 0.24, 10), C(0.32, 0.22, 0.18), { pos: [0, 1.98, 0.02], rot: [-0.12, 0, 0.05] }),
+    part(new THREE.CylinderGeometry(0.66, 0.66, 0.05, 12), C(0.28, 0.2, 0.16), { pos: [0, 1.87, 0.04], rot: [-0.12, 0, 0.05] }),
+    part(sphere(0.07, 6, 4), C(0.05, 0.04, 0.02), { pos: [-0.31, 1.82, 0.46] }),
+    part(sphere(0.07, 6, 4), C(0.05, 0.04, 0.02), { pos: [0.31, 1.82, 0.46] }),
+    part(new THREE.BoxGeometry(0.5, 0.014, 0.04), C(0.12, 0.09, 0.06), { pos: [0, 1.48, 0.6] }),
+    // clay pot + wooden spoon
+    part(new THREE.LatheGeometry([
+      new THREE.Vector2(0.01, 0), new THREE.Vector2(0.2, 0.02), new THREE.Vector2(0.3, 0.18),
+      new THREE.Vector2(0.27, 0.36), new THREE.Vector2(0.2, 0.42), new THREE.Vector2(0.22, 0.46),
+    ], 10), C(0.62, 0.3, 0.22), { pos: [0.18, 0.72, 0.78] }),
+    part(new THREE.CylinderGeometry(0.03, 0.03, 0.95, 5), C(0.45, 0.32, 0.2), { pos: [-0.1, 1.08, 0.74], rot: [0, 0, 1.2] }),
+  ];
+  g.add(meshOf(plain, M.plain));
+  const gold = [part(sphere(0.21, 8, 5), 0xffffff, { pos: [0.18, 1.2, 0.78], scale: [1, 0.45, 1] })];
+  g.add(meshOf(gold, M.gold));
+  return g;
+}
+
+// Hooded crow-headed shepherd with glowing eyes (image 4).
+export function createCrow(M, { statue = false } = {}) {
+  const g = new THREE.Group();
+  const featherMat = statue ? M.stone : M.feather;
+  const clothMat = statue ? M.stone : M.plain;
+  const body = [
+    part(new THREE.LatheGeometry([
+      new THREE.Vector2(0.62, 0), new THREE.Vector2(0.55, 0.4), new THREE.Vector2(0.44, 1.0),
+      new THREE.Vector2(0.4, 1.4), new THREE.Vector2(0.3, 1.62), new THREE.Vector2(0.12, 1.7),
+    ], 10), C(0.17, 0.18, 0.25)),
+    part(sphere(0.28, 10, 8), C(0.16, 0.17, 0.24), { pos: [0, 1.88, 0.06], scale: [1, 1.05, 1.1] }),
+    part(new THREE.ConeGeometry(0.11, 0.62, 6), C(0.3, 0.32, 0.4), { pos: [0, 1.8, 0.44], rot: [Math.PI / 2 + 0.3, 0, 0] }),
+    part(new THREE.CylinderGeometry(0.1, 0.12, 0.62, 6), C(0.17, 0.18, 0.25), { pos: [0.4, 1.35, 0.2], rot: [-0.9, 0, -0.35] }),
+    part(new THREE.CylinderGeometry(0.1, 0.12, 0.62, 6), C(0.17, 0.18, 0.25), { pos: [-0.4, 1.35, 0.2], rot: [-0.9, 0, 0.35] }),
+    part(sphere(0.1, 6, 5), C(0.35, 0.38, 0.45), { pos: [0.33, 1.15, 0.47] }),
+    part(sphere(0.1, 6, 5), C(0.35, 0.38, 0.45), { pos: [-0.33, 1.15, 0.47] }),
+  ];
+  const hood = [
+    part(sphere(0.48, 10, 8, 0), C(0.3, 0.36, 0.3), { pos: [0, 1.58, -0.02], scale: [1.25, 0.55, 1.05] }),
+    part(new THREE.SphereGeometry(0.36, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.62), C(0.3, 0.36, 0.3), { pos: [0, 1.9, -0.04], rot: [-0.35, 0, 0], scale: [1.05, 1.2, 1.1] }),
+    part(new THREE.TorusGeometry(0.42, 0.05, 4, 12), C(0.35, 0.28, 0.2), { pos: [0, 1.0, 0], rot: [Math.PI / 2, 0, 0] }),
+  ];
+  const bodyMesh = meshOf(body, featherMat);
+  g.add(bodyMesh, meshOf(hood, clothMat));
+  const eyes = new THREE.Group();
+  for (const s of [-1, 1]) {
+    const e = new THREE.Mesh(sphere(0.06, 6, 4), M.eyes);
+    e.position.set(s * 0.15, 1.93, 0.26);
+    eyes.add(e);
+  }
+  g.add(eyes);
+  g.userData.head = [eyes];
+  return g;
+}
+
+// Black sheep: wool body + dark face/legs, 2 meshes.
+let sheepGeoms = null;
+export function createSheep(M) {
+  if (!sheepGeoms) {
+    sheepGeoms = {
+      wool: mergeGeometries([
+        part(new THREE.IcosahedronGeometry(0.5, 1), C(0.42, 0.42, 0.5), { pos: [0, 0.78, 0], scale: [0.85, 0.78, 1.18] }),
+        part(new THREE.IcosahedronGeometry(0.2, 1), C(0.42, 0.42, 0.5), { pos: [0, 1.05, 0.5] }),
+      ]),
+      skin: mergeGeometries([
+        part(sphere(0.17, 7, 5), C(0.16, 0.16, 0.2), { pos: [0, 0.98, 0.7], scale: [0.8, 0.9, 1.35] }),
+        part(new THREE.BoxGeometry(0.2, 0.05, 0.08), C(0.16, 0.16, 0.2), { pos: [0.16, 1.04, 0.62], rot: [0, 0.4, -0.5] }),
+        part(new THREE.BoxGeometry(0.2, 0.05, 0.08), C(0.16, 0.16, 0.2), { pos: [-0.16, 1.04, 0.62], rot: [0, -0.4, 0.5] }),
+        ...[[0.2, 0.32], [-0.2, 0.32], [0.2, -0.36], [-0.2, -0.36]].map(([x, z]) =>
+          part(new THREE.CylinderGeometry(0.055, 0.045, 0.6, 5), C(0.12, 0.12, 0.15), { pos: [x, 0.3, z] })),
+      ]),
+    };
+  }
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(sheepGeoms.wool, M.wool), new THREE.Mesh(sheepGeoms.skin, M.plain));
+  return g;
+}
+
+// Will-o'-wisp: unlit core + additive halo sprite; bloom does the rest.
+export function createWisp(M) {
+  const g = new THREE.Group();
+  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.17, 1), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.8, 1.2, 1.8) }));
+  const halo = new THREE.Sprite(M.sprite);
+  halo.scale.setScalar(1.8);
+  const tail = new THREE.Sprite(M.sprite);
+  tail.scale.setScalar(0.9);
+  g.add(core, halo, tail);
+  g.userData = { core, halo, tail };
+  return g;
+}
+
+// First-person view model: a worn sword and a moon-lantern.
+export function createViewModel(M) {
+  const root = new THREE.Group();
+  const sword = new THREE.Group();
+  const blade = mergeGeometries([
+    part(new THREE.BoxGeometry(0.06, 0.82, 0.014), C(0.75, 0.8, 0.9), { pos: [0, 0.53, 0] }),
+    part(new THREE.ConeGeometry(0.043, 0.14, 4), C(0.75, 0.8, 0.9), { pos: [0, 1.0, 0], rot: [0, Math.PI / 4, 0], scale: [1, 1, 0.33] }),
+    part(new THREE.BoxGeometry(0.012, 0.7, 0.016), C(0.45, 0.5, 0.6), { pos: [0, 0.5, 0] }),
+  ]);
+  sword.add(new THREE.Mesh(blade, M.metal));
+  const hilt = mergeGeometries([
+    part(new THREE.BoxGeometry(0.18, 0.035, 0.04), C(0.5, 0.42, 0.3), { pos: [0, 0.11, 0] }),
+    part(new THREE.CylinderGeometry(0.022, 0.024, 0.2, 6), C(0.3, 0.22, 0.16), { pos: [0, 0, 0] }),
+    part(sphere(0.035, 6, 4), C(0.55, 0.45, 0.3), { pos: [0, -0.11, 0] }),
+  ]);
+  sword.add(new THREE.Mesh(hilt, M.plain));
+  sword.scale.setScalar(0.62);
+  sword.position.set(0.34, -0.4, -0.62);
+  sword.rotation.set(-1.05, -0.25, -0.3);
+  root.add(sword);
+
+  const lantern = new THREE.Group();
+  const frame = mergeGeometries([
+    part(new THREE.BoxGeometry(0.15, 0.02, 0.15), C(0.35, 0.33, 0.3), { pos: [0, 0.11, 0] }),
+    part(new THREE.BoxGeometry(0.15, 0.02, 0.15), C(0.35, 0.33, 0.3), { pos: [0, -0.11, 0] }),
+    ...[[1, 1], [1, -1], [-1, 1], [-1, -1]].map(([x, z]) => part(new THREE.BoxGeometry(0.015, 0.22, 0.015), C(0.3, 0.28, 0.26), { pos: [x * 0.065, 0, z * 0.065] })),
+    part(new THREE.TorusGeometry(0.05, 0.008, 4, 10), C(0.35, 0.33, 0.3), { pos: [0, 0.16, 0] }),
+  ]);
+  lantern.add(new THREE.Mesh(frame, M.metal));
+  const flame = new THREE.Mesh(new THREE.OctahedronGeometry(0.045, 0), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.75, 1.0, 1.6) }));
+  lantern.add(flame);
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.2, 0.12), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.2, 0.35, 0.6), transparent: true, opacity: 0.35, depthWrite: false }));
+  lantern.add(glass);
+  lantern.scale.setScalar(0.5);
+  lantern.position.set(-0.3, -0.36, -0.5);
+  root.add(lantern);
+
+  root.userData = { sword, lantern, flame };
+  return root;
+}

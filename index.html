@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#050a1c">
+  <title>Moonmire — ตำนานบึงจันทรา</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Pridi:wght@300;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="hud" class="hidden">
+    <div id="compass"><div id="compass-strip"></div><div id="compass-needle"></div></div>
+    <div id="quest">
+      <div id="quest-title"></div>
+      <div id="quest-text"></div>
+    </div>
+    <div id="status">
+      <div id="hp"><div id="hp-fill"></div></div>
+      <div id="inv"><span class="coin">●</span> <span id="coins">0</span> &nbsp; <span class="potion">⚱</span> <span id="potions">0</span></div>
+    </div>
+    <div id="crosshair"></div>
+    <div id="prompt" class="hidden"></div>
+    <div id="toasts"></div>
+  </div>
+
+  <div id="dialogue" class="hidden">
+    <div id="dlg-speaker"></div>
+    <div id="dlg-text"></div>
+    <div id="dlg-options"></div>
+    <div id="dlg-hint"></div>
+  </div>
+
+  <div id="map" class="hidden">
+    <div class="panel">
+      <h2>แผนที่บึงจันทรา</h2>
+      <canvas id="map-canvas" width="480" height="480"></canvas>
+      <p class="small">กด M เพื่อปิด</p>
+    </div>
+  </div>
+
+  <div id="touch" class="hidden">
+    <div id="stick"><div id="knob"></div></div>
+    <div class="tbtns right">
+      <button data-act="attack" class="big">⚔</button>
+      <button data-act="jump">⤒</button>
+      <button data-act="interact">✋</button>
+      <button data-act="sprint">»</button>
+    </div>
+    <div class="tbtns top">
+      <button data-act="potion">⚱</button>
+      <button data-act="map">⌖</button>
+      <button data-act="pause">❚❚</button>
+    </div>
+  </div>
+
+  <div id="pause" class="hidden overlay">
+    <div class="panel">
+      <h2>หยุดชั่วคราว</h2>
+      <label>ความละเอียดภาพ (แนว PS2)
+        <select id="set-res">
+          <option value="240">240p — ดิบสุด</option>
+          <option value="360">360p</option>
+          <option value="448">448p — PS2 แท้</option>
+          <option value="540">540p</option>
+          <option value="720">720p — คมชัด</option>
+        </select>
+      </label>
+      <label>จุดยอดสั่นไหว (vertex wobble)
+        <select id="set-snap">
+          <option value="0">ปิด</option>
+          <option value="1">น้อย (PS2)</option>
+          <option value="2">มาก (PS1)</option>
+        </select>
+      </label>
+      <label>ความไวเมาส์ / การมอง <input id="set-sens" type="range" min="0.3" max="2.5" step="0.1"></label>
+      <label>เสียง <input id="set-vol" type="range" min="0" max="1" step="0.05"></label>
+      <div class="buttons">
+        <button id="btn-resume">เล่นต่อ</button>
+        <button id="btn-restart" class="ghost">เริ่มใหม่ทั้งหมด</button>
+      </div>
+      <p class="small controls">WASD เดิน · Shift วิ่ง · Space กระโดด · คลิกซ้าย ฟันดาบ · E คุย/ใช้ · Q ดื่มยา · M แผนที่ · Esc หยุด</p>
+    </div>
+  </div>
+
+  <div id="title" class="overlay">
+    <div class="title-wrap">
+      <h1>MOONMIRE</h1>
+      <div class="subtitle">ตำนานบึงจันทรา</div>
+      <div class="chapter">บทที่ 1 — ดวงจันทร์ที่ป่วยไข้</div>
+      <div class="buttons">
+        <button id="btn-new">เริ่มการเดินทาง</button>
+        <button id="btn-continue" class="hidden">เล่นต่อจากที่บันทึกไว้</button>
+      </div>
+      <p class="small">คลิกเพื่อเริ่ม · แนะนำให้ใส่หูฟัง</p>
+    </div>
+  </div>
+
+  <div id="ending" class="hidden overlay">
+    <div class="title-wrap">
+      <div class="chapter">บทที่ 1 — จบ</div>
+      <p class="ending-text">น้ำมนต์จันทราไหลลงสู่ร่องแท่นบูชา<br>ลำแสงสีเงินพุ่งขึ้นสู่ฟ้า... ดวงจันทร์ลืมตาตื่นอีกครั้ง<br><br>แต่ในบึงลึก ยังมีบางสิ่งเฝ้ามองอยู่</p>
+      <div class="buttons"><button id="btn-ending-continue">สำรวจต่อ</button></div>
+    </div>
+  </div>
+
+  <div id="fade"></div>
+  <div id="loading" class="overlay"><div>กำลังสร้างโลก...</div></div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
