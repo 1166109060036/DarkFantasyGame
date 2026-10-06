@@ -10,6 +10,7 @@ import { buildVegetation } from './vegetation.js';
 import { createToad, createCrow, createViewModel, blobShadow } from './characters.js';
 import { Flock, Particles } from './entities.js';
 import { Combat } from './combat.js';
+import { DoomHud } from './hud.js';
 import { Player } from './player.js';
 import { Input } from './input.js';
 import { AudioSys } from './audio.js';
@@ -174,6 +175,7 @@ class Game {
     this.ui.buildMap(this.terrain, this.terrain.rail.pts);
     this.quests = new Quests(this);
     this.combat = new Combat(this);
+    this.hud = new DoomHud();
 
     this.applySettings();
     this.bindUI();
@@ -245,9 +247,12 @@ class Game {
 
   resize() {
     if (!this.camera) return;
-    this.camera.aspect = innerWidth / innerHeight;
+    // in play the 3D view sits above the status bar, like Doom
+    const bar = document.body.classList.contains('in-game') ? document.getElementById('dbar').offsetHeight : 0;
+    const h = Math.max(1, innerHeight - bar);
+    this.camera.aspect = innerWidth / h;
     this.camera.updateProjectionMatrix();
-    this.pipeline.resize(innerWidth, innerHeight);
+    this.pipeline.resize(innerWidth, h);
   }
 
   start(continueGame) {
@@ -257,6 +262,8 @@ class Game {
     if (continueGame) this.load();
     document.getElementById('title').classList.add('hidden');
     this.ui.show('hud');
+    document.body.classList.add('in-game');
+    this.resize();
     if (this.input.touch) {
       this.ui.show('touch');
       document.documentElement.requestFullscreen?.().then(() => screen.orientation?.lock?.('landscape')).catch(() => {});
@@ -590,6 +597,13 @@ class Game {
     this.view.visible = this.state === 'play' || this.state === 'paused';
     if (this.state !== 'play') this.combat.updateViewModel(dt);
 
+    if (this.state !== 'title' && this.state !== 'loading') {
+      const c = this.combat;
+      this.hud.update(dt, {
+        hp: p.hp, maxHp: p.maxHp, stamina: c.stamina, exhausted: c.exhausted, dead: this.state === 'dead' || p.hp <= 0,
+        attacking: !!c.swing || (c.charging && c.heavyReady), swordMul: c.swordMul, potions: this.potions, coins: this.coins, time: this.time,
+      });
+    }
     this.clockTimer = (this.clockTimer || 0) - dt;
     if (this.clockTimer <= 0) {
       this.clockTimer = 0.5;

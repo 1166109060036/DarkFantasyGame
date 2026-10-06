@@ -276,6 +276,7 @@ export class Combat {
     g.particles.burst(e.pos.clone().setY(e.pos.y + def.height * 0.5), 22, 5, 0.9);
     const [a, b] = def.coins;
     g.addCoins(a + Math.floor(Math.random() * (b - a + 1)));
+    g.hud.grin();
     if (e.type === 'wisp') g.quests.onWispKilled();
     if (def.boss) {
       this.bossDefeated = true;
@@ -328,6 +329,7 @@ export class Combat {
         g.audio.parry();
         g.particles.burst(g.camera.position.clone().addScaledVector(p.forwardVec, 0.9), 16, 4, 0.35);
         g.ui.combatText('ปัดสำเร็จ!', 'parry');
+        g.hud.grin();
         return;
       }
       this.spend(dmg * 1.2);
@@ -338,6 +340,9 @@ export class Combat {
       else { dmg *= 0.6; this.staggerT = 0.7; this.blocking = false; g.ui.combatText('การ์ดแตก!', 'bad'); }
     }
     p.hurt(dmg, g.time);
+    // the status-bar face flinches toward whoever landed the blow
+    const rightDot = (-dx * Math.cos(p.yaw) + dz * Math.sin(p.yaw)) / Math.max(d, 1e-3);
+    g.hud.hurt(Math.abs(rightDot) < 0.35 ? 0 : Math.sign(rightDot), dmg);
     g.hurtFlash = 1;
     g.audio.hurt();
     p.shake = Math.max(p.shake, 0.25);
