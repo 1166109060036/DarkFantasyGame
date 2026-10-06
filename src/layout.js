@@ -70,3 +70,20 @@ export const KNIGHT_POS = { x: HEAD.x + 52, z: HEAD.z };
 
 // The blacksmith's open-air forge on the west side of the village.
 export const SMITH = { x: 52, z: 14 };
+
+// ---- The Pale Ones ----
+// gaunts roam at night around the village fringe, the forest, ruins, the railway and the north
+export const GAUNT_SPAWNS = [
+  [30, 44], [112, -44], [100, 62], [-130, 8], [-182, -28], [-92, -82], [-226, 24], [-104, -12],
+  [42, 104], [-8, 138], [222, -58], [140, -86], [12, -122], [-24, -232], [-60, 120], [160, 110],
+];
+// a few lurk in the deep western forest even by day
+export const GAUNT_DAY_SPAWNS = [[-200, -40], [-160, 70], [-238, -10]];
+export const CRAWLER_SPAWNS = [[-70, 190], [-20, 222], [30, 228], [-140, 210], [-170, 40], [-120, 120], [-200, -80], [80, 190]];
+// she waits where the dead linger, and only moves when you look away
+export const WEEPER_SPAWNS = [[-22, 166], [-70, 262], [-144, -100], [8, -246]];
+export const BRUTE_SPAWNS = [[CASTLE.x - 78, CASTLE.z + 18], [236, 34], [-2, -132]];
+// extra packs for the older enemies
+export const EXTRA_WOLF_PACKS = [[-230, -60, 3], [-170, 150, 2]];
+export const EXTRA_STRAW_SPAWNS = [[184, -110], [250, -20], [96, -100], [70, 80]];
+export const EXTRA_LEECH_SPAWNS = [[-110, 260], [60, 230], [-30, 270]];

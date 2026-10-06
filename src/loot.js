@@ -14,6 +14,10 @@ export const DROPS = {
   wolf: [['fang', 1, 0.9], ['fang', 1, 0.3], ['moonstone', 1, 0.05]],
   leech: [['slime', 1, 0.9], ['pearl', 1, 0.15]],
   knight: [['knight_core', 1, 1], ['idol', 1, 1]],
+  gaunt: [['claw', 1, 0.8], ['token', 1, 0.15], ['watch', 1, 0.04]],
+  crawler: [['claw', 1, 1], ['claw', 1, 0.3], ['slime', 1, 0.2]],
+  weeper: [['locket', 1, 1], ['essence', 2, 0.7]],
+  brute: [['pale_heart', 1, 1], ['claw', 3, 1], ['ore', 1, 0.7]],
 };
 
 const NODE_TYPES = {

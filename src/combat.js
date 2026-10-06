@@ -2,7 +2,11 @@
 // and every enemy's AI (idle -> chase -> telegraphed windup -> strike -> recover).
 import * as THREE from 'three';
 import { createWisp, createStrawman, createWolf, createLeech, createStoneKnight, blobShadow } from './characters.js';
-import { WISP_SPAWNS, STRAW_SPAWNS, WOLF_PACKS, LEECH_SPAWNS, KNIGHT_POS } from './layout.js';
+import {
+  WISP_SPAWNS, STRAW_SPAWNS, WOLF_PACKS, LEECH_SPAWNS, KNIGHT_POS, GAUNT_SPAWNS, GAUNT_DAY_SPAWNS, CRAWLER_SPAWNS,
+  WEEPER_SPAWNS, BRUTE_SPAWNS, EXTRA_WOLF_PACKS, EXTRA_STRAW_SPAWNS, EXTRA_LEECH_SPAWNS,
+} from './layout.js';
+import { createGaunt, createCrawler, createWeeper, createBrute } from './gaunts.js';
 import { clamp, lerp, wrapAngle } from './util.js';
 import { rng } from './noise.js';
 
@@ -11,7 +15,12 @@ export const ENEMY_TYPES = {
   straw: { name: 'หุ่นฟางคลั่ง', hp: 4, speed: 2.4, range: 2.0, windup: 0.85, recover: 1.0, damage: 15, aggro: 14, leash: 40, radius: 0.45, height: 2.0, weight: 1, active: 'day', coins: [3, 6], respawn: 90 },
   wolf: { name: 'หมาป่าเงา', hp: 3, speed: 6.0, range: 2.4, windup: 0.6, recover: 1.0, damage: 13, aggro: 20, leash: 60, radius: 0.5, height: 1.1, weight: 0.7, active: 'always', lunge: 9, coins: [2, 5], respawn: 120 },
   leech: { name: 'ปลิงยักษ์', hp: 5, speed: 2.4, range: 2.7, windup: 0.75, recover: 1.2, damage: 18, aggro: 12, leash: 22, radius: 0.6, height: 1.6, weight: 1.4, active: 'night', water: true, coins: [4, 7], respawn: 90 },
-  knight: { name: 'อัศวินหินผู้เฝ้าสะพาน', hp: 32, speed: 2.5, range: 3.8, windup: 1.05, recover: 1.4, damage: 28, aggro: 22, leash: 40, radius: 1.1, height: 4.2, weight: 6, active: 'always', boss: true, coins: [60, 60] },
+  // the Pale Ones (src/gaunts.js)
+  gaunt: { name: 'ร่างซูบ', hp: 4, speed: 1.9, sprint: 9, range: 1.9, windup: 0.6, recover: 1.0, damage: 16, aggro: 17, leash: 55, radius: 0.4, height: 1.8, weight: 0.8, active: 'night', coins: [2, 5], respawn: 120, cull: 85, freq: 5 },
+  crawler: { name: 'ร่างคลาน', hp: 3, speed: 5.2, range: 1.8, windup: 0.45, recover: 1.1, damage: 12, aggro: 15, leash: 45, radius: 0.5, height: 0.9, weight: 0.6, active: 'night', lunge: 7, coins: [2, 4], respawn: 120, cull: 85, freq: 2.7 },
+  weeper: { name: 'หญิงร่ำไห้', hp: 7, speed: 7.5, range: 1.7, windup: 0.3, recover: 1.3, damage: 30, aggro: 26, leash: 80, radius: 0.4, height: 2.1, weight: 1.2, active: 'night', stalker: true, coins: [8, 12], respawn: 300, cull: 95 },
+  brute: { name: 'ร่างซูบยักษ์', hp: 16, speed: 1.8, range: 3.0, windup: 1.1, recover: 1.5, damage: 26, aggro: 18, leash: 35, radius: 0.9, height: 3.2, weight: 4, active: 'always', slamEvery: 2, coins: [20, 30], respawn: 600, cull: 110, freq: 2, elite: true },
+  knight: { name: 'อัศวินหินผู้เฝ้าสะพาน', hp: 32, speed: 2.5, range: 3.8, windup: 1.05, recover: 1.4, damage: 28, aggro: 22, leash: 40, radius: 1.1, height: 4.2, weight: 6, active: 'always', boss: true, slamEvery: 3, coins: [60, 60] },
 };
 
 const COST = { light: 10, heavy: 26, dodge: 22 };
@@ -62,9 +71,14 @@ export class Combat {
   spawnAll() {
     const T = this.g.terrain, r = rng(99);
     WISP_SPAWNS.forEach(([x, z]) => this.spawn('wisp', x, z));
-    STRAW_SPAWNS.forEach(([x, z]) => this.spawn('straw', x, z));
-    WOLF_PACKS.forEach(([x, z, n]) => { for (let i = 0; i < n; i++) this.spawn('wolf', x + (r() - 0.5) * 10, z + (r() - 0.5) * 10); });
-    LEECH_SPAWNS.forEach(([x, z]) => {
+    [...STRAW_SPAWNS, ...EXTRA_STRAW_SPAWNS].forEach(([x, z]) => this.spawn('straw', x, z));
+    [...WOLF_PACKS, ...EXTRA_WOLF_PACKS].forEach(([x, z, n]) => { for (let i = 0; i < n; i++) this.spawn('wolf', x + (r() - 0.5) * 10, z + (r() - 0.5) * 10); });
+    GAUNT_SPAWNS.forEach(([x, z]) => this.spawn('gaunt', x, z));
+    GAUNT_DAY_SPAWNS.forEach(([x, z]) => { this.spawn('gaunt', x, z).activeOverride = 'always'; });
+    CRAWLER_SPAWNS.forEach(([x, z]) => this.spawn('crawler', x, z));
+    WEEPER_SPAWNS.forEach(([x, z]) => this.spawn('weeper', x, z));
+    BRUTE_SPAWNS.forEach(([x, z]) => this.spawn('brute', x, z));
+    [...LEECH_SPAWNS, ...EXTRA_LEECH_SPAWNS].forEach(([x, z]) => {
       // snap to the nearest properly deep water
       let best = null, bd = Infinity;
       for (let dz = -24; dz <= 24; dz += 2) {
@@ -80,7 +94,7 @@ export class Combat {
 
   spawn(type, x, z) {
     const def = ENEMY_TYPES[type], M = this.g.M;
-    const obj = { wisp: createWisp, straw: createStrawman, wolf: createWolf, leech: createLeech, knight: createStoneKnight }[type](M);
+    const obj = { wisp: createWisp, straw: createStrawman, wolf: createWolf, leech: createLeech, knight: createStoneKnight, gaunt: createGaunt, crawler: createCrawler, weeper: createWeeper, brute: createBrute }[type](M);
     this.g.scene.add(obj);
     let shadow = null;
     if (!def.fly && !def.water) {
@@ -104,15 +118,16 @@ export class Combat {
     return Math.max(h, this.g.collision.groundAt(x, z, h + 2, 0.65));
   }
 
-  isActive(def) {
-    if (def.active === 'always') return true;
-    return (def.active === 'night') === this.g.dayNight.isNight;
+  isActive(e) {
+    const when = e.activeOverride || e.def.active;
+    if (when === 'always') return true;
+    return (when === 'night') === this.g.dayNight.isNight;
   }
 
   nearest(type, p) {
     let best = null, bd = Infinity;
     for (const e of this.enemies) {
-      if (e.type !== type || !e.alive || e.state === 'dying' || !this.isActive(e.def)) continue;
+      if (e.type !== type || !e.alive || e.state === 'dying' || !this.isActive(e)) continue;
       const d = e.pos.distanceTo(p);
       if (d < bd) { bd = d; best = e; }
     }
@@ -271,7 +286,7 @@ export class Combat {
   kill(e) {
     const g = this.g, def = e.def;
     e.state = 'dying';
-    e.t = 0.9;
+    e.t = e.obj.userData.animate ? 2.6 : 0.9;
     g.audio.enemyDie(e.type);
     g.particles.burst(e.pos.clone().setY(e.pos.y + def.height * 0.5), 22, 5, 0.9);
     const [a, b] = def.coins;
@@ -293,7 +308,7 @@ export class Combat {
   enemyStrike(e) {
     const g = this.g, p = g.player, def = e.def;
     const dx = p.pos.x - e.pos.x, dz = p.pos.z - e.pos.z, d = Math.hypot(dx, dz);
-    const slam = def.boss && e.hits % 3 === 2;
+    const slam = def.slamEvery && e.hits % def.slamEvery === def.slamEvery - 1;
     e.hits++;
     if (slam) {
       g.particles.burst(e.pos.clone().add(new THREE.Vector3(Math.sin(e.ry) * 3, 0.3, Math.cos(e.ry) * 3)), 26, 6, 1.2);
@@ -362,19 +377,30 @@ export class Combat {
         }
         continue;
       }
-      const active = this.isActive(def);
-      const far = e.pos.distanceTo(p.pos) > CULL;
-      // wisps and leeches simply aren't there outside their hours
-      const hidden = !active && (def.fly || def.water);
+      const active = this.isActive(e);
+      const far = e.pos.distanceTo(p.pos) > (def.cull || CULL);
+      // wisps, leeches and the Pale Ones simply aren't there outside their hours
+      const hidden = !active && (def.fly || def.water || !!e.obj.userData.animate);
       e.obj.visible = !hidden && !far;
       if (e.shadow) e.shadow.visible = e.obj.visible;
-      if (hidden || far) { if (e.state !== 'dying') e.state = 'idle'; continue; }
+      if (hidden || far) {
+        // out of sight: anything mid-death finishes dying now (otherwise it would never respawn)
+        if (e.state === 'dying') { e.alive = false; e.respawn = def.respawn || 1e9; if (e.shadow) e.shadow.visible = false; }
+        else e.state = 'idle';
+        continue;
+      }
 
       if (e.state === 'dying') {
         e.t -= dt;
         const k = Math.max(0, e.t / 0.9);
-        e.obj.scale.setScalar((def.boss ? 1.55 : 1) * (0.2 + 0.8 * k));
-        e.obj.position.y = e.pos.y - (1 - k) * (def.fly ? 0 : 0.8);
+        if (e.obj.userData.animate) {
+          // rigged bodies crumple, lie still a moment, then sink into the earth
+          e.obj.userData.animate(e, dt, t, { dying: Math.min(1, (2.6 - e.t) / 1.0), moving: 0, speed: 0 });
+          e.obj.position.y = e.pos.y - Math.max(0, 0.8 - e.t) * 1.6;
+        } else {
+          e.obj.scale.setScalar((def.boss ? 1.55 : 1) * (0.2 + 0.8 * k));
+          e.obj.position.y = e.pos.y - (1 - k) * (def.fly ? 0 : 0.8);
+        }
         if (e.t <= 0) {
           e.alive = false;
           e.obj.visible = false;
@@ -393,6 +419,16 @@ export class Combat {
       const fromHome = Math.hypot(e.pos.x - e.home.x, e.pos.z - e.home.z);
       let moveSpeed = 0, moveAngle = e.ry, turn = 0;
       e.t -= dt;
+      // stalkers: is the player looking at this one right now?
+      let seen = false;
+      if (def.stalker && playerOk && dist < 70 && dist > 1e-3) {
+        const look = (-Math.sin(p.yaw) * -dx - Math.cos(p.yaw) * -dz) / dist;
+        seen = look > 0.74;
+        if (seen && !e.wasSeen && e.state === 'chase' && dist < 8) { g.audio.sting(); g.player.shake = Math.max(g.player.shake, 0.15); }
+        if (!seen && e.state === 'chase' && dist < 24 && (e.sobT = (e.sobT || 0) - dt) <= 0) { g.audio.sob(dist); e.sobT = 3 + Math.random() * 3; }
+      }
+      e.wasSeen = seen;
+      e.frozen = seen && (e.state === 'chase' || e.state === 'idle' || e.state === 'return');
 
       switch (e.state) {
         case 'idle':
@@ -401,7 +437,7 @@ export class Combat {
             e.wander.set(e.home.x + Math.cos(a) * r, 0, e.home.z + Math.sin(a) * r);
             e.t = 3 + Math.random() * 5;
           }
-          if (active) {   // dormant scarecrows just stand on their poles
+          if (active && !def.stalker) {   // dormant scarecrows stand on their poles; she just waits
             const wd = Math.hypot(e.wander.x - e.pos.x, e.wander.z - e.pos.z);
             if (wd > 0.6) { moveSpeed = def.speed * 0.3; moveAngle = Math.atan2(e.wander.x - e.pos.x, e.wander.z - e.pos.z); }
           }
@@ -419,6 +455,11 @@ export class Combat {
           if (!playerOk || !active || fromHome > def.leash) { e.state = 'return'; break; }
           moveSpeed = def.speed;
           moveAngle = toPlayer;
+          // gaunts shamble, then break into a sprint once they are close
+          e.running = !!def.sprint && dist < def.sprint;
+          if (e.running) moveSpeed *= 2.2;
+          // the weeper cannot move, turn or begin an attack while you are looking at her
+          if (seen) { moveSpeed = 0; break; }
           if (dist < def.range) {
             e.state = 'windup';
             e.t = def.windup;
@@ -454,10 +495,11 @@ export class Combat {
       }
       if (def.boss && (e.state === 'chase' || e.state === 'windup' || e.state === 'strike' || e.state === 'recover' || e.state === 'stagger')) bossEngaged = true;
 
-      // facing
+      // facing (a watched stalker doesn't even turn)
       const goal = turn ? toPlayer : moveAngle;
       const rate = turn || 6;
-      e.ry += clamp(wrapAngle(goal - e.ry), -rate * dt, rate * dt);
+      if (!e.frozen) e.ry += clamp(wrapAngle(goal - e.ry), -rate * dt, rate * dt);
+      e.curSpeed = moveSpeed;
       // movement (aim may differ from facing for a frame or two; that's fine)
       if (moveSpeed > 0) this.moveEnemy(e, Math.sin(moveAngle) * moveSpeed * dt, Math.cos(moveAngle) * moveSpeed * dt);
       // keep out of the player
@@ -491,6 +533,16 @@ export class Combat {
     const stag = e.state === 'stagger' ? 1 : 0;
     const moving = e.state === 'chase' || e.state === 'return' ? 1 : (e.state === 'idle' ? 0.3 : 0);
     e.flash = Math.max(0, e.flash - dt * 5);
+
+    if (ud.animate) {
+      e.pos.y = this.groundY(e.pos.x, e.pos.z, def);
+      o.position.copy(e.pos);
+      o.rotation.y = e.ry;
+      if (e.shadow) e.shadow.position.set(e.pos.x, e.pos.y + 0.04, e.pos.z);
+      const mv = e.frozen ? 0 : moving * (e.curSpeed > 0 ? 1 : 0.15);
+      ud.animate(e, dt, t, { windup, striking, stagger: stag, moving: mv, running: e.running, speed: e.frozen ? 0 : e.curSpeed * (def.freq || 3), frozen: e.frozen });
+      return;
+    }
 
     if (def.fly) {
       const bob = Math.sin(t * 2 + e.phase) * 0.2;

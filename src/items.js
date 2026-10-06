@@ -16,6 +16,7 @@ export const ITEMS = {
   slime: { name: 'เมือกปลิงยักษ์', desc: 'เมือกเหนียวกันน้ำ ใช้ปรุงยาและเคลือบผ้าคลุม', w: 1, h: 1, stack: 5, kind: 'mat', value: 3 },
   essence: { name: 'แก่นวิญญาณ', desc: 'ประกายจากวิญญาณบึง อุ่นเหมือนมีชีวิต', w: 1, h: 1, stack: 5, kind: 'mat', value: 4 },
   ore: { name: 'แร่เหล็กมืด', desc: 'แร่หนักจากหน้าผาทางเหนือ ใช้ตีอาวุธ', w: 2, h: 1, stack: 3, kind: 'mat', value: 6 },
+  claw: { name: 'กรงเล็บซีด', desc: 'เล็บยาวจากร่างซูบ แข็งเหมือนกระดูก ช่างตีเหล็กใช้ทำคมดาบ', w: 1, h: 1, stack: 10, kind: 'mat', value: 3 },
   knight_core: { name: 'แกนหินอัศวิน', desc: 'หัวใจหินที่ยังเต้นอยู่ ช่างตีเหล็กใช้ตีดาบขั้นสุดท้าย', w: 2, h: 2, stack: 1, kind: 'mat', value: 40 },
   // treasures: worthless to you, valuable to the innkeeper
   moonstone: { name: 'มูนสโตน', desc: 'สมบัติ · ขายได้ที่โรงเตี๊ยม (ช่างตีเหล็กใช้ทำตะเกียงได้)', w: 1, h: 1, stack: 1, kind: 'treasure', value: 22 },
@@ -23,6 +24,8 @@ export const ITEMS = {
   token: { name: 'เหรียญรถไฟเก่า', desc: 'สมบัติ · ตั๋วโลหะจากยุคที่รถไฟยังวิ่ง', w: 1, h: 1, stack: 3, kind: 'treasure', value: 12 },
   watch: { name: 'นาฬิกาพกพนักงานรถไฟ', desc: 'สมบัติ · เข็มหยุดเดินตอนเที่ยงคืน', w: 1, h: 1, stack: 1, kind: 'treasure', value: 35 },
   candlestick: { name: 'เชิงเทียนเงิน', desc: 'สมบัติ · เทียนหลอมจะชอบมันมาก', w: 1, h: 2, stack: 1, kind: 'treasure', value: 40 },
+  locket: { name: 'จี้รูปถ่ายเก่า', desc: 'สมบัติ · ในจี้มีรูปผู้หญิงยิ้มอยู่ เธอเคยเป็นคนของหมู่บ้านนี้', w: 1, h: 1, stack: 1, kind: 'treasure', value: 45 },
+  pale_heart: { name: 'หัวใจซีด', desc: 'สมบัติ · หัวใจของร่างซูบยักษ์ ยังอุ่นอยู่เลย ใครบางคนในโรงเตี๊ยมยอมจ่ายแพง', w: 1, h: 2, stack: 1, kind: 'treasure', value: 60 },
   idol: { name: 'รูปเคารพราชาหิน', desc: 'สมบัติ · รูปปั้นทองคำขนาดฝ่ามือ', w: 2, h: 2, stack: 1, kind: 'treasure', value: 85 },
 };
 
@@ -96,6 +99,26 @@ const DRAW = {
     d.r(6, 5, 20, 22, '#5a6070'); d.r(4, 9, 24, 14, '#5a6070'); d.r(8, 7, 16, 18, '#6a7488');
     d.r(12, 11, 8, 10, '#ff8a30'); d.r(14, 13, 4, 6, '#ffe0a0'); d.r(10, 9, 2, 2, '#8a96aa');
     d.r(6, 25, 4, 2, '#3a3e48'); d.r(22, 5, 4, 2, '#3a3e48');
+  },
+  claw: (d) => {
+    for (let i = 0; i < 12; i++) { const x = 4 + Math.round(Math.sin(i / 11 * 2.2) * 6), w = Math.max(1, 4 - Math.floor(i / 3)); d.r(x, 2 + i, w, 1, i < 3 ? '#8a7a68' : '#e8dcc8'); }
+    d.r(3, 1, 5, 2, '#a8483a'); d.p(5, 6, '#ffffff');
+  },
+  locket: (d) => {
+    for (let i = 0; i < 6; i++) d.p(7 + (i % 2), i, '#b8a060');
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      const r = Math.hypot((x - 8) / 5.2, (y - 10) / 5);
+      if (r < 1) d.p(x, y, r > 0.8 ? '#a88a40' : '#d8b860');
+    }
+    d.r(6, 8, 4, 4, '#3a2c20'); d.r(7, 9, 2, 2, '#c8b8a0');
+  },
+  pale_heart: (d) => {
+    for (let y = 0; y < 32; y++) for (let x = 0; x < 16; x++) {
+      const nx = (x - 8) / 6.5, ny = (y - 16) / 11;
+      const inside = nx * nx + ny * ny < 1 || ((x - 5) ** 2 + (y - 8) ** 2 < 14) || ((x - 11) ** 2 + (y - 8) ** 2 < 12);
+      if (inside) d.p(x, y, (x + y) % 7 === 0 ? '#7a2a30' : y > 22 ? '#a89890' : '#c8b8b0');
+    }
+    d.r(6, 2, 2, 5, '#8a6a70'); d.r(9, 1, 2, 5, '#8a6a70'); d.r(5, 14, 2, 8, '#8a2a30');
   },
   moonstone: (d) => {
     d.r(5, 3, 6, 10, '#9ab8e8'); d.r(3, 5, 10, 6, '#9ab8e8'); d.r(6, 4, 3, 3, '#e8f4ff'); d.r(9, 9, 3, 3, '#6a88c8');

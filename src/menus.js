@@ -18,7 +18,7 @@ export const UPGRADES = {
     levels: [
       { coins: 40, need: [['fang', 2]] },
       { coins: 80, need: [['fang', 3], ['ore', 1]] },
-      { coins: 140, need: [['ore', 2], ['slime', 2]] },
+      { coins: 140, need: [['ore', 2], ['claw', 4]] },
       { coins: 220, need: [['ore', 2], ['knight_core', 1]] },
     ],
   },
@@ -27,7 +27,7 @@ export const UPGRADES = {
     levels: [
       { coins: 30, need: [['straw', 3]] },
       { coins: 70, need: [['straw', 2], ['fang', 2]] },
-      { coins: 120, need: [['slime', 3], ['ore', 1]] },
+      { coins: 120, need: [['slime', 3], ['claw', 2]] },
       { coins: 200, need: [['essence', 3], ['ore', 2]] },
     ],
   },

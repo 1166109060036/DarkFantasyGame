@@ -175,11 +175,35 @@ export class AudioSys {
     if (type === 'straw') { this.burst({ dur: 0.3, freq: 3500, q: 0.7, gain: 0.14 }); if (w) this.tone({ freq: 140, dur: 0.5, type: 'sawtooth', gain: 0.06, slide: 1.5 }); }
     if (type === 'wolf') this.tone({ freq: w ? 160 : 110, dur: w ? 0.45 : 0.8, type: 'sawtooth', gain: 0.09, vibrato: 18, slide: w ? 1.4 : 0.9 });
     if (type === 'leech') { this.burst({ dur: 0.6, freq: 260, q: 4, gain: 0.2, sweep: 1.8 }); if (w) this.tone({ freq: 90, dur: 0.6, type: 'sine', gain: 0.12, vibrato: 12 }); }
+    if (type === 'gaunt') {
+      if (w) this.burst({ dur: 0.35, freq: 4200, q: 1.2, gain: 0.16, sweep: 0.6 });
+      else { this.burst({ dur: 0.8, freq: 2400, q: 3, gain: 0.22, sweep: 0.55 }); this.tone({ freq: 340, dur: 0.8, type: 'sawtooth', gain: 0.05, slide: 0.45, vibrato: 14 }); }
+    }
+    if (type === 'crawler') for (let i = 0; i < (w ? 4 : 9); i++) this.burst({ dur: 0.03, freq: 2800 + Math.random() * 1200, q: 9, gain: 0.25, delay: i * 0.06 });
+    if (type === 'weeper' && w) { this.tone({ freq: 620, dur: 0.6, type: 'sawtooth', gain: 0.09, slide: 1.9, vibrato: 9 }); this.burst({ dur: 0.6, freq: 3200, q: 1.5, gain: 0.25 }); }
+    if (type === 'brute') {
+      this.tone({ freq: w ? 62 : 48, dur: w ? 1.0 : 1.6, type: 'sawtooth', gain: 0.12, vibrato: 4, slide: w ? 1.4 : 0.8 });
+      this.burst({ dur: 1.0, freq: 220, q: 1, type: 'lowpass', gain: 0.25 });
+    }
     if (type === 'knight') { this.burst({ dur: w ? 0.9 : 1.5, freq: 160, q: 0.8, type: 'lowpass', gain: 0.35 }); if (w) this.tone({ freq: 70, dur: 1.0, type: 'sawtooth', gain: 0.08, slide: 1.3 }); }
+  }
+  // the weeper's quiet sobbing, louder the closer she is
+  sob(dist) {
+    const g = Math.max(0.01, 0.07 * (1 - dist / 26));
+    for (let i = 0; i < 3; i++) this.tone({ freq: 430 - i * 25, dur: 0.45, type: 'sine', gain: g, delay: i * 0.5, vibrato: 7, slide: 0.85 });
+    this.burst({ dur: 1.4, freq: 900, q: 2, gain: g * 1.5 });
+  }
+  // jump-scare sting when you turn and she is right there
+  sting() {
+    this.tone({ freq: 1180, dur: 1.2, type: 'sawtooth', gain: 0.07, slide: 0.98, vibrato: 30 });
+    this.tone({ freq: 1250, dur: 1.2, type: 'sawtooth', gain: 0.06, slide: 0.97 });
+    this.burst({ dur: 0.9, freq: 5000, q: 0.8, gain: 0.18, sweep: 0.4 });
   }
   enemyDie(type) {
     if (type === 'wisp') { this.tone({ freq: 900, dur: 0.6, type: 'sine', gain: 0.15, slide: 2.5 }); this.burst({ dur: 0.5, freq: 3000, q: 3, gain: 0.1, sweep: 0.3 }); return; }
     if (type === 'wolf') this.tone({ freq: 520, dur: 0.6, type: 'sawtooth', gain: 0.07, slide: 0.5, vibrato: 9 });
+    if (type === 'gaunt' || type === 'crawler' || type === 'brute') this.tone({ freq: type === 'brute' ? 90 : 180, dur: 0.9, type: 'sawtooth', gain: 0.07, slide: 0.4, vibrato: 20 });
+    if (type === 'weeper') this.tone({ freq: 700, dur: 1.6, type: 'sine', gain: 0.08, slide: 0.3, vibrato: 6 });
     if (type === 'knight') { this.slam(); this.tone({ freq: 55, dur: 2.5, type: 'sawtooth', gain: 0.1, slide: 0.6 }); }
     this.burst({ dur: 0.5, freq: type === 'straw' ? 3000 : 400, q: 0.8, gain: 0.25, sweep: 0.5 });
   }
