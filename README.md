@@ -8,17 +8,29 @@
 
 ## วิธีเล่น
 
-ต้องเปิดผ่านเว็บเซิร์ฟเวอร์ (เพราะใช้ ES modules) เปิดไฟล์ `index.html` ตรง ๆ ไม่ได้
+ต้องเปิดผ่านเว็บเซิร์ฟเวอร์ (เพราะใช้ ES modules) ดับเบิลคลิก `index.html` ตรง ๆ ไม่ได้
+
+**Windows (ง่ายสุด ไม่ต้องติดตั้งอะไร):** ดับเบิลคลิกไฟล์ **`play.bat`**
+ระบบจะเปิดเซิร์ฟเวอร์ด้วย PowerShell ที่มากับ Windows แล้วเปิดเกมในเบราว์เซอร์ให้อัตโนมัติ
+เปิดหน้าต่างสีดำค้างไว้ระหว่างเล่น ปิดหน้าต่างเมื่อเล่นเสร็จ
+
+หรือพิมพ์ใน Command Prompt:
+
+```bat
+play.bat
+```
+
+**วิธีอื่น (ถ้ามี Python หรือ Node อยู่แล้ว):**
 
 ```bash
-# วิธีที่ 1: Python
-python3 -m http.server 8000
-
-# วิธีที่ 2: Node
-npx serve .
+py -m http.server 8000        # Windows ที่ติดตั้ง Python
+python3 -m http.server 8000   # macOS / Linux
+npx serve .                   # Node.js
 ```
 
 จากนั้นเปิด http://localhost:8000
+
+> ถ้าขึ้นว่าพอร์ต 8000 ถูกใช้อยู่ ให้รัน `play.bat -Port 8080` แล้วเปิด http://localhost:8080
 
 **เล่นบนมือถือ:** เปิดเซิร์ฟเวอร์บนคอมแล้วเข้าจากมือถือผ่าน IP ในวง Wi-Fi เดียวกัน (เช่น `http://192.168.1.10:8000`)
 หรือเปิด GitHub Pages (ดูหัวข้อด้านล่าง) แล้วเล่นจากลิงก์ได้เลย แนะนำให้ถือมือถือแนวนอน
@@ -69,6 +81,7 @@ npx serve .
 
 ```
 index.html          หน้าเกม + HUD
+play.bat, serve.ps1 ตัวเปิดเกมบน Windows (เว็บเซิร์ฟเวอร์ด้วย PowerShell)
 css/style.css       สไตล์ UI (ฟอนต์ Pridi + Cinzel)
 vendor/             three.js r170 (MIT)
 src/
