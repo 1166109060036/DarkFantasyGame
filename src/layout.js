@@ -57,3 +57,13 @@ export const LOCATIONS = [
   { id: 'canyon', name: 'หุบผาซุ้มประตู', x: 0, z: -165, r: 30 },
   { id: 'temple', name: 'วิหารจมน้ำ', x: TEMPLE.x, z: TEMPLE.z, r: 40 },
 ];
+
+// ---- Enemies ----
+// Scarecrows stand inert by night and wake in the daylight gloom around the moon hill.
+export const STRAW_SPAWNS = [[112, -72], [214, -84], [232, 12], [124, 64], [62, -46], [205, 36], [150, 40]];
+// Shadow wolf packs in the western forest: [x, z, count]
+export const WOLF_PACKS = [[-125, -15, 3], [-205, 75, 2], [-95, 95, 2], [-150, -100, 3], [-60, -40, 2]];
+// Leeches lurk in the swamp water at night (snapped to the nearest deep water).
+export const LEECH_SPAWNS = [[-60, 182], [12, 205], [-128, 232], [35, 250], [-85, 150], [-10, 240]];
+// The stone knight guards the east end of the bridge to the stone king.
+export const KNIGHT_POS = { x: HEAD.x + 52, z: HEAD.z };

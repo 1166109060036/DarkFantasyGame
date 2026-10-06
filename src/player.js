@@ -27,6 +27,9 @@ export class Player {
     this.inWater = 0;
     this.stepTimer = 0;
     this.onStep = null;
+    this.sprinting = false;
+    this.shake = 0;
+    this.roll = 0;
   }
 
   place(x, z, yaw = 0) {
@@ -46,12 +49,14 @@ export class Player {
     return new THREE.Vector3(-Math.sin(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), -Math.cos(this.yaw) * Math.cos(this.pitch));
   }
 
-  update(dt, input, time, frozen = false) {
+  // mods (from combat): speedMul, sprintOk, dodgeVel (overrides movement), locked (staggered)
+  update(dt, input, time, frozen = false, mods = {}) {
     if (!frozen) {
       this.yaw -= input.lookDX;
       this.pitch = clamp(this.pitch - input.lookDY, -1.45, 1.45);
     }
-    let f = frozen ? 0 : input.forward, s = frozen ? 0 : input.strafe;
+    const still = frozen || mods.locked;
+    let f = still ? 0 : input.forward, s = still ? 0 : input.strafe;
     const len = Math.hypot(f, s);
     if (len > 1) { f /= len; s /= len; }
     const sy = Math.sin(this.yaw), cy = Math.cos(this.yaw);
@@ -59,12 +64,15 @@ export class Player {
 
     const ground = this.terrain.getHeight(this.pos.x, this.pos.z);
     this.inWater = Math.max(0, WATER_LEVEL - Math.max(ground, this.collision.groundAt(this.pos.x, this.pos.z, this.pos.y)));
-    let speed = input.sprint ? 8.2 : 4.4;
+    const sprint = input.sprint && mods.sprintOk !== false && Math.hypot(f, s) > 0.1 && !still;
+    this.sprinting = sprint && this.onGround;
+    let speed = (sprint ? 8.2 : 4.4) * (mods.speedMul ?? 1);
     if (this.inWater > 0.3) speed *= 0.62;
     const accel = this.onGround ? 12 : 2.5;
     const k = Math.min(1, accel * dt);
     this.vel.x += (wx * speed - this.vel.x) * k;
     this.vel.z += (wz * speed - this.vel.z) * k;
+    if (mods.dodgeVel) { this.vel.x = mods.dodgeVel.x; this.vel.z = mods.dodgeVel.z; }
 
     // horizontal move, refusing to climb cliffs
     const tryMove = (nx, nz) => {
@@ -85,7 +93,7 @@ export class Player {
     this.pos.z = clamp(this.pos.z, -LIMIT, LIMIT);
 
     // vertical
-    if (!frozen && input.consume('jump') && this.onGround) {
+    if (!still && input.consume('jump') && this.onGround) {
       this.vel.y = 6.4;
       this.onGround = false;
     }
@@ -110,8 +118,14 @@ export class Player {
       this.stepTimer -= hs * dt;
       if (this.stepTimer <= 0) { this.stepTimer = 2.1; this.onStep?.(this.inWater > 0.15); }
     }
-    this.camera.position.set(this.pos.x, this.camY + this.eye + this.bob, this.pos.z);
-    this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
+    this.shake = Math.max(0, this.shake - dt * 1.6);
+    const sh = this.shake * this.shake * 0.6;
+    this.camera.position.set(
+      this.pos.x + (Math.random() - 0.5) * sh,
+      this.camY + this.eye + this.bob + (Math.random() - 0.5) * sh - (mods.dodgeVel ? 0.18 : 0),
+      this.pos.z + (Math.random() - 0.5) * sh,
+    );
+    this.camera.rotation.set(this.pitch, this.yaw, this.roll, 'YXZ');
 
     // health regen
     if (time - this.lastHurt > 6 && this.hp > 0) this.hp = Math.min(this.maxHp, this.hp + 2.5 * dt);

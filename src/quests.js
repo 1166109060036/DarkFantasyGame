@@ -39,7 +39,7 @@ export class Quests {
       case 1: return LOST_SHEEP.filter((_, i) => !this.sheepFound[i]).map(([x, z]) => ({ x, z, label: 'แกะ' }));
       case 3: case 5: return [{ x: toad.x, z: toad.z, label: 'ยายคางคก' }];
       case 4: {
-        const w = this.g.wisps.nearestAlive(this.g.player.pos);
+        const w = this.g.combat.nearest('wisp', this.g.player.pos);
         return w ? [{ x: w.pos.x, z: w.pos.z, label: 'วิญญาณ' }] : [];
       }
       case 6: return [{ x: altar.x, z: altar.z, label: 'แท่นบูชา' }];

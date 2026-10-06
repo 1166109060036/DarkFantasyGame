@@ -23,9 +23,14 @@
     </div>
     <div id="status">
       <div id="hp"><div id="hp-fill"></div></div>
+      <div id="st"><div id="st-fill"></div></div>
       <div id="inv"><span class="coin">●</span> <span id="coins">0</span> &nbsp; <span class="potion">⚱</span> <span id="potions">0</span></div>
     </div>
     <div id="crosshair"></div>
+    <div id="target" class="hidden"><div class="name"></div><div class="bar"><div class="fill"></div></div></div>
+    <div id="boss" class="hidden"><div class="name"></div><div class="bar"><div class="fill"></div></div></div>
+    <div id="ctext"></div>
+    <div id="banner"><div class="title"></div><div class="sub"></div></div>
     <div id="prompt" class="hidden"></div>
     <div id="toasts"></div>
   </div>
@@ -52,6 +57,8 @@
       <button data-act="jump">⤒</button>
       <button data-act="interact">✋</button>
       <button data-act="sprint">»</button>
+      <button data-act="block">🛡</button>
+      <button data-act="dodge">↯</button>
     </div>
     <div class="tbtns top">
       <button data-act="potion">⚱</button>
@@ -87,7 +94,7 @@
         <button id="btn-restart" class="ghost">เริ่มใหม่ทั้งหมด</button>
         <button id="btn-quit" class="ghost desktop-only">ออกจากเกม</button>
       </div>
-      <p class="small controls">เวลาในเกม 1 วัน = 15 นาที · พักที่โรงเตี๊ยมเพื่อข้ามเวลาได้<br>WASD เดิน · Shift วิ่ง · Space กระโดด · คลิกซ้าย ฟันดาบ · E คุย/ใช้ · Q ดื่มยา · M แผนที่ · Esc หยุด</p>
+      <p class="small controls">เวลาในเกม 1 วัน = 15 นาที · พักที่โรงเตี๊ยมเพื่อข้ามเวลาได้<br>WASD เดิน · Shift วิ่ง · Space กระโดด · คลิกซ้าย ฟัน (กดค้าง = ฟันหนัก) · คลิกขวาค้าง ป้องกัน/ปัด · C หรือ Ctrl หลบ · E คุย/ใช้ · Q ดื่มยา · M แผนที่ · Esc หยุด</p>
     </div>
   </div>
 

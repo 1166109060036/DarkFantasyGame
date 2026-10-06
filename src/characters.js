@@ -226,3 +226,141 @@ export function createPatron(M, color, { hood = true, skin = C(0.5, 0.42, 0.36) 
   g.add(meshOf(head, M.plain));
   return g;
 }
+
+// ---------------------------------------------------------------- enemies
+// Each enemy merges its static parts per material and keeps only the animated pieces separate.
+
+// Scarecrow that wakes in daylight and hops after you, ember eyes glowing.
+export function createStrawman(M) {
+  const g = new THREE.Group();
+  const straw = C(0.66, 0.53, 0.28), sack = C(0.55, 0.45, 0.32), coat = C(0.32, 0.26, 0.24);
+  const body = [
+    part(new THREE.LatheGeometry([
+      new THREE.Vector2(0.26, 0.55), new THREE.Vector2(0.36, 0.85), new THREE.Vector2(0.34, 1.3), new THREE.Vector2(0.22, 1.56),
+    ], 8), coat),
+    part(sphere(0.24, 8, 6), sack, { pos: [0, 1.82, 0], scale: [1, 1.1, 0.95] }),
+    part(new THREE.BoxGeometry(0.2, 0.02, 0.02), C(0.08, 0.05, 0.04), { pos: [0, 1.72, 0.22], rot: [0, 0, 0.15] }),
+    part(new THREE.CylinderGeometry(0.46, 0.46, 0.03, 10), C(0.25, 0.18, 0.13), { pos: [0, 2.0, 0], rot: [0.12, 0, 0.1] }),
+    part(new THREE.ConeGeometry(0.22, 0.42, 8), C(0.25, 0.18, 0.13), { pos: [0, 2.2, -0.02], rot: [0.1, 0, 0.18] }),
+  ];
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 9) * Math.PI * 2;
+    body.push(part(new THREE.ConeGeometry(0.05, 0.4, 4), straw, { pos: [Math.cos(a) * 0.26, 0.42, Math.sin(a) * 0.26], rot: [Math.PI + Math.sin(a) * 0.3, 0, Math.cos(a) * 0.3] }));
+  }
+  g.add(meshOf(body, M.plain));
+  g.add(meshOf([part(new THREE.CylinderGeometry(0.05, 0.06, 2.0, 5), C(0.5, 0.42, 0.35), { pos: [0, 0.6, 0] })], M.wood));
+  const arms = new THREE.Group();
+  arms.position.set(0, 1.42, 0);
+  const armParts = [part(new THREE.CylinderGeometry(0.1, 0.12, 1.5, 6), coat, { rot: [0, 0, Math.PI / 2] })];
+  for (const s of [-1, 1]) {
+    for (let k = 0; k < 4; k++) armParts.push(part(new THREE.ConeGeometry(0.04, 0.32, 4), straw, { pos: [s * 0.8, -0.05, (k - 1.5) * 0.05], rot: [0, 0, s * (Math.PI / 2 + 0.3) - (k - 1.5) * 0.25 * s] }));
+  }
+  arms.add(meshOf(armParts, M.plain));
+  g.add(arms);
+  const eyeMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.7, 0.55, 0.12) });
+  const eyes = new THREE.Group();
+  for (const s of [-1, 1]) {
+    const e = new THREE.Mesh(sphere(0.04, 5, 4), eyeMat);
+    e.position.set(s * 0.09, 1.88, 0.21);
+    eyes.add(e);
+  }
+  g.add(eyes);
+  g.userData = { arms, eyes };
+  return g;
+}
+
+// Shadow wolf: dark fur, glowing eyes, animated legs.
+export function createWolf(M) {
+  const g = new THREE.Group();
+  const fur = C(0.2, 0.2, 0.26);
+  g.add(meshOf([
+    part(sphere(0.5, 9, 7), fur, { pos: [0, 0.78, -0.05], scale: [0.5, 0.44, 1.05] }),
+    part(sphere(0.36, 8, 6), fur, { pos: [0, 0.86, 0.42], scale: [0.85, 0.95, 0.9] }),
+    part(sphere(0.22, 7, 5), fur, { pos: [0, 0.98, 0.62], scale: [0.8, 0.9, 1] }),
+    part(new THREE.ConeGeometry(0.09, 0.6, 5), fur, { pos: [0, 0.8, -0.82], rot: [-2.1, 0, 0] }),
+  ], M.wool));
+  const head = new THREE.Group();
+  head.position.set(0, 1.02, 0.78);
+  head.add(meshOf([
+    part(sphere(0.22, 8, 6), fur, { scale: [0.95, 0.85, 1.1] }),
+    part(new THREE.CylinderGeometry(0.085, 0.12, 0.28, 6), C(0.16, 0.16, 0.2), { pos: [0, -0.06, 0.25], rot: [Math.PI / 2, 0, 0] }),
+    part(sphere(0.045, 5, 4), C(0.03, 0.03, 0.04), { pos: [0, -0.04, 0.41] }),
+    part(new THREE.ConeGeometry(0.06, 0.18, 4), fur, { pos: [0.11, 0.2, -0.04] }),
+    part(new THREE.ConeGeometry(0.06, 0.18, 4), fur, { pos: [-0.11, 0.2, -0.04] }),
+  ], M.wool));
+  for (const s of [-1, 1]) {
+    const e = new THREE.Mesh(sphere(0.035, 5, 4), M.eyes);
+    e.position.set(s * 0.09, 0.06, 0.18);
+    head.add(e);
+  }
+  g.add(head);
+  const legGeom = mergeGeometries([
+    part(new THREE.CylinderGeometry(0.08, 0.055, 0.62, 5), C(0.16, 0.16, 0.2), { pos: [0, -0.31, 0] }),
+    part(sphere(0.07, 5, 4), C(0.14, 0.14, 0.17), { pos: [0, -0.62, 0.04], scale: [1, 0.6, 1.4] }),
+  ]);
+  const legs = [[0.17, 0.42], [-0.17, 0.42], [0.17, -0.5], [-0.17, -0.5]].map(([x, z]) => {
+    const l = new THREE.Mesh(legGeom, M.plain);
+    l.position.set(x, 0.66, z);
+    g.add(l);
+    return l;
+  });
+  g.userData = { head, legs };
+  return g;
+}
+
+// Giant marsh leech: segments that rear out of the water.
+export function createLeech(M) {
+  const g = new THREE.Group();
+  const segs = [];
+  for (let i = 0; i < 6; i++) {
+    const r = 0.42 - i * 0.03;
+    const parts = [part(sphere(r, 9, 7), C(0.55 - i * 0.03, 0.34, 0.46), { scale: [1, 1, 1.25] })];
+    if (i === 0) {
+      parts.push(part(new THREE.TorusGeometry(0.24, 0.07, 5, 10), C(0.95, 0.45, 0.55), { pos: [0, 0, r * 1.05] }));
+      for (let k = 0; k < 8; k++) {
+        const a = (k / 8) * Math.PI * 2;
+        parts.push(part(new THREE.ConeGeometry(0.035, 0.14, 4), C(0.9, 0.85, 0.75), { pos: [Math.cos(a) * 0.2, Math.sin(a) * 0.2, r * 1.05], rot: [Math.PI / 2, 0, 0] }));
+      }
+      parts.push(part(sphere(0.16, 6, 5), C(0.05, 0.0, 0.02), { pos: [0, 0, r * 0.95] }));
+    }
+    const m = meshOf(parts, M.toadSkin);
+    g.add(m);
+    segs.push(m);
+  }
+  g.userData = { segs };
+  return g;
+}
+
+// The bridge guardian: a crowned knight of mossy stone with a huge stone greatsword.
+export function createStoneKnight(M) {
+  const g = new THREE.Group();
+  const stone = C(0.7, 0.75, 0.9), moss = C(0.45, 0.6, 0.4);
+  g.add(meshOf([
+    part(new THREE.BoxGeometry(0.36, 1.05, 0.42), stone, { pos: [0.26, 0.52, 0] }),
+    part(new THREE.BoxGeometry(0.36, 1.05, 0.42), stone, { pos: [-0.26, 0.52, 0] }),
+    part(new THREE.BoxGeometry(1.0, 1.05, 0.62), stone, { pos: [0, 1.55, 0] }),
+    part(new THREE.BoxGeometry(1.1, 0.18, 0.7), moss, { pos: [0, 1.06, 0] }),
+    part(sphere(0.32, 8, 6), moss, { pos: [0.64, 2.0, 0] }),
+    part(sphere(0.32, 8, 6), moss, { pos: [-0.64, 2.0, 0] }),
+    part(new THREE.BoxGeometry(0.52, 0.58, 0.58), stone, { pos: [0, 2.4, 0.02] }),
+    ...[0, 1, 2, 3].map((i) => part(new THREE.BoxGeometry(0.12, 0.2, 0.12), moss, { pos: [Math.cos(i * Math.PI / 2) * 0.2, 2.78, Math.sin(i * Math.PI / 2) * 0.2] })),
+    part(new THREE.BoxGeometry(0.26, 0.95, 0.26), stone, { pos: [-0.66, 1.5, 0.05], rot: [0.15, 0, 0.12] }),
+  ], M.giantRock));
+  const eyeMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.8, 0.6, 0.15) });
+  const eye = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.06, 0.03), eyeMat);
+  eye.position.set(0, 2.42, 0.31);
+  g.add(eye);
+  const arm = new THREE.Group();
+  arm.position.set(0.66, 2.0, 0);
+  arm.add(meshOf([
+    part(new THREE.BoxGeometry(0.28, 0.95, 0.28), stone, { pos: [0, -0.45, 0] }),
+    // greatsword continues down from the fist: rest leans it forward, windup lifts it overhead
+    part(new THREE.BoxGeometry(0.12, 0.45, 0.12), C(0.4, 0.32, 0.25), { pos: [0, -0.85, 0] }),
+    part(new THREE.BoxGeometry(0.6, 0.1, 0.16), stone, { pos: [0, -1.1, 0] }),
+    part(new THREE.BoxGeometry(0.22, 2.2, 0.06), C(0.62, 0.66, 0.75), { pos: [0, -2.2, 0] }),
+  ], M.giantRock));
+  g.add(arm);
+  g.scale.setScalar(1.55);
+  g.userData = { arm, eye };
+  return g;
+}

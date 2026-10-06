@@ -94,12 +94,39 @@ export class AudioSys {
   }
 
   step(wet) { this.burst(wet ? { dur: 0.22, freq: 900, q: 0.8, gain: 0.12, sweep: 0.5 } : { dur: 0.09, freq: 300, q: 1.2, gain: 0.12 }); }
-  swing() { this.burst({ dur: 0.25, freq: 2400, q: 1.5, gain: 0.18, sweep: 0.3 }); }
-  hit() { this.burst({ dur: 0.18, freq: 1600, q: 6, gain: 0.3 }); this.tone({ freq: 880, dur: 0.25, type: 'triangle', gain: 0.08, slide: 0.6 }); }
+  swing(heavy = false) {
+    this.burst(heavy ? { dur: 0.45, freq: 1500, q: 1.2, gain: 0.26, sweep: 0.25 } : { dur: 0.25, freq: 2400, q: 1.5, gain: 0.18, sweep: 0.3 });
+  }
+  hit(heavy = false) {
+    this.burst({ dur: heavy ? 0.3 : 0.18, freq: heavy ? 700 : 1600, q: heavy ? 2 : 6, gain: heavy ? 0.45 : 0.3 });
+    this.tone({ freq: heavy ? 180 : 880, dur: 0.25, type: heavy ? 'square' : 'triangle', gain: heavy ? 0.1 : 0.08, slide: 0.6 });
+  }
+  parry() {
+    this.tone({ freq: 1900, dur: 0.6, type: 'square', gain: 0.07, slide: 0.97 });
+    this.tone({ freq: 2850, dur: 0.45, type: 'triangle', gain: 0.08, slide: 0.98 });
+    this.burst({ dur: 0.12, freq: 4200, q: 3, gain: 0.35 });
+  }
+  block() { this.burst({ dur: 0.16, freq: 500, q: 1.5, gain: 0.4 }); this.tone({ freq: 220, dur: 0.15, type: 'square', gain: 0.06, slide: 0.7 }); }
+  dodge() { this.burst({ dur: 0.3, freq: 900, q: 0.8, gain: 0.16, sweep: 0.4 }); }
+  charge() { this.tone({ freq: 330, dur: 0.35, type: 'triangle', gain: 0.06, slide: 1.6 }); }
+  slam() { this.burst({ dur: 1.4, freq: 120, q: 0.6, type: 'lowpass', gain: 0.6 }); this.burst({ dur: 0.3, freq: 600, q: 1, gain: 0.3 }); }
+  // per-enemy voice: 'aggro' when they notice you, 'windup' as the attack tell
+  enemyCue(type, kind) {
+    const w = kind === 'windup';
+    if (type === 'wisp') this.tone({ freq: w ? 760 : 520, dur: w ? 0.5 : 1.0, type: 'sine', gain: 0.05, vibrato: 7, slide: w ? 1.8 : 1 });
+    if (type === 'straw') { this.burst({ dur: 0.3, freq: 3500, q: 0.7, gain: 0.14 }); if (w) this.tone({ freq: 140, dur: 0.5, type: 'sawtooth', gain: 0.06, slide: 1.5 }); }
+    if (type === 'wolf') this.tone({ freq: w ? 160 : 110, dur: w ? 0.45 : 0.8, type: 'sawtooth', gain: 0.09, vibrato: 18, slide: w ? 1.4 : 0.9 });
+    if (type === 'leech') { this.burst({ dur: 0.6, freq: 260, q: 4, gain: 0.2, sweep: 1.8 }); if (w) this.tone({ freq: 90, dur: 0.6, type: 'sine', gain: 0.12, vibrato: 12 }); }
+    if (type === 'knight') { this.burst({ dur: w ? 0.9 : 1.5, freq: 160, q: 0.8, type: 'lowpass', gain: 0.35 }); if (w) this.tone({ freq: 70, dur: 1.0, type: 'sawtooth', gain: 0.08, slide: 1.3 }); }
+  }
+  enemyDie(type) {
+    if (type === 'wisp') { this.tone({ freq: 900, dur: 0.6, type: 'sine', gain: 0.15, slide: 2.5 }); this.burst({ dur: 0.5, freq: 3000, q: 3, gain: 0.1, sweep: 0.3 }); return; }
+    if (type === 'wolf') this.tone({ freq: 520, dur: 0.6, type: 'sawtooth', gain: 0.07, slide: 0.5, vibrato: 9 });
+    if (type === 'knight') { this.slam(); this.tone({ freq: 55, dur: 2.5, type: 'sawtooth', gain: 0.1, slide: 0.6 }); }
+    this.burst({ dur: 0.5, freq: type === 'straw' ? 3000 : 400, q: 0.8, gain: 0.25, sweep: 0.5 });
+  }
   hurt() { this.tone({ freq: 140, dur: 0.3, type: 'sawtooth', gain: 0.12, slide: 0.5 }); this.burst({ dur: 0.2, freq: 400, gain: 0.2 }); }
   coin() { this.tone({ freq: 1320, dur: 0.12, type: 'square', gain: 0.05 }); this.tone({ freq: 1760, dur: 0.25, type: 'square', gain: 0.05, delay: 0.08 }); }
-  wispDie() { this.tone({ freq: 900, dur: 0.6, type: 'sine', gain: 0.15, slide: 2.5 }); this.burst({ dur: 0.5, freq: 3000, q: 3, gain: 0.1, sweep: 0.3 }); }
-  wispHum() { this.tone({ freq: 520 + Math.random() * 200, dur: 1.2, type: 'sine', gain: 0.03, vibrato: 7 }); }
   bleat() { this.tone({ freq: 380 + Math.random() * 80, dur: 0.55, type: 'sawtooth', gain: 0.05, vibrato: 11, slide: 0.85 }); }
   caw() {
     this.burst({ dur: 0.28, freq: 1200, q: 4, gain: 0.25, sweep: 0.7 });

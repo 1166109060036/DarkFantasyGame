@@ -8,15 +8,16 @@ import { CollisionWorld } from './collision.js';
 import { buildStructures } from './structures.js';
 import { buildVegetation } from './vegetation.js';
 import { createToad, createCrow, createViewModel, blobShadow } from './characters.js';
-import { Flock, Wisps, Particles } from './entities.js';
+import { Flock, Particles } from './entities.js';
+import { Combat } from './combat.js';
 import { Player } from './player.js';
 import { Input } from './input.js';
 import { AudioSys } from './audio.js';
 import { UI } from './ui.js';
 import { Quests } from './quests.js';
-import { PASTURE, FENCE_R, TOAD, TEMPLE, SPAWN, LOST_SHEEP, WISP_SPAWNS, LOCATIONS, TAVERN } from './layout.js';
+import { PASTURE, FENCE_R, TOAD, TEMPLE, SPAWN, LOST_SHEEP, LOCATIONS, TAVERN } from './layout.js';
 import { DayNight } from './daynight.js';
-import { lerp, clamp } from './util.js';
+import { clamp } from './util.js';
 
 const SAVE_KEY = 'moonmire-save-v1';
 const SETTINGS_KEY = 'moonmire-settings-v1';
@@ -41,7 +42,6 @@ class Game {
     this.time = 0;
     this.coins = 0;
     this.potions = 1;
-    this.swing = -1;
     this.checkpoint = { x: SPAWN.x, z: SPAWN.z };
     this.endingBeam = null;
     this.discovered = new Set();
@@ -152,7 +152,6 @@ class Game {
       this.flock.add(PASTURE.x + Math.cos(a) * d, PASTURE.z + Math.sin(a) * d);
     }
     this.lostSheep = LOST_SHEEP.map(([x, z], i) => this.flock.add(x, z, { lost: true, id: i }));
-    this.wisps = new Wisps(scene, M, this.terrain, this.audio, WISP_SPAWNS);
     this.particles = new Particles(scene, M);
 
     // first-person hands rendered in their own pass (never clip into walls)
@@ -174,6 +173,7 @@ class Game {
     this.ui = new UI();
     this.ui.buildMap(this.terrain, this.terrain.rail.pts);
     this.quests = new Quests(this);
+    this.combat = new Combat(this);
 
     this.applySettings();
     this.bindUI();
@@ -265,7 +265,7 @@ class Game {
     this.onQuestChanged(false);
     if (!continueGame) {
       setTimeout(() => this.ui.toast('ฝนเย็นเยียบตกลงบนบึง... เดินตามรางรถไฟขึ้นไปทางเหนือ'), 600);
-      if (!this.input.touch) setTimeout(() => this.ui.toast('WASD เดิน · Shift วิ่ง · คลิก ฟันดาบ · E คุย · M แผนที่'), 3200);
+      if (!this.input.touch) setTimeout(() => this.ui.toast('WASD เดิน · Shift วิ่ง · คลิก ฟัน · คลิกขวา ป้องกัน · C หลบ · E คุย · M แผนที่'), 3200);
     }
   }
 
@@ -284,7 +284,7 @@ class Game {
   save() {
     if (this.state === 'title' || this.state === 'loading') return;
     store.set(SAVE_KEY, {
-      quests: this.quests.serialize(), coins: this.coins, potions: this.potions, hp: this.player.hp,
+      quests: this.quests.serialize(), combat: this.combat.serialize(), coins: this.coins, potions: this.potions, hp: this.player.hp,
       pos: { x: this.player.pos.x, z: this.player.pos.z }, yaw: this.player.yaw, checkpoint: this.checkpoint,
       time: this.dayNight.t, discovered: [...this.discovered],
     });
@@ -299,6 +299,7 @@ class Game {
     this.checkpoint = d.checkpoint || this.checkpoint;
     if (typeof d.time === 'number') this.dayNight.t = d.time;
     this.discovered = new Set(d.discovered || []);
+    this.combat.load(d.combat);
     if (d.pos) this.player.place(d.pos.x, d.pos.z, d.yaw ?? 0);
     this.player.hp = Math.max(30, d.hp ?? 100);
     this.quests.sheepFound.forEach((f, i) => {
@@ -319,7 +320,7 @@ class Game {
   }
 
   updateHud() {
-    this.ui.setStats(this.player.hp, this.player.maxHp, this.coins, this.potions);
+    this.ui.setStats(this.player.hp, this.player.maxHp, this.coins, this.potions, this.combat.stamina, this.combat.exhausted);
   }
 
   onQuestChanged(saveNow = true) {
@@ -384,52 +385,6 @@ class Game {
     }
   }
 
-  attack() {
-    if (this.swing >= 0) return;
-    this.swing = 0;
-    this.swingHit = false;
-    this.audio.swing();
-  }
-
-  updateSwing(dt) {
-    const sw = this.view.userData.sword;
-    if (this.swing < 0) {
-      sw.position.set(0.34, -0.4 + this.player.bob * 0.5, -0.62);
-      sw.rotation.set(-1.05, -0.25, -0.3);
-      return;
-    }
-    this.swing += dt / 0.36;
-    const t = this.swing;
-    // windup -> slash across -> recover
-    const k1 = clamp(t / 0.25, 0, 1), k2 = clamp((t - 0.25) / 0.35, 0, 1), k3 = clamp((t - 0.6) / 0.4, 0, 1);
-    const e = (x) => x * x * (3 - 2 * x);
-    const rest = [0.34, -0.4, -0.62, -1.05, -0.25, -0.3];
-    const up = [0.42, -0.16, -0.45, -0.25, -0.6, -1.25];
-    const end = [-0.28, -0.42, -0.55, -1.55, 0.55, 0.95];
-    let p;
-    if (t < 0.25) p = rest.map((v, i) => lerp(v, up[i], e(k1)));
-    else if (t < 0.6) p = up.map((v, i) => lerp(v, end[i], e(k2)));
-    else p = end.map((v, i) => lerp(v, rest[i], e(k3)));
-    sw.position.set(p[0], p[1], p[2]);
-    sw.rotation.set(p[3], p[4], p[5]);
-    if (!this.swingHit && t > 0.35) {
-      this.swingHit = true;
-      const origin = this.camera.position.clone();
-      const dir = this.player.forwardVec;
-      for (const w of this.wisps.hitTest(origin, dir)) {
-        this.audio.hit();
-        this.particles.burst(w.pos, 8, 3, 0.5);
-        if (this.wisps.damage(w, dir)) {
-          this.audio.wispDie();
-          this.particles.burst(w.pos, 20, 5, 0.9);
-          this.addCoins(2 + Math.floor(Math.random() * 3));
-          this.quests.onWispKilled();
-        }
-      }
-    }
-    if (t >= 1) this.swing = -1;
-  }
-
   applyDayNight(dt, rainI, flash) {
     const dn = this.dayNight;
     if (this.state !== 'sleeping') dn.update(dt);
@@ -480,10 +435,11 @@ class Game {
     if (input.consume('map') && !ui.dialogueOpen) ui.show('map', mapOpen ? false : true);
     if (input.consume('pause')) { if (document.pointerLockElement) document.exitPointerLock(); this.pause(); return; }
 
-    p.update(dt, input, this.time, frozen);
+    const c = this.combat;
+    c.updatePlayer(dt, input, frozen);
+    p.update(dt, input, this.time, frozen, c.playerMods());
 
     if (!frozen) {
-      if (input.consume('attack')) this.attack();
       if (input.consume('potion')) {
         if (this.potions > 0 && p.hp < p.maxHp) {
           this.potions--; p.hp = Math.min(p.maxHp, p.hp + 50); this.audio.drink(); this.ui.toast('ดื่มยาฟื้นพลัง +50');
@@ -502,7 +458,7 @@ class Game {
     } else {
       ui.setPrompt(null);
     }
-    this.updateSwing(dt);
+    c.updateViewModel(dt);
 
     // lost sheep
     if (this.quests.stage === 1) {
@@ -515,11 +471,7 @@ class Game {
       });
     }
 
-    this.wisps.update(dt, this.time, p, () => {
-      p.hurt(13, this.time);
-      this.hurtFlash = 1;
-      this.audio.hurt();
-    }, this.dayNight.isNight);
+    c.updateEnemies(dt, true);
     this.checkDiscoveries();
     const v = this.village.indoor;
     const inside = p.pos.x > v.minX && p.pos.x < v.maxX && p.pos.z > v.minZ && p.pos.z < v.maxZ && p.pos.y < v.maxY;
@@ -533,7 +485,9 @@ class Game {
   }
 
   frame() {
-    const dt = Math.min(0.05, this.clock.getDelta());
+    let dt = Math.min(0.05, this.clock.getDelta());
+    // hit-stop: freeze the world for a heartbeat on heavy blows and parries
+    if (this.combat.hitStop > 0) { this.combat.hitStop -= dt; dt *= 0.08; }
     this.time += dt;
     ps2Uniforms.uTime.value = this.time;
     const p = this.player;
@@ -553,6 +507,7 @@ class Game {
         this.dayNight.t = this.sleepTarget;
         this.sleepTarget = null;
         p.hp = p.maxHp;
+        this.combat.resetAggro();
       }
       if (this.sleepT > 2.2) {
         this.state = 'play';
@@ -565,6 +520,8 @@ class Game {
       if (this.deadT > 2) {
         p.place(this.checkpoint.x, this.checkpoint.z, p.yaw);
         p.hp = p.maxHp;
+        this.combat.resetAggro();
+        this.combat.stamina = this.combat.maxStamina;
         const lost = Math.floor(this.coins * 0.25);
         this.coins -= lost;
         this.state = 'play';
@@ -586,7 +543,7 @@ class Game {
     this.sky.position.copy(this.camera.position);
 
     this.flock.update(dt, this.time, p);
-    if (this.state !== 'play') this.wisps.update(dt, this.time, { pos: new THREE.Vector3(0, -999, 0), hp: 0 }, () => {});
+    if (this.state !== 'play') this.combat.updateEnemies(dt, false);
     this.particles.update(dt);
 
     // NPC idle animation
@@ -616,7 +573,7 @@ class Game {
     lan.rotation.z = Math.sin(p.bobT) * 0.08 * p.moving;
     this.view.userData.flame.scale.setScalar(flick);
     this.view.visible = this.state === 'play' || this.state === 'paused';
-    if (this.state !== 'play') this.updateSwing(0);
+    if (this.state !== 'play') this.combat.updateViewModel(dt);
 
     this.clockTimer = (this.clockTimer || 0) - dt;
     if (this.clockTimer <= 0) {

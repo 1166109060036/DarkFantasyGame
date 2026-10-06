@@ -58,6 +58,25 @@ body:not(.desktop) .desktop-only { display: none !important; }
 #status { position: absolute; left: 20px; bottom: 20px; }
 #hp { width: 220px; height: 9px; border: 1px solid rgba(220, 200, 160, 0.55); background: rgba(0, 0, 0, 0.55); }
 #hp-fill { height: 100%; width: 100%; background: linear-gradient(#c43a3a, #6e1414); transition: width 0.2s; }
+#st { width: 180px; height: 5px; margin-top: 3px; border: 1px solid rgba(220, 200, 160, 0.4); background: rgba(0, 0, 0, 0.55); }
+#st-fill { height: 100%; width: 100%; background: linear-gradient(#d8c25a, #8a7420); }
+#st.low #st-fill { background: linear-gradient(#e07a3a, #8a3a14); animation: blink 0.5s infinite; }
+#target { position: absolute; top: 72px; left: 50%; transform: translateX(-50%); text-align: center; font-size: 13px; }
+#target .bar { width: 160px; height: 5px; margin: 3px auto 0; background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(220, 200, 160, 0.4); }
+#target .fill, #boss .fill { height: 100%; background: linear-gradient(#b83232, #5e1010); transition: width 0.15s; }
+#boss { position: absolute; bottom: 64px; left: 50%; transform: translateX(-50%); width: min(620px, 70vw); text-align: left; }
+#boss .name { font-family: 'Cinzel', var(--font); font-size: 18px; color: #efe6c8; margin-bottom: 4px; }
+#boss .bar { height: 9px; background: rgba(0, 0, 0, 0.65); border: 1px solid rgba(232, 196, 106, 0.55); }
+#ctext { position: absolute; left: 50%; top: 42%; transform: translateX(-50%); font-size: 22px; opacity: 0; pointer-events: none; white-space: nowrap; }
+#ctext.show { animation: ctext 0.9s ease-out forwards; }
+#ctext.parry { color: #9fe0ff; text-shadow: 0 0 12px #3aa0ff; }
+#ctext.bad { color: #ff8a7a; }
+#ctext.info { color: var(--dim); font-size: 17px; }
+@keyframes ctext { 0% { opacity: 0; transform: translate(-50%, 6px) scale(1.25); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1); } 70% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -10px); } }
+#banner { position: absolute; top: 30%; left: 0; right: 0; text-align: center; opacity: 0; pointer-events: none; }
+#banner .title { font-family: 'Cinzel', var(--font); font-size: clamp(40px, 7vw, 86px); color: #e8c46a; letter-spacing: 0.2em; text-shadow: 0 0 20px rgba(0, 0, 0, 0.9), 0 0 40px rgba(232, 196, 106, 0.35); }
+#banner .sub { font-size: 18px; color: var(--ink); }
+#banner.show { animation: discover 5s ease forwards; }
 #inv { margin-top: 6px; font-size: 15px; }
 #inv .coin { color: var(--gold); }
 #inv .potion { color: #ff8a8a; }
@@ -126,7 +145,7 @@ button.ghost { background: transparent; font-size: 15px; color: var(--dim); }
 #stick.active { opacity: 1; }
 #knob { position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; margin: -25px; border-radius: 50%; background: rgba(140, 180, 255, 0.45); }
 .tbtns { position: absolute; display: grid; gap: 10px; }
-.tbtns.right { right: 18px; bottom: 18px; grid-template-columns: repeat(2, 64px); }
+.tbtns.right { right: 18px; bottom: 18px; grid-template-columns: repeat(2, 64px); grid-auto-rows: 64px; }
 .tbtns.top { right: 18px; top: 60px; grid-auto-flow: column; }
 .tbtns button { min-width: 0; width: 64px; height: 64px; padding: 0; border-radius: 50%; font-size: 24px; background: rgba(15, 25, 60, 0.5); }
 .tbtns.top button { width: 46px; height: 46px; font-size: 17px; }

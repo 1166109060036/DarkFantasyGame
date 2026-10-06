@@ -46,8 +46,10 @@ export class UI {
     if (this.el.questText.textContent !== text) this.el.questText.textContent = text;
   }
 
-  setStats(hp, max, coins, potions) {
+  setStats(hp, max, coins, potions, stamina = 100, exhausted = false) {
     this.el.hpFill.style.width = `${Math.max(0, hp / max) * 100}%`;
+    document.getElementById('st-fill').style.width = `${Math.max(0, stamina)}%`;
+    document.getElementById('st').classList.toggle('low', exhausted);
     this.el.coins.textContent = coins;
     this.el.potions.textContent = potions;
   }
@@ -57,6 +59,40 @@ export class UI {
     this._prompt = text;
     this.el.prompt.textContent = text || '';
     this.el.prompt.classList.toggle('hidden', !text);
+  }
+
+  // enemy health bar for whatever you last hit
+  setTarget(e) {
+    const el = document.getElementById('target');
+    el.classList.toggle('hidden', !e);
+    if (!e) return;
+    el.querySelector('.name').textContent = e.def.name;
+    el.querySelector('.fill').style.width = `${Math.max(0, e.hp / e.def.hp) * 100}%`;
+  }
+
+  setBoss(e) {
+    const el = document.getElementById('boss');
+    el.classList.toggle('hidden', !e);
+    if (!e) return;
+    el.querySelector('.name').textContent = e.def.name;
+    el.querySelector('.fill').style.width = `${Math.max(0, e.hp / e.def.hp) * 100}%`;
+  }
+
+  combatText(text, kind = 'info') {
+    const el = document.getElementById('ctext');
+    el.textContent = text;
+    el.className = kind;
+    void el.offsetWidth;
+    el.classList.add('show');
+  }
+
+  banner(title, sub) {
+    const el = document.getElementById('banner');
+    el.querySelector('.title').textContent = title;
+    el.querySelector('.sub').textContent = sub;
+    el.classList.remove('show');
+    void el.offsetWidth;
+    el.classList.add('show');
   }
 
   setClock(text) {
