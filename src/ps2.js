@@ -20,7 +20,20 @@ gl_Position.xy = floor(gl_Position.xy / gl_Position.w * uSnapRes + 0.5) / uSnapR
 `;
 
 // Patch a built-in material: vertex snapping + optional wind sway (uses uv.y so only the tips move).
-export function ps2ify(mat, { wind = 0 } = {}) {
+// fogScale < 1 thins the fog for that material only, so colossal structures loom through the mist
+// from hundreds of metres away while everything else stays buried in it.
+export const FAR_FOG_GLSL = (scale) => `
+#ifdef USE_FOG
+  #ifdef FOG_EXP2
+    float fogFactor = 1.0 - exp( - fogDensity * fogDensity * vFogDepth * vFogDepth * ${(scale * scale).toFixed(4)} );
+  #else
+    float fogFactor = smoothstep( fogNear, fogFar, vFogDepth * ${scale.toFixed(3)} );
+  #endif
+  gl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, fogFactor );
+#endif
+`;
+
+export function ps2ify(mat, { wind = 0, fogScale = 1 } = {}) {
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uSnapRes = ps2Uniforms.uSnapRes;
     shader.uniforms.uTime = ps2Uniforms.uTime;
@@ -40,8 +53,9 @@ export function ps2ify(mat, { wind = 0 } = {}) {
     }
     vs = vs.replace('#include <project_vertex>', '#include <project_vertex>\n' + SNAP_GLSL);
     shader.vertexShader = vs;
+    if (fogScale !== 1) shader.fragmentShader = shader.fragmentShader.replace('#include <fog_fragment>', FAR_FOG_GLSL(fogScale));
   };
-  mat.customProgramCacheKey = () => 'ps2-' + wind;
+  mat.customProgramCacheKey = () => 'ps2-' + wind + '-' + fogScale;
   return mat;
 }
 
@@ -74,7 +88,7 @@ void main(){
 
 const COMPOSITE_FRAG = /* glsl */`
 uniform sampler2D tScene; uniform sampler2D tBloom;
-uniform float uBloom, uTime, uFlash, uHurt, uFade, uLevels, uGrain;
+uniform float uBloom, uTime, uFlash, uHurt, uFade, uLevels, uGrain, uDay;
 varying vec2 vUv;
 float bayer2(vec2 a){ a = floor(a); return fract(a.x / 2.0 + a.y * a.y * 0.75); }
 float bayer4(vec2 a){ return bayer2(0.5 * a) * 0.25 + bayer2(a); }
@@ -84,10 +98,12 @@ void main(){
   c += b * uBloom;
   c += uFlash * vec3(0.10, 0.13, 0.22);
   // moonlit grade: lift blacks into navy, push saturation, cool highlights
-  c += vec3(0.004, 0.012, 0.035) * (1.0 - c);
+  // night: cold saturated moonlight. day: drained, sickly grey-green overcast
+  c += mix(vec3(0.004, 0.012, 0.035), vec3(0.012, 0.016, 0.014), uDay) * (1.0 - c);
   float l = dot(c, vec3(0.299, 0.587, 0.114));
-  c = mix(vec3(l), c, 1.22);
-  c *= vec3(0.9, 1.0, 1.14);
+  c = mix(vec3(l), c, mix(1.22, 0.62, uDay));
+  c *= mix(vec3(0.9, 1.0, 1.14), vec3(0.94, 1.0, 0.95), uDay);
+  c = mix(c, c * c * 1.35, uDay * 0.35);
   c = pow(max(c, 0.0), vec3(0.92));
   vec2 q = vUv - 0.5;
   c *= 1.0 - dot(q, q) * 1.15;
@@ -127,7 +143,7 @@ export class PS2Pipeline {
     this.compMat = mk(COMPOSITE_FRAG, {
       tScene: { value: this.rtScene.texture }, tBloom: { value: this.rtA.texture },
       uBloom: { value: 1.0 }, uTime: ps2Uniforms.uTime, uFlash: { value: 0 }, uHurt: { value: 0 },
-      uFade: { value: 0 }, uLevels: { value: 40 }, uGrain: { value: 0.03 },
+      uFade: { value: 0 }, uLevels: { value: 40 }, uGrain: { value: 0.03 }, uDay: { value: 0 },
     });
   }
 

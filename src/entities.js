@@ -134,9 +134,12 @@ export class Wisps {
     });
   }
 
-  update(dt, t, player, onAttack) {
+  update(dt, t, player, onAttack, active = true) {
     const target = new THREE.Vector3(player.pos.x, player.pos.y + 1.25, player.pos.z);
     for (const w of this.list) {
+      // wisps only haunt the night; by day they fade into the marsh
+      if (!active) { w.group.visible = false; w.chasing = false; continue; }
+      if (w.alive) w.group.visible = true;
       if (!w.alive) {
         w.respawn -= dt;
         if (w.respawn <= 0 && w.home.distanceTo(player.pos) > 35) {
@@ -178,7 +181,7 @@ export class Wisps {
   hitTest(origin, dir, range = 2.9, cosLimit = 0.55) {
     const hits = [];
     for (const w of this.list) {
-      if (!w.alive) continue;
+      if (!w.alive || !w.group.visible) continue;
       const to = w.pos.clone().sub(origin);
       const d = to.length();
       if (d < range && to.normalize().dot(dir) > cosLimit) hits.push(w);
@@ -202,7 +205,7 @@ export class Wisps {
   nearestAlive(p) {
     let best = null, bd = Infinity;
     for (const w of this.list) {
-      if (!w.alive) continue;
+      if (!w.alive || !w.group.visible) continue;
       const d = w.pos.distanceTo(p);
       if (d < bd) { bd = d; best = w; }
     }

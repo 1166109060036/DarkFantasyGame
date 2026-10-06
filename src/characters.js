@@ -170,3 +170,59 @@ export function createViewModel(M) {
   root.userData = { sword, lantern, flame };
   return root;
 }
+
+// The barkeep of the Melting Candle: a gentleman in black whose head is a cluster of guttering candles.
+export function createCandleHead(M) {
+  const g = new THREE.Group();
+  const coat = [
+    part(new THREE.LatheGeometry([
+      new THREE.Vector2(0.42, 0), new THREE.Vector2(0.4, 0.5), new THREE.Vector2(0.36, 1.1),
+      new THREE.Vector2(0.42, 1.45), new THREE.Vector2(0.2, 1.62), new THREE.Vector2(0.08, 1.66),
+    ], 10), C(0.09, 0.09, 0.11)),
+    part(new THREE.CylinderGeometry(0.09, 0.11, 0.62, 6), C(0.09, 0.09, 0.11), { pos: [0.42, 1.2, 0.18], rot: [-1.0, 0, -0.3] }),
+    part(new THREE.CylinderGeometry(0.09, 0.11, 0.62, 6), C(0.09, 0.09, 0.11), { pos: [-0.42, 1.2, 0.18], rot: [-1.0, 0, 0.3] }),
+    part(sphere(0.09, 6, 5), C(0.55, 0.5, 0.45), { pos: [0.36, 1.0, 0.45] }),
+    part(sphere(0.09, 6, 5), C(0.55, 0.5, 0.45), { pos: [-0.36, 1.0, 0.45] }),
+    part(new THREE.BoxGeometry(0.2, 0.5, 0.02), C(0.55, 0.5, 0.48), { pos: [0, 1.35, 0.36], rot: [-0.15, 0, 0] }),
+  ];
+  g.add(meshOf(coat, M.plain));
+  const wax = [part(sphere(0.3, 10, 6), C(0.86, 0.83, 0.74), { pos: [0, 1.74, 0], scale: [1, 0.55, 1] })];
+  const flames = [];
+  const candle = (x, y, z, h, r) => {
+    wax.push(part(new THREE.CylinderGeometry(r, r * 1.1, h, 7), C(0.85 + Math.random() * 0.1, 0.82, 0.72), { pos: [x, y + h / 2, z], rot: [(Math.random() - 0.5) * 0.25, 0, (Math.random() - 0.5) * 0.25] }));
+    wax.push(part(sphere(r * 0.6, 5, 4), C(0.9, 0.88, 0.78), { pos: [x + r * 0.8, y + h * 0.55, z], scale: [0.7, 2.4, 0.7] }));
+    flames.push(part(new THREE.ConeGeometry(r * 0.55, r * 2.2, 5), C(1.7, 0.95, 0.45), { pos: [x, y + h + r * 1.1, z] }));
+  };
+  candle(0, 1.82, 0, 0.42, 0.06);
+  for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; candle(Math.cos(a) * 0.15, 1.8, Math.sin(a) * 0.15, 0.26 + Math.random() * 0.1, 0.05); }
+  for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2 + 0.3; candle(Math.cos(a) * 0.28, 1.72, Math.sin(a) * 0.28, 0.14 + Math.random() * 0.1, 0.045); }
+  g.add(meshOf(wax, M.plain), meshOf(flames, M.glow));
+  const halo = new THREE.Sprite(M.candleSprite);
+  halo.position.set(0, 2.2, 0);
+  halo.scale.setScalar(1.6);
+  g.add(halo);
+  g.userData.halo = halo;
+  return g;
+}
+
+// Seated tavern patron. Faces +z, sitting with hips at y = 0.48.
+export function createPatron(M, color, { hood = true, skin = C(0.5, 0.42, 0.36) } = {}) {
+  const g = new THREE.Group();
+  const body = [
+    part(new THREE.CylinderGeometry(0.2, 0.27, 0.7, 7), color, { pos: [0, 0.85, 0], rot: [0.12, 0, 0] }),
+    part(new THREE.BoxGeometry(0.42, 0.16, 0.5), color.clone().multiplyScalar(0.7), { pos: [0, 0.5, 0.18] }),
+    part(new THREE.BoxGeometry(0.4, 0.45, 0.14), color.clone().multiplyScalar(0.7), { pos: [0, 0.25, 0.42] }),
+    part(new THREE.CylinderGeometry(0.065, 0.075, 0.5, 5), color, { pos: [0.24, 0.98, 0.2], rot: [-1.2, 0, -0.2] }),
+    part(new THREE.CylinderGeometry(0.065, 0.075, 0.5, 5), color, { pos: [-0.24, 0.98, 0.2], rot: [-1.2, 0, 0.2] }),
+  ];
+  if (hood) body.push(part(new THREE.SphereGeometry(0.21, 8, 6, 0, Math.PI * 2, 0, Math.PI * 0.62), color.clone().multiplyScalar(0.8), { pos: [0, 1.36, -0.02], rot: [-0.3, 0, 0], scale: [1, 1.15, 1.05] }));
+  g.add(meshOf(body, M.plain));
+  const head = [
+    part(sphere(0.15, 8, 6), skin, { pos: [0, 1.34, 0.04] }),
+    part(sphere(0.06, 5, 4), skin, { pos: [0.24, 1.08, 0.42] }),
+    part(sphere(0.06, 5, 4), skin, { pos: [-0.24, 1.08, 0.42] }),
+    part(new THREE.CylinderGeometry(0.07, 0.07, 0.16, 7), C(0.5, 0.36, 0.22), { pos: [0.24, 1.15, 0.45] }),
+  ];
+  g.add(meshOf(head, M.plain));
+  return g;
+}

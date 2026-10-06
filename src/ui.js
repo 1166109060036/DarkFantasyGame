@@ -1,7 +1,6 @@
 // DOM HUD: compass, quest tracker, health, dialogue, toasts, world map.
 import { HALF } from './terrain.js';
 import { wrapAngle } from './util.js';
-import { PASTURE, TOAD, TEMPLE, RIVER } from './layout.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -43,8 +42,8 @@ export class UI {
   show(id, on = true) { $(id).classList.toggle('hidden', !on); }
 
   setQuest({ title, text }) {
-    this.el.questTitle.textContent = title;
-    this.el.questText.textContent = text;
+    if (this.el.questTitle.textContent !== title) this.el.questTitle.textContent = title;
+    if (this.el.questText.textContent !== text) this.el.questText.textContent = text;
   }
 
   setStats(hp, max, coins, potions) {
@@ -58,6 +57,20 @@ export class UI {
     this._prompt = text;
     this.el.prompt.textContent = text || '';
     this.el.prompt.classList.toggle('hidden', !text);
+  }
+
+  setClock(text) {
+    if (this._clock !== text) { this._clock = text; document.getElementById('clock').textContent = text; }
+  }
+
+  // Skyrim-style "location discovered" title card
+  discover(name, n, total) {
+    const el = document.getElementById('discover');
+    el.querySelector('.name').textContent = name;
+    el.querySelector('.count').textContent = `สถานที่ที่ค้นพบ ${n}/${total}`;
+    el.classList.remove('show');
+    void el.offsetWidth;
+    el.classList.add('show');
   }
 
   toast(text) {
@@ -203,23 +216,28 @@ export class UI {
     ctx.beginPath();
     railPts.forEach((p, i) => { const [mx, my] = toMap(p.x, p.z); i ? ctx.lineTo(mx, my) : ctx.moveTo(mx, my); });
     ctx.stroke(); ctx.setLineDash([]);
-    ctx.font = '11px Pridi, serif'; ctx.fillStyle = '#e8e2c8'; ctx.textAlign = 'center';
-    const label = (wx, wz, t) => { const [mx, my] = toMap(wx, wz); ctx.fillText(t, mx, my); };
-    label(PASTURE.x, PASTURE.z - 50, 'เนินจันทร์');
-    label(TOAD.x, TOAD.z - 14, 'เห็ดยักษ์');
-    label(TEMPLE.x, TEMPLE.z - 38, 'วิหารจมน้ำ');
-    label(0, 230, 'บึงแสงจันทร์');
-    label(RIVER[3][0] + 32, RIVER[3][1], 'หุบผา');
     this.mapBase = c;
     this.mapToCanvas = toMap;
   }
 
-  drawMap(player, markers) {
+  drawMap(player, markers, discovered, locations) {
     const cv = this.el.mapCanvas, ctx = cv.getContext('2d');
     const S = cv.width;
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(this.mapBase, 0, 0, S, S);
     const k = S / this.mapBase.width;
+    // only places you have found are named; the rest stay a question mark
+    ctx.textAlign = 'center';
+    for (const loc of locations) {
+      const [mx, my] = this.mapToCanvas(loc.x, loc.z);
+      const found = discovered.has(loc.id);
+      ctx.font = found ? '15px Pridi, serif' : 'bold 16px serif';
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillText(found ? loc.name : '?', mx * k + 1, my * k + 1);
+      ctx.fillStyle = found ? '#efe6c8' : 'rgba(200,210,255,0.55)';
+      ctx.fillText(found ? loc.name : '?', mx * k, my * k);
+    }
+    document.getElementById('map-count').textContent = `สถานที่ที่ค้นพบ ${discovered.size}/${locations.length}`;
     for (const m of markers) {
       const [mx, my] = this.mapToCanvas(m.x, m.z);
       ctx.fillStyle = '#7fd4ff';

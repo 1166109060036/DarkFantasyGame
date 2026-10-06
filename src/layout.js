@@ -21,6 +21,8 @@ export const RAIL = [
 export const PATHS = [
   [[120, 12], [90, 0], [50, -5], [0, 10], [-60, 25], [-110, 30], [-150, 32]],
   [[0, 10], [-4, -60], [6, -110], [-2, -142]],
+  [[78, 15], [80, -2]],
+  [[-150, 32], [-160, -20], [-168, -62], [-176, -62]],
 ];
 
 export const SPAWN = { x: -112, z: 254, toward: { x: -75, z: 232 } };
@@ -34,3 +36,24 @@ export const WISP_SPAWNS = [
 
 export const CANYON_ARCH_Z = -160;
 export const CANYON_STEPS_Z = -185;
+
+// ---- Giants & new places ----
+export const CASTLE = { x: 196, z: 172, top: 92 };   // floating castle island over its own lake
+export const HEAD = { x: -218, z: -62 };              // the sleeping stone king, half buried
+export const STREAM = [[-186, -132], [-183, -95], [-181, -62], [-186, -28], [-200, 4], [-214, 30]];
+export const RIBCAGE = { x: -22, z: 178 };            // colossal skeleton straddling the railway
+export const TAVERN = { x: 78, z: 22 };               // "The Melting Candle" inn
+export const HOUSES = [[50, 30, 0.3], [64, -24, 2.9], [97, -24, 3.3], [40, 6, 1.6]];
+
+// Discoverable locations (shown as a title card the first time you get close).
+export const LOCATIONS = [
+  { id: 'swamp', name: 'บึงแสงจันทร์', x: -40, z: 220, r: 60 },
+  { id: 'ribcage', name: 'ซี่โครงอสูร', x: RIBCAGE.x, z: RIBCAGE.z, r: 40 },
+  { id: 'village', name: 'หมู่บ้านสถานีร้าง', x: TAVERN.x, z: TAVERN.z, r: 45 },
+  { id: 'pasture', name: 'เนินจันทร์', x: PASTURE.x, z: PASTURE.z, r: 50 },
+  { id: 'castle', name: 'ปราสาทแขวนฟ้า', x: CASTLE.x, z: CASTLE.z, r: 95 },
+  { id: 'toad', name: 'เห็ดยักษ์', x: TOAD.x, z: TOAD.z, r: 30 },
+  { id: 'head', name: 'ราชาหินผู้หลับใหล', x: HEAD.x, z: HEAD.z, r: 70 },
+  { id: 'canyon', name: 'หุบผาซุ้มประตู', x: 0, z: -165, r: 30 },
+  { id: 'temple', name: 'วิหารจมน้ำ', x: TEMPLE.x, z: TEMPLE.z, r: 40 },
+];

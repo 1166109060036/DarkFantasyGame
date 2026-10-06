@@ -14,7 +14,8 @@ import { Input } from './input.js';
 import { AudioSys } from './audio.js';
 import { UI } from './ui.js';
 import { Quests } from './quests.js';
-import { PASTURE, FENCE_R, TOAD, TEMPLE, SPAWN, LOST_SHEEP, WISP_SPAWNS } from './layout.js';
+import { PASTURE, FENCE_R, TOAD, TEMPLE, SPAWN, LOST_SHEEP, WISP_SPAWNS, LOCATIONS, TAVERN } from './layout.js';
+import { DayNight } from './daynight.js';
 import { lerp, clamp } from './util.js';
 
 const SAVE_KEY = 'moonmire-save-v1';
@@ -43,6 +44,9 @@ class Game {
     this.swing = -1;
     this.checkpoint = { x: SPAWN.x, z: SPAWN.z };
     this.endingBeam = null;
+    this.discovered = new Set();
+    this.indoor = 0;
+    this.dayNight = new DayNight(900, params.has('time') ? +params.get('time') : 0.9);
   }
 
   init() {
@@ -55,7 +59,7 @@ class Game {
     const scene = (this.scene = new THREE.Scene());
     scene.fog = new THREE.FogExp2(FOG_COLOR.clone(), 0.0115);
     scene.background = FOG_COLOR.clone();
-    this.camera = new THREE.PerspectiveCamera(66, innerWidth / innerHeight, 0.1, 700);
+    this.camera = new THREE.PerspectiveCamera(66, innerWidth / innerHeight, 0.1, 1500);
     scene.add(this.camera);
 
     // moonlight
@@ -81,6 +85,8 @@ class Game {
     this.collision = new CollisionWorld();
     const st = buildStructures(scene, this.terrain, M, this.collision);
     this.altar = st.altar;
+    this.fx = st.fx;
+    this.village = st.village;
     const toadLight = new THREE.PointLight(0xffb060, 6, 14, 1.5);
     toadLight.position.copy(st.lantern);
     scene.add(toadLight);
@@ -116,7 +122,11 @@ class Game {
     }
     this.collision.addCircle(crowPos.x, crowPos.z, 0.5);
     this.collision.addCircle(toadPos.x, toadPos.z, 0.9);
-    this.npcs = { crow: { obj: crow, pos: crowPos, name: 'โกวัก ผู้เลี้ยงแกะ' }, toad: { obj: toad, pos: toadPos, name: 'ยายคางคก' } };
+    this.npcs = {
+      crow: { obj: crow, pos: crowPos, name: 'โกวัก ผู้เลี้ยงแกะ' },
+      toad: { obj: toad, pos: toadPos, name: 'ยายคางคก' },
+      keeper: { obj: this.village.keeper.obj, pos: this.village.keeper.pos, name: 'เทียนหลอม' },
+    };
 
     // crow-headed guardian statues at the temple
     for (const sx of [-10, 10]) {
@@ -130,7 +140,8 @@ class Game {
     this.interactables = [
       { id: 'crow', pos: crowPos, r: 3.6, label: 'คุยกับโกวัก' },
       { id: 'toad', pos: toadPos, r: 3.8, label: 'คุยกับยายคางคก' },
-      { id: 'altar', pos: this.altar, r: 3.2, label: 'ตรวจดูแท่นบูชา' },
+      { id: 'altar', pos: this.altar, r: 3.2, label: 'ตรวจดูแท่นบูชา', checkpoint: { x: TEMPLE.x, z: TEMPLE.z + 14 } },
+      { id: 'keeper', pos: this.village.keeper.pos, r: 3.0, label: 'คุยกับเทียนหลอม เจ้าของโรงเตี๊ยม', checkpoint: { x: TAVERN.x, z: TAVERN.z - 8 } },
     ];
 
     this.audio = new AudioSys();
@@ -267,6 +278,7 @@ class Game {
     store.set(SAVE_KEY, {
       quests: this.quests.serialize(), coins: this.coins, potions: this.potions, hp: this.player.hp,
       pos: { x: this.player.pos.x, z: this.player.pos.z }, yaw: this.player.yaw, checkpoint: this.checkpoint,
+      time: this.dayNight.t, discovered: [...this.discovered],
     });
   }
 
@@ -277,6 +289,8 @@ class Game {
     this.coins = d.coins ?? 0;
     this.potions = d.potions ?? 1;
     this.checkpoint = d.checkpoint || this.checkpoint;
+    if (typeof d.time === 'number') this.dayNight.t = d.time;
+    this.discovered = new Set(d.discovered || []);
     if (d.pos) this.player.place(d.pos.x, d.pos.z, d.yaw ?? 0);
     this.player.hp = Math.max(30, d.hp ?? 100);
     this.quests.sheepFound.forEach((f, i) => {
@@ -337,10 +351,29 @@ class Game {
   }
 
   interact(id) {
-    this.checkpoint = id === 'altar' ? { x: TEMPLE.x, z: TEMPLE.z + 14 } : { x: this.npcs[id].pos.x + 2, z: this.npcs[id].pos.z + 2 };
+    const it = this.interactables.find((i) => i.id === id);
+    this.checkpoint = it.checkpoint || { x: this.npcs[id].pos.x + 2, z: this.npcs[id].pos.z + 2 };
     if (id === 'crow') this.audio.caw();
     if (id === 'toad') this.audio.croak();
     this.ui.openDialogue(this.quests.talk(id), () => this.updateHud());
+  }
+
+  // Rest at the inn: fade to black, skip to the chosen hour, wake fully healed.
+  sleepUntil(t) {
+    this.state = 'sleeping';
+    this.sleepT = 0;
+    this.sleepTarget = t;
+  }
+
+  checkDiscoveries() {
+    const p = this.player.pos;
+    for (const loc of LOCATIONS) {
+      if (this.discovered.has(loc.id) || Math.hypot(p.x - loc.x, p.z - loc.z) > loc.r) continue;
+      this.discovered.add(loc.id);
+      this.ui.discover(loc.name, this.discovered.size, LOCATIONS.length);
+      this.audio.discover();
+      this.save();
+    }
   }
 
   attack() {
@@ -387,6 +420,41 @@ class Game {
       }
     }
     if (t >= 1) this.swing = -1;
+  }
+
+  applyDayNight(dt, rainI, flash) {
+    const dn = this.dayNight;
+    if (this.state !== 'sleeping') dn.update(dt);
+    const P = dn.p;
+    const sky = this.sky.material.uniforms;
+    this.scene.fog.color.setRGB(...P.fog);
+    this.scene.background.copy(this.scene.fog.color);
+    this.scene.fog.density = P.density - 0.001 + rainI * 0.004;
+    sky.uHorizon.value.copy(this.scene.fog.color);
+    sky.uZenith.value.setRGB(...P.zenith);
+    sky.uCloudDark.value.setRGB(...P.cloudDark);
+    sky.uCloudLit.value.setRGB(...P.cloudLit);
+    sky.uSunDir.value.copy(dn.sunDir);
+    sky.uDay.value = P.day;
+    sky.uStars.value = P.stars * (1 - rainI * 0.6);
+    sky.uAurora.value = P.aurora * (1 - rainI * 0.5);
+    sky.uVortex.value = P.vortex;
+    sky.uCloud.value = 0.35 + rainI * 0.6 + P.cloud;
+    sky.uFlash.value = flash;
+    // light dims indoors so the inn is lit by its candles and hearth
+    const dim = 1 - this.indoor * 0.65;
+    this.hemi.color.setRGB(...P.hemiSky);
+    this.hemi.groundColor.setRGB(...P.hemiGround);
+    this.hemi.intensity = (P.hemiI + flash * 4) * dim;
+    this.moon.color.setRGB(...P.light);
+    this.moon.intensity = P.lightI * dim;
+    this.moon.position.copy(dn.lightDirection(MOON_DIR)).multiplyScalar(100);
+    this.water.material.uniforms.uFlash.value = flash;
+    this.water.material.uniforms.uDay.value = P.day;
+    const pu = this.pipeline.uniforms;
+    pu.uFlash.value = flash;
+    pu.uDay.value = P.day;
+    pu.uBloom.value = P.bloom;
   }
 
   die() {
@@ -443,10 +511,14 @@ class Game {
       p.hurt(13, this.time);
       this.hurtFlash = 1;
       this.audio.hurt();
-    });
+    }, this.dayNight.isNight);
+    this.checkDiscoveries();
+    const v = this.village.indoor;
+    const inside = p.pos.x > v.minX && p.pos.x < v.maxX && p.pos.z > v.minZ && p.pos.z < v.maxZ && p.pos.y < v.maxY;
+    this.indoor += ((inside ? 1 : 0) - this.indoor) * Math.min(1, dt * 4);
     if (p.hp <= 0) this.die();
 
-    if (mapOpen) ui.drawMap(p, this.quests.markers());
+    if (mapOpen) ui.drawMap(p, this.quests.markers(), this.discovered, LOCATIONS);
     this.updateHud();
     this.saveTimer = (this.saveTimer || 0) + dt;
     if (this.saveTimer > 20) { this.saveTimer = 0; this.save(); }
@@ -466,6 +538,19 @@ class Game {
       const a = rail.getPointAt(u), b = rail.getPointAt(Math.min(1, u + 0.02));
       this.camera.position.set(a.x, this.terrain.getHeight(a.x, a.z) + 2.4, a.z);
       this.camera.lookAt(b.x, this.terrain.getHeight(b.x, b.z) + 2.0, b.z);
+    } else if (this.state === 'sleeping') {
+      this.sleepT += dt;
+      this.pipeline.uniforms.uFade.value = this.sleepT < 1 ? this.sleepT : Math.max(0, 2.2 - this.sleepT);
+      if (this.sleepT >= 1 && this.sleepTarget !== null) {
+        this.dayNight.t = this.sleepTarget;
+        this.sleepTarget = null;
+        p.hp = p.maxHp;
+      }
+      if (this.sleepT > 2.2) {
+        this.state = 'play';
+        this.ui.toast(`ตื่นขึ้นมาตอน ${this.dayNight.clockText()}`);
+        this.save();
+      }
     } else if (this.state === 'dead') {
       this.deadT += dt;
       this.pipeline.uniforms.uFade.value = clamp(this.deadT / 1.5, 0, 1);
@@ -478,21 +563,16 @@ class Game {
         this.ui.toast(lost ? `เจ้าฟื้นขึ้นมาอีกครั้ง... ทำเหรียญหล่นหาย ${lost} เหรียญ` : 'เจ้าฟื้นขึ้นมาอีกครั้ง...');
       }
     }
-    if (this.state !== 'dead') this.pipeline.uniforms.uFade.value = Math.max(0, this.pipeline.uniforms.uFade.value - dt * 1.5);
+    if (this.state !== 'dead' && this.state !== 'sleeping') this.pipeline.uniforms.uFade.value = Math.max(0, this.pipeline.uniforms.uFade.value - dt * 1.5);
 
     // world animation runs in every state so the title screen is alive too
     this.weather.update(dt);
     const w = this.weather;
     const calm = this.quests.stage >= 7 ? 0.35 : 1;
     const rainI = w.intensity * calm;
-    this.rain.update(this.camera.position, rainI);
-    this.audio.setRain(rainI);
-    this.scene.fog.density = 0.0105 + rainI * 0.004;
-    this.sky.material.uniforms.uFlash.value = w.flash;
-    this.sky.material.uniforms.uCloud.value = 0.35 + rainI * 0.6;
-    this.water.material.uniforms.uFlash.value = w.flash;
-    this.hemi.intensity = 2.2 + w.flash * 4;
-    this.pipeline.uniforms.uFlash.value = w.flash;
+    this.rain.update(this.camera.position, rainI * (1 - this.indoor));
+    this.audio.setRain(rainI * (1 - this.indoor * 0.75));
+    this.applyDayNight(dt, rainI, w.flash);
     this.hurtFlash = Math.max(0, (this.hurtFlash || 0) - dt * 2);
     this.pipeline.uniforms.uHurt.value = Math.max(this.hurtFlash * 0.8, p.hp < 30 && this.state === 'play' ? 0.25 + Math.sin(this.time * 4) * 0.1 : 0);
     this.sky.position.copy(this.camera.position);
@@ -510,12 +590,17 @@ class Game {
     crow.rotation.y = crow.userData.ry;
     const toad = this.npcs.toad.obj;
     toad.scale.set(1, 1 + Math.sin(this.time * 1.8) * 0.02, 1);
+    for (const [i, pt] of this.village.patrons.entries()) pt.rotation.z = Math.sin(this.time * 0.7 + i * 1.9) * 0.04;
+    this.village.keeper.obj.userData.halo.scale.setScalar(1.6 * (1 + Math.sin(this.time * 11) * 0.08));
+    for (const f of this.fx.fires) f.s.scale.setScalar(f.base * (1 + Math.sin(this.time * 9 + f.ph) * 0.1 + Math.sin(this.time * 23 + f.ph * 2) * 0.06));
+    for (const m of this.fx.mists) m.s.scale.setScalar(m.base * (1 + Math.sin(this.time * 0.6 + m.ph) * 0.12));
+    for (const l of this.fx.lights) l.l.intensity = l.base * (1 + Math.sin(this.time * 8 + l.base) * 0.08 + Math.sin(this.time * 17) * 0.05);
     if (this.endingBeam) this.endingBeam.material.opacity = 0.45 + Math.sin(this.time * 2) * 0.1;
 
     // lantern follows the player; view model bobs
     const flick = 1 + Math.sin(this.time * 13) * 0.04 + Math.sin(this.time * 7.3) * 0.05;
     this.lantern.position.copy(this.camera.position).add(new THREE.Vector3(0, -0.3, 0));
-    this.lantern.intensity = this.state === 'title' ? 0 : 6 * flick;
+    this.lantern.intensity = this.state === 'title' ? 0 : 6 * flick * this.dayNight.p.lantern * (1 - this.indoor * 0.6);
     this.viewCam.position.copy(this.camera.position);
     this.viewCam.quaternion.copy(this.camera.quaternion);
     const lan = this.view.userData.lantern;
@@ -525,6 +610,12 @@ class Game {
     this.view.visible = this.state === 'play' || this.state === 'paused';
     if (this.state !== 'play') this.updateSwing(0);
 
+    this.clockTimer = (this.clockTimer || 0) - dt;
+    if (this.clockTimer <= 0) {
+      this.clockTimer = 0.5;
+      this.ui.setClock(this.dayNight.clockText());
+      this.ui.setQuest(this.quests.objective());
+    }
     if (this.state === 'play' || this.state === 'paused') {
       this.ui.updateCompass(wrapHeading(-p.yaw), p.pos.x, p.pos.z, this.quests.markers());
     }

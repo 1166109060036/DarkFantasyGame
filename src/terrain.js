@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { fbm } from './noise.js';
 import { clamp, lerp, smoothstep, distToPolyline } from './util.js';
-import { PASTURE, TOAD, TEMPLE, RIVER, RAIL, PATHS } from './layout.js';
+import { PASTURE, TOAD, TEMPLE, RIVER, RAIL, PATHS, CASTLE, HEAD, STREAM, TAVERN, HOUSES } from './layout.js';
 
 export const HALF = 320;
 export const SEG = 256;
@@ -18,7 +18,23 @@ function flatten(h, x, z, cx, cz, r, target) {
   return lerp(h, target, Math.exp(-d2 / (2 * r * r)));
 }
 
-export function baseHeight(x, z) {
+function plateau(h, x, z, cx, cz, r0, r1, target) {
+  return lerp(target, h, smoothstep(r0, r1, Math.hypot(x - cx, z - cz)));
+}
+
+let siteHeights = null;
+function sites() {
+  // flatten targets are the natural ground height at each site centre
+  if (!siteHeights) {
+    siteHeights = {
+      village: baseHeight(TAVERN.x, TAVERN.z, false),
+      houses: HOUSES.map(([hx, hz]) => baseHeight(hx, hz, false)),
+    };
+  }
+  return siteHeights;
+}
+
+export function baseHeight(x, z, withSites = true) {
   // rolling hills
   let h = (fbm(x * 0.0065 + 11.3, z * 0.0065 - 4.2, 5) - 0.42) * 26;
   h += (fbm(x * 0.035, z * 0.035, 3, 7) - 0.5) * 2.5;
@@ -49,6 +65,21 @@ export function baseHeight(x, z) {
   const dr = distToPolyline(x, z, RIVER);
   const inner = lerp(4.5, 7.5, nm), outer = lerp(15, 11, nm);
   h = lerp(h, -0.9, 1 - smoothstep(inner, outer, dr));
+
+  // lake beneath the floating castle
+  const dc = Math.hypot(x - CASTLE.x, z - CASTLE.z);
+  h = lerp(h, -1.1, 1 - smoothstep(58, 90, dc));
+
+  // the stone king's valley: flattened ground and a stream in front of his face
+  h = flatten(h, x, z, HEAD.x, HEAD.z, 40, 4);
+  const ds = distToPolyline(x, z, STREAM);
+  h = lerp(h, -0.9, 1 - smoothstep(4, 11, ds));
+
+  if (withSites) {
+    const s = sites();
+    h = plateau(h, x, z, TAVERN.x, TAVERN.z, 11, 22, s.village);
+    HOUSES.forEach(([hx, hz], i) => { h = plateau(h, x, z, hx, hz, 5, 10, s.houses[i]); });
+  }
 
   // world edge mountains
   const e = Math.max(Math.abs(x), Math.abs(z));

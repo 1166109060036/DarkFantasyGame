@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { rng, fbm } from './noise.js';
 import { part, mergeGeometries, cylinderBetween, distToPolyline, colorize } from './util.js';
-import { PASTURE, FENCE_R, TOAD, TEMPLE, RIVER, PATHS } from './layout.js';
+import { PASTURE, FENCE_R, TOAD, TEMPLE, RIVER, PATHS, TAVERN, HOUSES, HEAD } from './layout.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
@@ -135,6 +135,11 @@ export function buildVegetation(scene, terrain, M, collision, quality) {
     for (let i = 0; i < pts.length; i += 6) if (Math.abs(pts[i].x - x) < d + 4 && Math.abs(pts[i].z - z) < d + 4 && Math.hypot(pts[i].x - x, pts[i].z - z) < d) return true;
     return false;
   };
+  // keep plants out of buildings and giant structures
+  const built = (x, z, pad = 0) => (Math.abs(x - TAVERN.x) < 9 + pad && Math.abs(z - TAVERN.z) < 7 + pad)
+    || HOUSES.some(([hx, hz]) => Math.hypot(x - hx, z - hz) < 5.5 + pad)
+    || Math.hypot(x - HEAD.x - 12, z - HEAD.z) < 38 + pad
+    || Math.hypot(x - 62, z - 8) < 2.5;
   const inTempleYard = (x, z) => Math.abs(x - TEMPLE.x) < 48 && Math.abs(z - TEMPLE.z) < 42;
   const nearPath = (x, z, d) => PATHS.some((p) => distToPolyline(x, z, p) < d);
   const dPasture = (x, z) => Math.hypot(x - PASTURE.x, z - PASTURE.z);
@@ -156,7 +161,7 @@ export function buildVegetation(scene, terrain, M, collision, quality) {
     if (distToPolyline(x, z, RIVER) < 7) continue;
     const dp = dPasture(x, z);
     if (dp < FENCE_R + 8) continue;
-    if (dToad(x, z) < 13) continue;
+    if (dToad(x, z) < 13 || built(x, z, 8)) continue;
     let density = 0.25 + fbm(x * 0.012, z * 0.012, 3, 55) * 0.6;
     if (x < -60) density += 0.55;
     if (dp < 90) density *= 0.3;
@@ -207,7 +212,7 @@ export function buildVegetation(scene, terrain, M, collision, quality) {
   for (let i = 0; i < quality.ferns * 6 && ferns.length < quality.ferns; i++) {
     const x = (r() - 0.5) * 560, z = (r() - 0.5) * 560;
     const h = H(x, z);
-    if (h < 0.1 || terrain.slope(x, z) > 0.9 || nearRail(x, z, 3) || nearPath(x, z, 2)) continue;
+    if (h < 0.1 || terrain.slope(x, z) > 0.9 || nearRail(x, z, 3) || nearPath(x, z, 2) || built(x, z, 1)) continue;
     let d = 0.15;
     if (x < -50) d += 0.5;
     if (distToPolyline(x, z, RIVER) < 22) d += 0.6;
@@ -241,7 +246,7 @@ export function buildVegetation(scene, terrain, M, collision, quality) {
   for (let i = 0; i < quality.grass * 5 && grass.length < quality.grass; i++) {
     const x = (r() - 0.5) * 560, z = (r() - 0.5) * 560;
     const h = H(x, z);
-    if (h < -0.4 || h > 28 || nearRail(x, z, 2.4)) continue;
+    if (h < -0.4 || h > 28 || nearRail(x, z, 2.4) || built(x, z, 0.5)) continue;
     const dp = dPasture(x, z);
     let d = 0.25 + fbm(x * 0.03, z * 0.03, 2, 66) * 0.5;
     if (dp < 75) d += 0.5;
@@ -261,7 +266,7 @@ export function buildVegetation(scene, terrain, M, collision, quality) {
   for (let i = 0; i < quality.rocks * 6 && rocks.length < quality.rocks; i++) {
     const x = (r() - 0.5) * 560, z = (r() - 0.5) * 560;
     const h = H(x, z);
-    if (h < -0.6 || nearRail(x, z, 4) || nearPath(x, z, 3) || inTempleYard(x, z) || dPasture(x, z) < FENCE_R + 3) continue;
+    if (h < -0.6 || nearRail(x, z, 4) || nearPath(x, z, 3) || inTempleYard(x, z) || dPasture(x, z) < FENCE_R + 3 || built(x, z, 2)) continue;
     if (r() > 0.25 + terrain.slope(x, z) * 0.8) continue;
     const s = 0.5 + Math.pow(r(), 2) * 1.8;
     rocks.push({ x, y: h - s * 0.25, z, s, sy: s * (0.5 + r() * 0.4), ry: r() * 6.28, rx: (r() - 0.5) * 0.3, tint: 0.7 + r() * 0.4 });
@@ -286,7 +291,7 @@ export function buildVegetation(scene, terrain, M, collision, quality) {
     for (let k = 0; k < cluster; k++) {
       const x = cx + (r() - 0.5) * 2.5, z = cz + (r() - 0.5) * 2.5;
       const h = H(x, z);
-      if (h < 0.05) continue;
+      if (h < 0.05 || built(x, z, 1)) continue;
       glow.push({ x, y: h - 0.02, z, s: 0.6 + r() * 1.4, ry: r() * 6.28, tint: 0.6 + r() * 0.6 });
     }
   }

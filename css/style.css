@@ -37,6 +37,19 @@ html, body {
 .cmp-marker .dist { font-size: 10px; color: var(--dim); }
 .cmp-marker.edge { opacity: 0.55; }
 
+#clock { position: absolute; top: 48px; left: 50%; transform: translateX(-50%); font-size: 13px; color: var(--dim); letter-spacing: 0.05em; }
+#discover {
+  position: absolute; top: 22%; left: 50%; transform: translateX(-50%); text-align: center; opacity: 0; pointer-events: none;
+}
+#discover .caption { font-size: 14px; color: var(--dim); letter-spacing: 0.3em; }
+#discover .name {
+  font-family: 'Cinzel', var(--font); font-size: clamp(28px, 4.5vw, 52px); color: #efe6c8; margin: 4px 0;
+  text-shadow: 0 0 14px rgba(0, 0, 0, 0.9), 0 0 30px rgba(120, 150, 255, 0.35);
+  border-top: 1px solid rgba(232, 196, 106, 0.5); border-bottom: 1px solid rgba(232, 196, 106, 0.5); padding: 4px 40px;
+}
+#discover .count { font-size: 12px; color: var(--gold); }
+#discover.show { animation: discover 5s ease forwards; }
+@keyframes discover { 0% { opacity: 0; letter-spacing: 0.25em; } 12% { opacity: 1; letter-spacing: 0.04em; } 75% { opacity: 1; } 100% { opacity: 0; } }
 #quest { position: absolute; top: 16px; right: 18px; max-width: min(340px, 34vw); text-align: right; }
 #quest-title { font-family: 'Cinzel', var(--font); color: var(--gold); font-size: 16px; letter-spacing: 0.04em; }
 #quest-text { font-size: 14px; color: var(--ink); margin-top: 2px; line-height: 1.35; }

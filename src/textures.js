@@ -257,6 +257,41 @@ function gold() {
   }));
 }
 
+function rock() {
+  return toTex(pixels(128, 128, (u, v) => {
+    const n = tileFbm(u, v, 4, 4, 5, 201);
+    const n2 = tileFbm(u, v, 16, 16, 3, 202);
+    const crack = Math.abs(tileFbm(u, v, 6, 6, 3, 203) - 0.5) < 0.018 ? 0.35 : 1;
+    let c = mul([0.5, 0.53, 0.6], (0.5 + n * 0.75) * crack);
+    c = mix(c, [0.2, 0.38, 0.16], smoothstep(0.58, 0.72, n2) * 0.55);
+    return c;
+  }));
+}
+
+function galaxy() {
+  return toTex(pixels(64, 48, (u, v) => {
+    const x = u - 0.5, y = (v - 0.5) * 0.75;
+    const r = Math.hypot(x, y), a = Math.atan2(y, x);
+    const arm = 0.5 + 0.5 * Math.sin(a * 2 + Math.log(r + 0.02) * 6);
+    const n = tileFbm(u, v, 8, 6, 3, 123);
+    const k = Math.max(0, 1 - r * 2.2) * (0.35 + arm * 0.65) * (0.6 + n * 0.8);
+    return [0.05 + k * 0.75, 0.03 + k * 0.35, 0.12 + k * 1.1];
+  }), false);
+}
+
+function sign() {
+  const c = makeCanvas(64, 32);
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#3a2c20'; ctx.fillRect(0, 0, 64, 32);
+  ctx.strokeStyle = '#1a120c'; ctx.lineWidth = 2; ctx.strokeRect(1, 1, 62, 30);
+  ctx.fillStyle = '#d8cfb8'; ctx.fillRect(28, 12, 8, 15);
+  ctx.fillStyle = '#ffb040'; ctx.beginPath(); ctx.ellipse(32, 8, 3, 5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#d8cfb8'; ctx.fillRect(16, 16, 6, 11); ctx.fillRect(42, 16, 6, 11);
+  ctx.fillStyle = '#ffb040';
+  for (const x of [19, 45]) { ctx.beginPath(); ctx.ellipse(x, 13, 2, 3.5, 0, 0, Math.PI * 2); ctx.fill(); }
+  return toTex(c, false);
+}
+
 export function createTextures() {
   return {
     stone: stone(),
@@ -275,6 +310,9 @@ export function createTextures() {
     grass: grass(),
     hangingMoss: hangingMoss(),
     gold: gold(),
+    galaxy: galaxy(),
+    rock: rock(),
+    sign: sign(),
     shadow: radial(64, [[0, 'rgba(0,0,0,0.75)'], [0.6, 'rgba(0,0,0,0.35)'], [1, 'rgba(0,0,0,0)']]),
     glow: radial(64, [[0, 'rgba(255,255,255,1)'], [0.25, 'rgba(255,255,255,0.55)'], [1, 'rgba(255,255,255,0)']]),
   };

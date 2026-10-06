@@ -112,5 +112,9 @@ export class AudioSys {
     this.burst({ dur: 3.2, freq: 140, q: 0.6, type: 'lowpass', gain: 0.55, delay });
     this.burst({ dur: 1.2, freq: 300, q: 0.5, type: 'lowpass', gain: 0.3, delay: delay + 0.1 });
   }
+  discover() {
+    [196, 294, 392].forEach((f, i) => this.tone({ freq: f, dur: 2.4, type: 'triangle', gain: 0.06, delay: i * 0.18 }));
+    this.tone({ freq: 98, dur: 3, type: 'sine', gain: 0.1 });
+  }
   ui() { this.tone({ freq: 520, dur: 0.08, type: 'triangle', gain: 0.06 }); }
 }

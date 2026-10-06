@@ -31,7 +31,7 @@ export class Player {
 
   place(x, z, yaw = 0) {
     this.pos.set(x, 0, z);
-    this.pos.y = this.groundAt(x, z, 999);
+    this.pos.y = this.groundAt(x, z, this.terrain.getHeight(x, z) + 4);
     this.camY = this.pos.y;
     this.vel.set(0, 0, 0);
     this.yaw = yaw;

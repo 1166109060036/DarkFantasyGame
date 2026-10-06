@@ -1,40 +1,15 @@
 // Hand-built landmarks. Static pieces are merged per material into a handful of draw calls.
 import * as THREE from 'three';
-import { rng } from './noise.js';
-import { part, mergeGeometries, boxGeom, polylineXAtZ, wrapAngle, distToPolyline } from './util.js';
+import { part, boxGeom, polylineXAtZ, wrapAngle, distToPolyline } from './util.js';
+import { StaticBuilder, r, block, slab, hangingMoss } from './builder.js';
+import { buildGiants } from './giants.js';
+import { buildVillage } from './village.js';
 import { PASTURE, FENCE_R, TOAD, TEMPLE, RIVER, PATHS, CANYON_ARCH_Z, CANYON_STEPS_Z } from './layout.js';
 
-class StaticBuilder {
-  constructor() { this.parts = {}; }
-  add(mat, geom) { (this.parts[mat] ||= []).push(geom); }
-  build(scene, M) {
-    for (const [k, list] of Object.entries(this.parts)) {
-      const mesh = new THREE.Mesh(mergeGeometries(list), M[k]);
-      mesh.name = 'static-' + k;
-      scene.add(mesh);
-    }
-  }
-}
 
-const r = rng(777);
-const stoneTint = () => new THREE.Color().setRGB(0.8 + r() * 0.35, 0.85 + r() * 0.3, 0.85 + r() * 0.3);
 
-function block(B, C, mat, { x, y, z, w, h, d, ry = 0, rx = 0, rz = 0, color, collide = true, tex = 2 }) {
-  B.add(mat, part(boxGeom(w, h, d, tex), color ?? stoneTint(), { pos: [x, y, z], rot: [rx, ry, rz] }));
-  if (collide) C.addBox(x, y, z, w / 2, h / 2, d / 2, ry);
-}
 
-// Box resting on the ground with its top at `top` (bottom sunk to `bottom`).
-function slab(B, C, mat, x, z, w, d, bottom, top, opts = {}) {
-  block(B, C, mat, { x, y: (bottom + top) / 2, z, w, h: top - bottom, d, ...opts });
-}
 
-function hangingMoss(B, x, y, z, w, h, ry) {
-  const g = new THREE.PlaneGeometry(w, h);
-  const uv = g.attributes.uv;
-  for (let i = 0; i < uv.count; i++) uv.setY(i, 1 - uv.getY(i));
-  B.add('hangingMoss', part(g, 0xd0e0d0, { pos: [x, y - h / 2, z], rot: [0, ry, 0] }));
-}
 
 function buildRailway(B, C, terrain) {
   const { curve, pts, ys } = terrain.rail;
@@ -275,7 +250,7 @@ export function buildStructures(scene, terrain, M, C) {
   buildCanyon(B, C);
   const { altar, braziers } = buildTemple(B, C);
   buildBridge(B, C, terrain);
-  [[-120, -20], [-60, 255], [70, 140], [-210, 120], [-205, -90], [60, -75], [210, 120]].forEach(([x, z], i) => ruinSite(B, C, terrain, x, z, i === 0 ? 1.3 : 1));
+  [[-120, -20], [-60, 255], [70, 140], [-210, 120], [-150, -112], [60, -75], [238, 40]].forEach(([x, z], i) => ruinSite(B, C, terrain, x, z, i === 0 ? 1.3 : 1));
   buildGiantMushroom(B, C, terrain, TOAD.x, TOAD.z, 1);
   [[-171, 20, 0.45], [-150, 45, 0.35], [-176, 42, 0.3], [-95, -30, 0.5], [-200, 60, 0.6], [-130, 90, 0.4]].forEach(([x, z, s]) => buildGiantMushroom(B, C, terrain, x, z, s));
 
@@ -286,7 +261,10 @@ export function buildStructures(scene, terrain, M, C) {
   block(B, C, 'wood', { x: lx + 0.35, y: lg + 2.35, z: lz, w: 0.8, h: 0.1, d: 0.1, collide: false });
   B.add('glow', part(new THREE.BoxGeometry(0.18, 0.26, 0.18), new THREE.Color(1.15, 0.7, 0.32), { pos: [lx + 0.65, lg + 2.05, lz] }));
 
+  const fx = buildGiants(B, C, terrain, scene, M);
+  const village = buildVillage(B, C, terrain, scene, M, fx);
+
   B.build(scene, M);
-  return { altar, braziers, lantern: new THREE.Vector3(lx + 0.65, lg + 2.05, lz) };
+  return { altar, braziers, fx, village, lantern: new THREE.Vector3(lx + 0.65, lg + 2.05, lz) };
 }
 
