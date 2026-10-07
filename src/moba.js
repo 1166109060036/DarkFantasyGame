@@ -1,5 +1,6 @@
 // "Siege of the Moon Kings": the online free-for-all mode. Up to four players (empty seats are
-// filled by bot lords) each hold a base on the Moonmire map with a king on a throne. Gather wood,
+// filled by bot lords) each hold a base in a corner of the arena (src/arena.js) with a king on a
+// throne, a few towers at the road mouths, a healing fire and a mine to start with. Gather wood,
 // ore and souls in the wilds, raise buildings inside your base, summon packs of creatures that
 // march on another king, and fight in first person with your path's weapon. The last king alive
 // wins.
@@ -15,17 +16,18 @@ import { ENEMY_TYPES } from './combat.js';
 import { CLASSES } from './classes.js';
 import { rng } from './noise.js';
 import { clearVegetation } from './vegetation.js';
+import { ARENA_BASES, ARENA_ROADS, PLAZA_R, adjacent, roadOut } from './arena.js';
 
 const C = (r, g, b) => new THREE.Color(r, g, b);
 const V = new THREE.Vector3();
 
 export const SEATS = [
-  { name: 'แดง', color: [0.85, 0.22, 0.18], css: '#e0533f', base: [-140, -60] },
-  { name: 'ฟ้า', color: [0.25, 0.48, 0.98], css: '#5a8cff', base: [210, -100] },
-  { name: 'เขียว', color: [0.3, 0.78, 0.32], css: '#56cc56', base: [-230, 110] },
-  { name: 'ทอง', color: [0.98, 0.78, 0.22], css: '#f2c84a', base: [250, 80] },
+  { name: 'แดง', color: [0.85, 0.22, 0.18], css: '#e0533f', base: ARENA_BASES[0] },
+  { name: 'ฟ้า', color: [0.25, 0.48, 0.98], css: '#5a8cff', base: ARENA_BASES[1] },
+  { name: 'เขียว', color: [0.3, 0.78, 0.32], css: '#56cc56', base: ARENA_BASES[2] },
+  { name: 'ทอง', color: [0.98, 0.78, 0.22], css: '#f2c84a', base: ARENA_BASES[3] },
 ];
-const HUB = [10, 10];
+const HUB = [0, 0];
 export const BASE_R = 30;
 const PVP = 9;                 // a sword blow that takes 1 from a gaunt takes 9 from a player
 const UNIT = 1 / 8;            // creature damage (tuned against players) scaled to creatures/buildings
@@ -61,9 +63,25 @@ export const canPay = (w, cost) => Object.entries(cost).every(([k, n]) => (w[k] 
 export const pay = (w, cost) => { for (const [k, n] of Object.entries(cost)) w[k] -= n; };
 export const costText = (cost) => Object.entries(cost).map(([k, n]) => `${n} ${RES[k]}`).join(' · ');
 
-function gateOf(slot) {
-  const [bx, bz] = SEATS[slot].base, dx = HUB[0] - bx, dz = HUB[1] - bz, d = Math.hypot(dx, dz);
-  return [bx + dx / d * 26, bz + dz / d * 26];
+// where a hero (re)appears: just in front of the throne, facing the plaza
+export function baseSpawn(slot) {
+  const [bx, bz] = SEATS[slot].base, d = Math.hypot(bx, bz);
+  return [bx - bx / d * 8, bz - bz / d * 8, Math.atan2(bx, bz)];
+}
+
+// the buildings every base starts with: a tower at each road mouth, a healing fire, a mine
+function startingBuildings(slot) {
+  const [bx, bz] = SEATS[slot].base, list = [];
+  for (const [a, b] of ARENA_ROADS) {
+    if (a !== slot && b !== slot) continue;
+    const [ux, uz] = roadOut(slot, a === slot ? b : a);
+    // beside the road, so the creeps march past rather than into it
+    list.push(['tower', bx + ux * 22 - uz * 6, bz + uz * 22 + ux * 6, Math.atan2(ux, uz)]);
+  }
+  const d = Math.hypot(bx, bz), ix = -bx / d, iz = -bz / d;
+  list.push(['camp', bx + ix * 12 + iz * 7, bz + iz * 12 - ix * 7, 0]);
+  list.push(['mine', bx - ix * 12 + iz * 9, bz - iz * 12 - ix * 9, Math.atan2(ix, iz)]);
+  return list;
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -92,12 +110,51 @@ export class Moba {
     this.alarmT = 0;
     this.buildBases();
     this.buildNodes();
+    // the host lays out every base's starting buildings; the snapshots carry them to the others
+    if (this.host) {
+      for (const p of this.P) {
+        if (!p) continue;
+        for (const [type, x, z, ry] of startingBuildings(p.slot)) this.placeBuilding(type, p.slot, x, z, ry).built = 1;
+      }
+    }
     if (net) net.on('message', (m, from) => this.onMessage(m, from)).on('leave', (peer) => this.onLeave(peer)).on('hostLeft', () => this.onHostLeft());
   }
 
   get seat() { return SEATS[this.me]; }
   alive(slot) { return !!this.P[slot]?.alive; }
   aliveSlots() { return this.P.filter((p) => p && p.alive).map((p) => p.slot); }
+
+  // ---------------------------------------------------------------- roads
+  // points along a road from seat a to b (a seat or 'c', the plaza), every ~16 m
+  roadPts(a, b) {
+    const i = ARENA_ROADS.findIndex(([p, q]) => (p === a && q === b) || (p === b && q === a));
+    const pts = this.g.terrain.roads?.[i];
+    if (!pts) return [ARENA_ROADS[i][2].at(-1)];
+    const list = ARENA_ROADS[i][0] === a ? pts : [...pts].reverse(), out = [];
+    for (let k = 16; k < list.length; k += 16) out.push([list[k].x, list[k].z]);
+    out.push([list.at(-1).x, list.at(-1).z]);
+    return out;
+  }
+
+  // the way a creep marches: the ring road to a neighbour; to the far corner, through the plaza,
+  // round the colossus on one side or the other
+  route(owner, target, id = 0) {
+    const end = SEATS[target].base;
+    if (adjacent(owner, target)) return [...this.roadPts(owner, target), end];
+    const R = 16, away = ([x, z]) => Math.hypot(x, z) > R + 4;
+    const inn = this.roadPts(owner, 'c').filter(away), out = this.roadPts('c', target).filter(away);
+    const a0 = Math.atan2(SEATS[owner].base[1], SEATS[owner].base[0]), side = id % 2 ? 1 : -1;
+    const ring = [0, 1, 2, 3].map((q) => [Math.cos(a0 + side * q * Math.PI / 4) * R, Math.sin(a0 + side * q * Math.PI / 4) * R]);
+    return [...inn, ...ring, ...out, end];
+  }
+
+  // compass and map pins: every base in its colour (yours is "home")
+  markers() {
+    return this.P.filter(Boolean).map((p) => {
+      const [x, z] = SEATS[p.slot].base, mine = p.slot === this.me;
+      return { x, z, label: mine ? 'ฐานเจ้า' : `ฐาน${SEATS[p.slot].name}${p.alive ? '' : ' ✝'}`, color: SEATS[p.slot].css, home: mine, dead: !p.alive };
+    });
+  }
 
   // ---------------------------------------------------------------- the world
   buildBases() {
@@ -168,15 +225,16 @@ export class Moba {
     const spots = [];
     for (const k of this.K) {
       if (!k) continue;
-      for (let i = 0; i < 14; i++) spots.push([k.x, k.z, 40 + r() * 60]);
+      for (let i = 0; i < 16; i++) spots.push([k.x, k.z, 36 + r() * 50]);
     }
-    for (let i = 0; i < 26; i++) spots.push([HUB[0], HUB[1], 30 + r() * 120]);
+    for (let i = 0; i < 30; i++) spots.push([HUB[0], HUB[1], 40 + r() * 110]);
     let n = 0;
     for (const [cx, cz, rad] of spots) {
       for (let t = 0; t < 8; t++) {
         const a = r() * Math.PI * 2, x = cx + Math.cos(a) * rad, z = cz + Math.sin(a) * rad;
         const h = g.terrain.getHeight(x, z);
-        if (h < 0.5 || Math.abs(x) > 285 || Math.abs(z) > 285) continue;
+        if (h < 0.5 || Math.abs(x) > 195 || Math.abs(z) > 195 || g.terrain.roadAt?.(x, z) > 0.2 || Math.hypot(x, z) < PLAZA_R + 4) continue;
+        if (this.K.some((k) => k && Math.hypot(x - k.x, z - k.z) < BASE_R + 3)) continue;
         const kind = n++ % 3 === 2 ? 'rock' : 'log';
         const mesh = new THREE.Mesh(kind === 'log' ? logGeo : rockGeo, kind === 'log' ? M.wood : M.stone);
         mesh.position.set(x, h + (kind === 'log' ? 0.3 : 0.4), z);
@@ -301,7 +359,8 @@ export class Moba {
     e.activeOverride = 'always';
     e.state = 'chase';
     e.curSpeed = 0;          // the rig's walk cycle reads this; undefined would turn every bone to NaN
-    e.moba = { id: id ?? this.nextId++, owner, target, wi: 0, wp: [gateOf(owner), HUB, gateOf(target), SEATS[target].base], cool: 0, retarget: 0, atk: null, net: !this.host, last: new THREE.Vector3(x, 0, z), stuckT: 0, side: 0 };
+    e.moba = { id: id ?? this.nextId++, owner, target, wi: 0, wp: null, cool: 0, retarget: 0, atk: null, net: !this.host, last: new THREE.Vector3(x, 0, z), stuckT: 0, side: 0 };
+    e.moba.wp = this.route(owner, target, e.moba.id);
     // a band of colour so you can tell whose they are
     const band = new THREE.Mesh(new THREE.TorusGeometry(e.def.radius * 1.4, 0.05, 4, 12), new THREE.MeshBasicMaterial({ color: C(...SEATS[owner].color) }));
     band.rotation.x = Math.PI / 2;
@@ -316,8 +375,9 @@ export class Moba {
     if (!k || !this.alive(owner) || !this.alive(target) || owner === target) return 0;
     const mine = [...this.Cr.values()].filter((e) => e.moba.owner === owner && e.state !== 'dying').length;
     const n = Math.min(CREEPS[type].count, MAX_CREEPS - mine);
-    const [gx, gz] = gateOf(owner);
-    for (let i = 0; i < n; i++) this.spawnCreep(type, owner, target, k.x + (gx - k.x) * 0.3 + (i - 1) * 1.6, k.z + (gz - k.z) * 0.3 + (i % 2) * 1.6);
+    // they gather at the mouth of the road they will take
+    const [ux, uz] = roadOut(owner, adjacent(owner, target) ? target : 'c');
+    for (let i = 0; i < n; i++) this.spawnCreep(type, owner, target, k.x + ux * 9 + (i - 1) * 1.6, k.z + uz * 9 + (i % 2) * 1.6);
     return n;
   }
 
@@ -389,7 +449,14 @@ export class Moba {
     // the king we were sent against has fallen: pick another
     if (!this.alive(m.target)) {
       const others = this.aliveSlots().filter((s) => s !== m.owner);
-      if (others.length) { m.target = others[Math.floor(Math.random() * others.length)]; m.wp = [HUB, gateOf(m.target), SEATS[m.target].base]; m.wi = 0; }
+      if (others.length) {
+        m.target = others[Math.floor(Math.random() * others.length)];
+        m.wp = this.route(m.owner, m.target, m.id);
+        // pick the route up wherever it passes closest
+        let bi = 0, bd = Infinity;
+        m.wp.forEach(([wx, wz], i) => { const d = Math.hypot(wx - e.pos.x, wz - e.pos.z); if (d < bd) { bd = d; bi = i; } });
+        m.wi = bi;
+      }
     }
     let gx, gz, near = false;
     const ti = this.targetInfo(m.atk);

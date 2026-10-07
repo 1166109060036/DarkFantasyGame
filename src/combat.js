@@ -10,6 +10,7 @@ import { createGaunt, createCrawler, createWeeper, createBrute } from './gaunts.
 import { clamp, lerp, wrapAngle } from './util.js';
 import { rng } from './noise.js';
 import { SWORD_POSE } from './classes.js';
+import { ARENA_CAMPS, ARENA_BASES } from './arena.js';
 
 export const ENEMY_TYPES = {
   wisp: { name: 'วิญญาณบึง', hp: 2, speed: 3.2, range: 1.3, windup: 0.55, recover: 0.9, damage: 12, aggro: 15, leash: 50, radius: 0.4, height: 1.5, weight: 0.4, active: 'night', fly: true, coins: [2, 4], respawn: 30 },
@@ -58,7 +59,9 @@ export class Combat {
     this.targetT = 0;
     this.hintShown = false;
     this.enemies = [];
-    this.spawnAll();
+    this.boss = null;
+    if (game.arena) this.spawnArena();
+    else this.spawnAll();
   }
 
   // ---------------------------------------------------------------- spawning
@@ -84,6 +87,27 @@ export class Combat {
     });
     this.boss = this.spawn('knight', KNIGHT_POS.x, KNIGHT_POS.z);
     this.boss.ry = -Math.PI / 2;
+  }
+
+  // the online arena: packs at the four camps, and a few strays in the woods. They hunt day and
+  // night, come back sooner, and pay two souls apiece.
+  spawnArena() {
+    const T = this.g.terrain, r = rng(31);
+    const wild = (type, x, z) => {
+      const e = this.spawn(type, x, z);
+      e.activeOverride = 'always';
+      e.def = { ...e.def, respawn: 75 };
+      e.soul = 2;
+      return e;
+    };
+    for (const c of ARENA_CAMPS) c.types.forEach((type, i) => wild(type, c.x + Math.cos(i * 2.1) * 4, c.z + Math.sin(i * 2.1) * 4));
+    for (let n = 0, tries = 0; n < 10 && tries < 400; tries++) {
+      const a = r() * Math.PI * 2, d = 45 + r() * 120, x = Math.cos(a) * d, z = Math.sin(a) * d;
+      if (T.roadAt(x, z) > 0.01 || ARENA_BASES.some(([bx, bz]) => Math.hypot(x - bx, z - bz) < 60) || ARENA_CAMPS.some((c) => Math.hypot(x - c.x, z - c.z) < 30)) continue;
+      if (n % 2) wild('gaunt', x, z);
+      else { wild('wolf', x, z); wild('wolf', x + 2, z + 1.5); }
+      n++;
+    }
   }
 
   spawn(type, x, z) {
@@ -135,7 +159,7 @@ export class Combat {
   load(d = {}) {
     this.bossDefeated = !!d.bossDefeated;
     this.swordMul = d.swordMul || 1;
-    if (this.bossDefeated) {
+    if (this.bossDefeated && this.boss) {
       this.boss.alive = false;
       this.boss.obj.visible = false;
       this.boss.shadow.visible = false;
@@ -320,7 +344,7 @@ export class Combat {
     g.audio.enemyDie(e.type, e.pos);
     g.kit.onKill(e);
     g.contracts?.onKill(e);
-    if (g.moba) g.moba.earn({ soul: def.elite || def.named ? 4 : 1 }, def.name);
+    if (g.moba) g.moba.earn({ soul: e.soul ?? (def.elite || def.named ? 4 : 1) }, def.name);
     g.particles.burst(e.pos.clone().setY(e.pos.y + def.height * 0.5), 22, 5, 0.9);
     const [a, b] = def.coins;
     g.addCoins(a + Math.floor(Math.random() * (b - a + 1)));
@@ -618,10 +642,10 @@ export class Combat {
       this.animate(e, dt, t, active);
     }
     // the boss bar also names a bounty target once it is on you
-    g.ui.setBoss(bossEngaged && this.boss.alive ? this.boss : namedEngaged);
+    g.ui.setBoss(bossEngaged && this.boss?.alive ? this.boss : namedEngaged);
     // the score follows the fight: how many things are on you, and whether it is the knight
     this.engaged = engaged;
-    this.bossEngaged = bossEngaged && this.boss.alive;
+    this.bossEngaged = bossEngaged && !!this.boss?.alive;
     const tgt = this.target;
     g.ui.setTarget(tgt && this.targetT > 0 && tgt.alive && tgt.state !== 'dying' && !tgt.def.boss ? tgt : null);
   }

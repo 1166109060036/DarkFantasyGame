@@ -95,13 +95,14 @@ export class Ambience {
     const T = (x, z, dy = 0) => g.terrain.getHeight(x, z) + dy;
     const dist = (o) => Math.hypot(o.x - p.x, o.z - p.z);
 
-    // --- beds
+    // --- beds (the river, the falls, the giants and the village only exist in the story world)
+    const W = !g.arena;
     const r1 = nearestOnLine(RIVER, p.x, p.z), r2 = nearestOnLine(STREAM, p.x, p.z);
     const r = r1.d < r2.d ? r1 : r2;
-    this.setBed(this.beds.river, r.x, 0.2, r.z, out * (r.d < 70 ? 1 : 0));
+    this.setBed(this.beds.river, r.x, 0.2, r.z, out * (W && r.d < 70 ? 1 : 0));
     let wf = WATERFALLS[0];
     for (const w of WATERFALLS) if (dist(w) < dist(wf)) wf = w;
-    this.setBed(this.beds.falls, wf.x, 3, wf.z, out * (dist(wf) < 220 ? 1 : 0));
+    this.setBed(this.beds.falls, wf.x, 3, wf.z, out * (W && dist(wf) < 220 ? 1 : 0));
     let fire = null, fd = 30;
     for (const f of g.fx.fires) {
       const fp = f.s.position;
@@ -113,11 +114,11 @@ export class Ambience {
 
     // --- wind: stronger up high, in the canyon and in storms; barely there indoors
     const height = clamp((cam.y - 8) / 40, 0, 1);
-    const canyon = dist(CANYON) < CANYON.r + 10 ? 0.08 : 0;
+    const canyon = W && dist(CANYON) < CANYON.r + 10 ? 0.08 : 0;
     a.setWind((0.05 + height * 0.15 + canyon + rain * 0.05) * (1 - inside * 0.85));
 
     // --- reverb follows the space you are in
-    a.setEnvironment(inside > 0.5 ? 'room' : canyon || dist(TEMPLE) < 40 ? 'hall' : 'outdoor');
+    a.setEnvironment(inside > 0.5 ? 'room' : canyon || (W && dist(TEMPLE) < 40) ? 'hall' : 'outdoor');
 
     // --- fire crackle, from the nearest flame
     this.every('crackle', dt, !!fire, 0.04, 0.35, () => {
@@ -133,7 +134,7 @@ export class Ambience {
       const at = this.around(p, 5, 22), f = 4200 + rnd() * 600, n = 2 + Math.floor(rnd() * 3);
       for (let i = 0; i < n; i++) a.tone({ freq: f, dur: 0.035, type: 'triangle', gain: 0.03, delay: i * 0.05, attack: 0.005, pos: at, verb: 0.05, bus: a.ambBus });
     });
-    const inSwamp = dist(SWAMP) < SWAMP.r + 30 || r.d < 25;
+    const inSwamp = W && (dist(SWAMP) < SWAMP.r + 30 || r.d < 25);
     this.every('frog', dt, night > 0.4 && outdoors && inSwamp && !blood, 0.4, 2.2, () => {
       const at = this.around(p, 6, 30), f = 70 + rnd() * 90;
       for (let i = 0; i < 1 + Math.floor(rnd() * 3); i++) a.voice({ freq: f, dur: 0.18 + rnd() * 0.15, gain: 0.07, slide: 0.85, vibrato: 30 + rnd() * 20, formant: 350 + rnd() * 300, q: 3, type: 'square', delay: i * 0.3, pos: at, verb: 0.15 });
@@ -146,7 +147,7 @@ export class Ambience {
       a.tone({ freq: 345, dur: 0.6, gain: 0.07, slide: 0.9, attack: 0.06, delay: 1.05, pos: at, verb: 0.4, bus: a.ambBus });
     });
     // a wolf far away in the western woods
-    this.every('howl', dt, night > 0.6 && p.x < 40, 50, 110, () => {
+    this.every('howl', dt, night > 0.6 && (!W || p.x < 40), 50, 110, () => {
       const at = this.around(p, 60, 90, Math.PI + (rnd() - 0.5));
       a.voice({ freq: 330, dur: 3.2, gain: 0.22, slide: 1.35, formant: 900, q: 3, vibrato: 5, type: 'triangle', pos: at, verb: 0.8 });
       a.voice({ freq: 445, dur: 1.6, gain: 0.16, slide: 0.6, formant: 900, q: 3, vibrato: 5, type: 'triangle', delay: 3.0, pos: at, verb: 0.8 });
@@ -160,7 +161,7 @@ export class Ambience {
     // --- day
     this.every('crow', dt, day > 0.4 && outdoors, 8, 22, () => { const at = this.around(p, 15, 40); at.y += 6; a.caw(at); });
     // the old station bell tolls somewhere in the village
-    this.every('bell', dt, day > 0.4 && dist(TAVERN) < 220, 70, 150, () => {
+    this.every('bell', dt, W && day > 0.4 && dist(TAVERN) < 220, 70, 150, () => {
       const at = { x: TAVERN.x + 20, y: T(TAVERN.x + 20, TAVERN.z - 20, 10), z: TAVERN.z - 20 };
       for (let i = 0; i < 3; i++) a.metal({ freq: 196, dur: 4, gain: 0.12, delay: i * 2.2, partials: [1, 2.02, 2.4, 3.01, 4.2], pos: at, verb: 0.6 });
     });
@@ -168,19 +169,19 @@ export class Ambience {
     // --- the giants
     let chain = CHAINS[0];
     for (const c of CHAINS) if (dist(c) < dist(chain)) chain = c;
-    this.every('chain', dt, dist(chain) < 120, 5, 13, () => {
+    this.every('chain', dt, W && dist(chain) < 120, 5, 13, () => {
       const at = { x: chain.x, y: T(chain.x, chain.z, 12), z: chain.z };
       a.voice({ freq: 55 + rnd() * 20, dur: 2.4, gain: 0.16, slide: 1.25, formant: 420, q: 7, vibrato: 3, type: 'square', pos: at, verb: 0.6 });
       for (let i = 0; i < 3; i++) a.metal({ freq: 320 + rnd() * 80, dur: 0.5, gain: 0.04, delay: 1 + i * 0.4, partials: [1, 2.3, 3.7], pos: at, verb: 0.5 });
     });
     // the sleeping king breathes
-    this.every('breath', dt, dist(HEAD) < 110, 8, 12, () => {
+    this.every('breath', dt, W && dist(HEAD) < 110, 8, 12, () => {
       const at = { x: HEAD.x, y: T(HEAD.x, HEAD.z, 10), z: HEAD.z };
       a.burst({ dur: 4.5, freq: 160, q: 0.8, type: 'lowpass', gain: 0.45, attack: 1.8, pos: at, verb: 0.5, bus: a.ambBus });
       a.burst({ dur: 3.5, freq: 520, q: 2, gain: 0.08, attack: 1.4, delay: 4.6, sweep: 0.6, pos: at, verb: 0.5, bus: a.ambBus });
     });
     // wind whistles through the giant's ribs
-    this.every('ribs', dt, dist(RIBCAGE) < 80 && outdoors, 6, 14, () => {
+    this.every('ribs', dt, W && dist(RIBCAGE) < 80 && outdoors, 6, 14, () => {
       const at = { x: RIBCAGE.x + (rnd() - 0.5) * 30, y: T(RIBCAGE.x, RIBCAGE.z, 14), z: RIBCAGE.z + (rnd() - 0.5) * 30 };
       a.tone({ freq: 480 + rnd() * 400, dur: 3 + rnd() * 2, gain: 0.03, slide: 0.9 + rnd() * 0.2, vibrato: 0.7, vibDepth: 0.03, attack: 1.2, pos: at, verb: 0.6, bus: a.ambBus });
     });

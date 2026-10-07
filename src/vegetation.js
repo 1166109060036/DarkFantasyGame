@@ -319,3 +319,90 @@ export function buildVegetation(scene, terrain, M, collision, quality) {
   return { treeCount: placed, meshes };
 }
 
+
+// The arena of the online siege: one big bowl of forest. `clear(x, z, pad)` says where plants may
+// not grow (roads, bases, the plaza, the camps).
+export function buildArenaVegetation(scene, terrain, M, collision, quality, clear) {
+  const r = rng(777);
+  const H = (x, z) => terrain.getHeight(x, z);
+  const tmp = new THREE.Object3D(), col = new THREE.Color(), meshes = [];
+  const addInstanced = (geom, mat, list) => {
+    if (!list.length) return;
+    const m = new THREE.InstancedMesh(geom, mat, list.length);
+    list.forEach((p, i) => {
+      tmp.position.set(p.x, p.y, p.z);
+      tmp.rotation.set(p.rx || 0, p.ry, 0);
+      tmp.scale.setScalar(p.s);
+      if (p.sy) tmp.scale.y = p.sy;
+      tmp.updateMatrix();
+      m.setMatrixAt(i, tmp.matrix);
+      const t = p.tint ?? 1;
+      m.setColorAt(i, col.setRGB(t, t, t * (p.tb ?? 1)));
+    });
+    m.instanceMatrix.needsUpdate = true;
+    if (m.instanceColor) m.instanceColor.needsUpdate = true;
+    m.computeBoundingSphere();
+    scene.add(m);
+    meshes.push(m);
+  };
+  const W = 540;
+
+  const variants = [broadleafTree(4), broadleafTree(5), broadleafTree(6), swampTree(13)];
+  const placements = variants.map(() => []);
+  let placed = 0;
+  for (let tries = 0; placed < quality.trees && tries < quality.trees * 14; tries++) {
+    const x = (r() - 0.5) * W, z = (r() - 0.5) * W, h = H(x, z);
+    if (h > 40 || terrain.slope(x, z) > 0.8 || clear(x, z, 4)) continue;
+    const density = 0.3 + fbm(x * 0.014, z * 0.014, 3, 56) * 0.75;
+    if (r() > density) continue;
+    const v = r() < 0.15 ? 3 : Math.floor(r() * 3), s = 0.75 + r() * 0.6;
+    placements[v].push({ x, y: h - 0.2, z, s, ry: r() * Math.PI * 2, tint: 0.75 + r() * 0.4 });
+    collision.addCircle(x, z, 0.4 * s + 0.1);
+    placed++;
+  }
+  variants.forEach((v, i) => { addInstanced(v.trunk, M.bark, placements[i]); addInstanced(v.crown, i === 3 ? M.hangingMoss : M.leaves, placements[i]); });
+
+  const ferns = [];
+  for (let i = 0; i < quality.ferns * 5 && ferns.length < quality.ferns; i++) {
+    const x = (r() - 0.5) * W, z = (r() - 0.5) * W, h = H(x, z);
+    if (terrain.slope(x, z) > 0.9 || clear(x, z, 1)) continue;
+    if (r() > 0.2 + fbm(x * 0.02, z * 0.02, 2, 57) * 0.6) continue;
+    ferns.push({ x, y: h - 0.05, z, s: 0.6 + r() * 0.9, ry: r() * 6.28, tint: 0.7 + r() * 0.45 });
+  }
+  addInstanced(fernGeom(), M.fern, ferns);
+
+  const grass = [];
+  for (let i = 0; i < quality.grass * 4 && grass.length < quality.grass; i++) {
+    const x = (r() - 0.5) * W, z = (r() - 0.5) * W, h = H(x, z);
+    if (h > 26 || clear(x, z, -1)) continue;
+    if (r() > 0.3 + fbm(x * 0.03, z * 0.03, 2, 67) * 0.5) continue;
+    grass.push({ x, y: h - 0.05, z, s: 0.6 + r() * 0.6, ry: r() * 6.28, tint: 0.95 + r() * 0.6, tb: 1.05 });
+  }
+  addInstanced(crossedPlanes(1.0, 0.62, 2), M.grass, grass);
+
+  const rocks = [];
+  for (let i = 0; i < quality.rocks * 6 && rocks.length < quality.rocks; i++) {
+    const x = (r() - 0.5) * W, z = (r() - 0.5) * W, h = H(x, z);
+    if (clear(x, z, 2) || r() > 0.2 + terrain.slope(x, z) * 0.8) continue;
+    const s = 0.5 + Math.pow(r(), 2) * 1.8;
+    rocks.push({ x, y: h - s * 0.25, z, s, sy: s * (0.5 + r() * 0.4), ry: r() * 6.28, rx: (r() - 0.5) * 0.3, tint: 0.7 + r() * 0.4 });
+    if (s > 1) collision.addCircle(x, z, s * 0.8, h - 1, h + s * 0.6);
+  }
+  const rockGeom = colorize(new THREE.DodecahedronGeometry(1, 0), 0xffffff);
+  const ruv = rockGeom.attributes.uv, rpos = rockGeom.attributes.position;
+  for (let i = 0; i < ruv.count; i++) ruv.setXY(i, rpos.getX(i) * 0.6 + rpos.getZ(i) * 0.4, rpos.getY(i) * 0.6);
+  addInstanced(rockGeom, M.stone, rocks);
+
+  const glow = [];
+  for (let i = 0; i < quality.mushrooms * 6 && glow.length < quality.mushrooms; i++) {
+    const cx = (r() - 0.5) * W, cz = (r() - 0.5) * W;
+    if (r() > 0.3) continue;
+    for (let k = 0, n = 3 + Math.floor(r() * 6); k < n; k++) {
+      const x = cx + (r() - 0.5) * 2.5, z = cz + (r() - 0.5) * 2.5;
+      if (clear(x, z, 1)) continue;
+      glow.push({ x, y: H(x, z) - 0.02, z, s: 0.6 + r() * 1.4, ry: r() * 6.28, tint: 0.6 + r() * 0.6 });
+    }
+  }
+  addInstanced(glowMushroomGeom(), M.glow, glow);
+  return { treeCount: placed, meshes };
+}

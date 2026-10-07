@@ -147,6 +147,10 @@ export class UI {
       d.classList.toggle('edge', edge);
       d.classList.toggle('evt', m.kind === 'event');
       d.classList.toggle('bounty', m.kind === 'bounty');
+      // online bases wear their colour; your own is a little house
+      const gem = d.querySelector('.gem');
+      gem.style.color = m.color || '';
+      gem.textContent = m.home ? '⌂' : m.dead ? '✝' : '◆';
       d.querySelector('.dist').textContent = `${Math.round(Math.hypot(m.x - px, m.z - pz))}m`;
     });
   }
@@ -237,7 +241,8 @@ export class UI {
   }
 
   // ---------- world map ----------
-  buildMap(terrain, railPts) {
+  // ext: how far from the centre the map reaches (the arena only shows its bowl)
+  buildMap(terrain, railPts, roads = null, ext = HALF) {
     const S = 320;
     const c = document.createElement('canvas');
     c.width = c.height = S;
@@ -245,7 +250,7 @@ export class UI {
     const img = ctx.createImageData(S, S);
     for (let y = 0; y < S; y++) {
       for (let x = 0; x < S; x++) {
-        const wx = (x / S) * HALF * 2 - HALF, wz = (y / S) * HALF * 2 - HALF;
+        const wx = (x / S) * ext * 2 - ext, wz = (y / S) * ext * 2 - ext;
         const h = terrain.getHeight(wx, wz);
         const hx = terrain.getHeight(wx + 2, wz) - h;
         const shade = Math.max(0.4, Math.min(1.3, 1 - hx * 0.35));
@@ -257,11 +262,20 @@ export class UI {
       }
     }
     ctx.putImageData(img, 0, 0);
-    const toMap = (wx, wz) => [(wx + HALF) / (HALF * 2) * S, (wz + HALF) / (HALF * 2) * S];
-    ctx.strokeStyle = 'rgba(40,30,25,0.9)'; ctx.lineWidth = 2; ctx.setLineDash([3, 2]);
-    ctx.beginPath();
-    railPts.forEach((p, i) => { const [mx, my] = toMap(p.x, p.z); i ? ctx.lineTo(mx, my) : ctx.moveTo(mx, my); });
-    ctx.stroke(); ctx.setLineDash([]);
+    const toMap = (wx, wz) => [(wx + ext) / (ext * 2) * S, (wz + ext) / (ext * 2) * S];
+    const line = (pts) => { ctx.beginPath(); pts.forEach((p, i) => { const [mx, my] = toMap(p.x, p.z); i ? ctx.lineTo(mx, my) : ctx.moveTo(mx, my); }); ctx.stroke(); };
+    if (roads) {
+      // the arena's dirt roads: a dark edge, then a pale track down the middle
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(30,22,14,0.85)'; ctx.lineWidth = 5;
+      roads.forEach(line);
+      ctx.strokeStyle = '#c8b48a'; ctx.lineWidth = 2.5;
+      roads.forEach(line);
+    } else {
+      ctx.strokeStyle = 'rgba(40,30,25,0.9)'; ctx.lineWidth = 2; ctx.setLineDash([3, 2]);
+      line(railPts);
+      ctx.setLineDash([]);
+    }
     this.mapBase = c;
     this.mapToCanvas = toMap;
   }
@@ -286,6 +300,15 @@ export class UI {
     document.getElementById('map-count').textContent = `สถานที่ที่ค้นพบ ${discovered.size}/${locations.length}`;
     for (const m of markers) {
       const [mx, my] = this.mapToCanvas(m.x, m.z);
+      if (m.color) {
+        // an online base: a disc in its colour, a ring round your own
+        ctx.globalAlpha = m.dead ? 0.4 : 1;
+        ctx.fillStyle = m.color; ctx.strokeStyle = '#140e08'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(mx * k, my * k + 14, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        if (m.home) { ctx.strokeStyle = '#ffe9a8'; ctx.beginPath(); ctx.arc(mx * k, my * k + 14, 12, 0, Math.PI * 2); ctx.stroke(); }
+        ctx.globalAlpha = 1;
+        continue;
+      }
       ctx.fillStyle = '#7fd4ff';
       ctx.beginPath(); ctx.moveTo(mx * k, my * k - 7); ctx.lineTo(mx * k + 5, my * k); ctx.lineTo(mx * k, my * k + 7); ctx.lineTo(mx * k - 5, my * k); ctx.fill();
     }

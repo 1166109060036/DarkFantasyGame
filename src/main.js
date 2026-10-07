@@ -6,7 +6,8 @@ import { Terrain } from './terrain.js';
 import { createSky, createWater, Rain, Weather, FOG_COLOR, MOON_DIR } from './environment.js';
 import { CollisionWorld } from './collision.js';
 import { buildStructures } from './structures.js';
-import { buildVegetation } from './vegetation.js';
+import { buildVegetation, buildArenaVegetation } from './vegetation.js';
+import { ArenaTerrain, buildArena, arenaKeepOut, ARENA_LOCATIONS, ARENA_BASES } from './arena.js';
 import { createToad, createCrow, createViewModel, blobShadow } from './characters.js';
 import { Flock, Particles } from './entities.js';
 import { Combat } from './combat.js';
@@ -24,7 +25,7 @@ import { Ambience } from './ambience.js';
 import { CLASSES, createKit, STARTING_GEAR } from './classes.js';
 import { WorldEvents } from './events.js';
 import { Contracts } from './contracts.js';
-import { Moba, SEATS, BUILDINGS } from './moba.js';
+import { Moba, SEATS, BUILDINGS, baseSpawn } from './moba.js';
 import { Lobby } from './lobby.js';
 import { UI } from './ui.js';
 import { Quests } from './quests.js';
@@ -35,6 +36,9 @@ import { clamp } from './util.js';
 const SAVE_KEY = 'moonmire-save-v1';
 const SETTINGS_KEY = 'moonmire-settings-v1';
 const params = new URLSearchParams(location.search);
+// `?arena` loads the map of the online siege instead of the story world (see src/arena.js)
+const ARENA = params.has('arena');
+const ARENA_IDS = new Set(ARENA_LOCATIONS.map((l) => l.id));
 
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
@@ -61,6 +65,7 @@ class Game {
     this.discovered = new Set();
     this.indoor = 0;
     this.dayNight = new DayNight(900, params.has('time') ? +params.get('time') : 0.9);
+    this.arena = ARENA;
   }
 
   init() {
@@ -86,7 +91,7 @@ class Game {
 
     const T = createTextures();
     const M = (this.M = createMaterials(T));
-    this.terrain = new Terrain();
+    this.terrain = ARENA ? new ArenaTerrain() : new Terrain();
     scene.add(this.terrain.buildMesh(M.terrain));
     this.water = createWater();
     scene.add(this.water);
@@ -97,6 +102,93 @@ class Game {
     this.weather = new Weather();
 
     this.collision = new CollisionWorld();
+    if (ARENA) this.buildArenaWorld();
+    else this.buildStoryWorld();
+
+    this.audio = new AudioSys();
+    this.weather.onThunder = (d) => this.audio.thunder(d);
+    this.ambience = new Ambience(this);
+    this.flock = new Flock(scene, M, this.terrain, this.audio);
+    for (let i = 0; i < (ARENA ? 0 : 22); i++) {
+      const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * (FENCE_R - 10);
+      this.flock.add(PASTURE.x + Math.cos(a) * d, PASTURE.z + Math.sin(a) * d);
+    }
+    this.lostSheep = ARENA ? [] : LOST_SHEEP.map(([x, z], i) => this.flock.add(x, z, { lost: true, id: i }));
+    this.particles = new Particles(scene, M);
+
+    // first-person hands rendered in their own pass (never clip into walls)
+    this.overlay = new THREE.Scene();
+    this.overlay.add(new THREE.HemisphereLight(0x8aa6ff, 0x203028, 2.4));
+    const ol = new THREE.DirectionalLight(0xc0d0ff, 1.6);
+    ol.position.set(1, 2, 1);
+    this.overlay.add(ol);
+    this.viewCam = new THREE.Group();
+    this.overlay.add(this.viewCam);
+    this.view = createViewModel(M);
+    this.viewCam.add(this.view);
+    this.vmLight = new THREE.PointLight(0x9fc4ff, 2, 3, 1);
+    this.vmLight.position.set(-0.3, -0.25, -0.5);
+    this.viewCam.add(this.vmLight);
+
+    this.player = new Player(this.camera, this.terrain, this.collision);
+    this.player.onStep = (wet) => this.audio.step(this.stepSurface(wet));
+    this.ui = new UI();
+    if (ARENA) document.querySelector('#map h2').textContent = 'แผนที่สนามศึก';
+    this.ui.buildMap(this.terrain, this.terrain.rail.pts, ARENA ? this.terrain.roads : null, ARENA ? 215 : undefined);
+    this.quests = new Quests(this);
+    this.combat = new Combat(this);
+    this.hud = new DoomHud();
+    this.bag = new Inventory();
+    this.bag.add('potion', 1);
+    this.loot = new Loot(this);
+    this.bagUI = new BagUI(this);
+    this.menus = new Menus(this);
+    this.classGear = new Set();     // paths whose starting gear was already handed out
+    this.setClass('wanderer');
+    this.events = new WorldEvents(this);
+    if (ARENA) this.contracts = { chips: () => [], markers: () => [], update() {}, onKill() {}, serialize: () => ({}), load() {} };
+    else {
+      this.contracts = new Contracts(this);
+      this.interactables.push({ id: 'board', pos: this.contracts.boardPos, r: 3.2, label: 'อ่านใบประกาศล่าค่าหัว', checkpoint: { x: TAVERN.x, z: TAVERN.z - 8 } });
+    }
+    // a private copy of the blade material so oil / the king's sword can make it glow
+    const blade = this.view.userData.sword.children[0];
+    blade.material = blade.material.clone();
+
+    this.applySettings();
+    this.bindUI();
+    this.resize();
+    addEventListener('resize', () => this.resize());
+    this.input.onLockChange = (locked) => {
+      if (!locked && this.state === 'play' && !this.input.touch) this.pause();
+    };
+    document.addEventListener('visibilitychange', () => { if (document.hidden && this.state === 'play') this.save(); });
+
+    if (ARENA) this.player.place(ARENA_BASES[0][0] + 7, ARENA_BASES[0][1] + 7, 0);
+    else this.player.place(SPAWN.x, SPAWN.z, Math.atan2(-(SPAWN.toward.x - SPAWN.x), -(SPAWN.toward.z - SPAWN.z)));
+    this.state = 'title';
+    this.startMenuMusic();
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('btn-continue').classList.toggle('hidden', !store.get(SAVE_KEY));
+
+    if (ARENA) this.lobby.open();
+    else if (params.has('autostart')) this.start(false);
+    const at = params.get('at');
+    if (at) {
+      const [x, z, yaw = 0, pitch = 0] = at.split(',').map(Number);
+      this.player.place(x, z, yaw);
+      this.player.pitch = pitch;
+    }
+    if (params.has('stage')) { this.quests.stage = +params.get('stage'); this.onQuestChanged(); }
+
+    this.clock = new THREE.Clock();
+    renderer.setAnimationLoop(() => this.frame());
+    window.__game = this;
+  }
+
+  // the Moonmire of the story: village, temple, giants, the people who live there
+  buildStoryWorld() {
+    const scene = this.scene, M = this.M;
     const st = buildStructures(scene, this.terrain, M, this.collision);
     this.altar = st.altar;
     this.fx = st.fx;
@@ -159,80 +251,19 @@ class Game {
       { id: 'keeper', pos: this.village.keeper.pos, r: 3.0, label: 'คุยกับเทียนหลอม เจ้าของโรงเตี๊ยม', checkpoint: { x: TAVERN.x, z: TAVERN.z - 8 } },
       { id: 'smith', pos: this.village.smith.pos, r: 3.2, label: 'คุยกับลุงทั่ง ช่างตีเหล็ก' },
     ];
+  }
 
-    this.audio = new AudioSys();
-    this.weather.onThunder = (d) => this.audio.thunder(d);
-    this.ambience = new Ambience(this);
-    this.flock = new Flock(scene, M, this.terrain, this.audio);
-    for (let i = 0; i < 22; i++) {
-      const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * (FENCE_R - 10);
-      this.flock.add(PASTURE.x + Math.cos(a) * d, PASTURE.z + Math.sin(a) * d);
-    }
-    this.lostSheep = LOST_SHEEP.map(([x, z], i) => this.flock.add(x, z, { lost: true, id: i }));
-    this.particles = new Particles(scene, M);
-
-    // first-person hands rendered in their own pass (never clip into walls)
-    this.overlay = new THREE.Scene();
-    this.overlay.add(new THREE.HemisphereLight(0x8aa6ff, 0x203028, 2.4));
-    const ol = new THREE.DirectionalLight(0xc0d0ff, 1.6);
-    ol.position.set(1, 2, 1);
-    this.overlay.add(ol);
-    this.viewCam = new THREE.Group();
-    this.overlay.add(this.viewCam);
-    this.view = createViewModel(M);
-    this.viewCam.add(this.view);
-    this.vmLight = new THREE.PointLight(0x9fc4ff, 2, 3, 1);
-    this.vmLight.position.set(-0.3, -0.25, -0.5);
-    this.viewCam.add(this.vmLight);
-
-    this.player = new Player(this.camera, this.terrain, this.collision);
-    this.player.onStep = (wet) => this.audio.step(this.stepSurface(wet));
-    this.ui = new UI();
-    this.ui.buildMap(this.terrain, this.terrain.rail.pts);
-    this.quests = new Quests(this);
-    this.combat = new Combat(this);
-    this.hud = new DoomHud();
-    this.bag = new Inventory();
-    this.bag.add('potion', 1);
-    this.loot = new Loot(this);
-    this.bagUI = new BagUI(this);
-    this.menus = new Menus(this);
-    this.classGear = new Set();     // paths whose starting gear was already handed out
-    this.setClass('wanderer');
-    this.events = new WorldEvents(this);
-    this.contracts = new Contracts(this);
-    this.interactables.push({ id: 'board', pos: this.contracts.boardPos, r: 3.2, label: 'อ่านใบประกาศล่าค่าหัว', checkpoint: { x: TAVERN.x, z: TAVERN.z - 8 } });
-    // a private copy of the blade material so oil / the king's sword can make it glow
-    const blade = this.view.userData.sword.children[0];
-    blade.material = blade.material.clone();
-
-    this.applySettings();
-    this.bindUI();
-    this.resize();
-    addEventListener('resize', () => this.resize());
-    this.input.onLockChange = (locked) => {
-      if (!locked && this.state === 'play' && !this.input.touch) this.pause();
-    };
-    document.addEventListener('visibilitychange', () => { if (document.hidden && this.state === 'play') this.save(); });
-
-    this.player.place(SPAWN.x, SPAWN.z, Math.atan2(-(SPAWN.toward.x - SPAWN.x), -(SPAWN.toward.z - SPAWN.z)));
-    this.state = 'title';
-    this.startMenuMusic();
-    document.getElementById('loading').classList.add('hidden');
-    document.getElementById('btn-continue').classList.toggle('hidden', !store.get(SAVE_KEY));
-
-    if (params.has('autostart')) this.start(false);
-    const at = params.get('at');
-    if (at) {
-      const [x, z, yaw = 0, pitch = 0] = at.split(',').map(Number);
-      this.player.place(x, z, yaw);
-      this.player.pitch = pitch;
-    }
-    if (params.has('stage')) { this.quests.stage = +params.get('stage'); this.onQuestChanged(); }
-
-    this.clock = new THREE.Clock();
-    renderer.setAnimationLoop(() => this.frame());
-    window.__game = this;
+  // the online arena: no people, no quests; lanterned roads between four bases (src/arena.js)
+  buildArenaWorld() {
+    const scene = this.scene, M = this.M;
+    const ar = buildArena(scene, this.terrain, M, this.collision);
+    this.fx = ar.fx;
+    this.veg = buildArenaVegetation(scene, this.terrain, M, this.collision, this.quality, arenaKeepOut(this.terrain));
+    const far = new THREE.Vector3(0, -999, 0);
+    this.altar = far;
+    this.village = { indoor: { minX: 1e9, maxX: -1e9, minZ: 1e9, maxZ: -1e9, maxY: -1e9 }, patrons: [], keeper: null, smith: null };
+    this.npcs = {};
+    this.interactables = [];
   }
 
   bindUI() {
@@ -240,9 +271,17 @@ class Game {
     on('btn-new', () => this.pickClass((id) => { if (!id) return; this.setClass(id); this.start(false); }));
     on('btn-continue', () => this.start(true));
     this.lobby = new Lobby(this);
-    on('btn-online', () => { this.audio.init(); this.lobby.open(); });
-    on('lobby-back', () => this.lobby.close());
-    on('mobaover-back', () => location.reload());
+    // the siege has its own map: the online button reloads into it, leaving goes back to Moonmire
+    const page = (arena) => {
+      const q = new URLSearchParams();
+      if (params.get('peer')) q.set('peer', params.get('peer'));
+      if (arena) q.set('arena', '');
+      const qs = q.toString().replace(/arena=(&|$)/, 'arena$1');
+      location.href = location.pathname + (qs ? `?${qs}` : '');
+    };
+    on('btn-online', () => { if (ARENA) { this.audio.init(); this.lobby.open(); } else page(true); });
+    on('lobby-back', () => { this.lobby.leave(); page(false); });
+    on('mobaover-back', () => page(true));
     on('btn-resume', () => this.resume());
     on('btn-restart', () => { store.del(SAVE_KEY); location.reload(); });
     // desktop build (Electron) only
@@ -580,9 +619,10 @@ class Game {
     this.setClass(mine.cls);
     this.coins = 0;
     this.moba = new Moba(this, net, roster, me);
-    const [bx, bz] = SEATS[me].base;
-    this.checkpoint = { x: bx + 7, z: bz + 7 };
-    this.player.place(bx + 7, bz + 7, Math.atan2(-(10 - bx), -(10 - bz)));
+    this.discovered.add(`base${me}`);
+    const [sx, sz, yaw] = baseSpawn(me);
+    this.checkpoint = { x: sx, z: sz };
+    this.player.place(sx, sz, yaw);
     document.getElementById('title').classList.add('hidden');
     document.body.classList.add('in-game', 'moba');
     this.ui.show('hud');
@@ -593,7 +633,8 @@ class Game {
     this.input.enabled = true;
     this.input.requestLock();
     this.ui.banner('ศึกราชาจันทรา', `เจ้าคือฐาน${SEATS[me].name} — ปกป้องราชาของเจ้า`);
-    setTimeout(() => this.ui.toast('ตัดไม้/ทุบหินด้วย [E] · ฆ่าสัตว์ป่าได้วิญญาณ · [B] สร้างสิ่งปลูกสร้างและซัมม่อนครีป'), 2500);
+    setTimeout(() => this.ui.toast('ตัดไม้/ทุบหินด้วย [E] · ฆ่าสัตว์ป่าที่แคมป์ได้วิญญาณ · [B] สร้างและซัมม่อนครีป · [M] แผนที่ถนน'), 2500);
+    setTimeout(() => this.ui.toast('ถนนทุกสายมีตะเกียงและป้ายบอกทาง — เดินตามถนนไปถึงทุกฐาน'), 6500);
   }
 
   // building placement: a ghost of the building follows your gaze; click to build, right-click to cancel
@@ -632,7 +673,11 @@ class Game {
   }
 
   // quest targets first, then whatever the world is up to (the pedlar, a fallen star, a chest)
-  allMarkers() { return [...this.quests.markers(), ...this.contracts.markers(), ...this.events.markers()].slice(0, 6); }
+  allMarkers() {
+    if (this.moba) return this.moba.markers();
+    if (ARENA) return [];
+    return [...this.quests.markers(), ...this.contracts.markers(), ...this.events.markers()].slice(0, 6);
+  }
 
   interact(id) {
     const it = this.interactables.find((i) => i.id === id);
@@ -655,10 +700,11 @@ class Game {
 
   checkDiscoveries() {
     const p = this.player.pos;
-    for (const loc of LOCATIONS) {
+    const locs = ARENA ? ARENA_LOCATIONS : LOCATIONS;
+    for (const loc of locs) {
       if (this.discovered.has(loc.id) || Math.hypot(p.x - loc.x, p.z - loc.z) > loc.r) continue;
       this.discovered.add(loc.id);
-      this.ui.discover(loc.name, this.discovered.size, LOCATIONS.length);
+      this.ui.discover(loc.name, this.discovered.size, locs.length);
       this.audio.discover();
       this.save();
     }
@@ -726,10 +772,11 @@ class Game {
     if (c.engaged > 0) this.combatHeat = 7;
     else this.combatHeat = Math.max(0, (this.combatHeat || 0) - dt);
     const boss = c.bossEngaged, fight = this.combatHeat > 0 && !boss;
-    const dTav = Math.hypot(p.x - TAVERN.x, p.z - TAVERN.z);
+    const dTav = ARENA ? 1e9 : Math.hypot(p.x - TAVERN.x, p.z - TAVERN.z);
     const tav = Math.max(this.indoor, clamp(1 - (dTav - 9) / 22, 0, 1) * 0.45);
     let awe = 0;
-    for (const [o, r] of [[CASTLE, 150], [HEAD, 110], [RIBCAGE, 70]]) awe = Math.max(awe, clamp((1 - Math.hypot(p.x - o.x, p.z - o.z) / r) * 1.8, 0, 1));
+    const giants = ARENA ? [[{ x: 0, z: 0 }, 70]] : [[CASTLE, 150], [HEAD, 110], [RIBCAGE, 70]];
+    for (const [o, r] of giants) awe = Math.max(awe, clamp((1 - Math.hypot(p.x - o.x, p.z - o.z) / r) * 1.8, 0, 1));
     const explore = fight || boss ? 0 : 1 - tav;
     const q = (v) => Math.round(v * 20) / 20;
     const blood = this.events.blood;
@@ -742,6 +789,19 @@ class Game {
       fade: 3,
     });
     m.update();
+  }
+
+  animateNpcs(dt) {
+    const p = this.player, crow = this.npcs.crow.obj;
+    const dCrow = crow.position.distanceTo(p.pos);
+    crow.rotation.z = Math.sin(this.time * 0.9) * 0.015;
+    const crowGoal = dCrow < 7 ? Math.atan2(p.pos.x - crow.position.x, p.pos.z - crow.position.z) : crow.userData.baseRy;
+    crow.userData.ry = (crow.userData.ry ?? crow.userData.baseRy) + wrapHeading(crowGoal - (crow.userData.ry ?? crow.userData.baseRy)) * Math.min(1, dt * 3);
+    crow.rotation.y = crow.userData.ry;
+    const toad = this.npcs.toad.obj;
+    toad.scale.set(1, 1 + Math.sin(this.time * 1.8) * 0.02, 1);
+    for (const [i, pt] of this.village.patrons.entries()) pt.rotation.z = Math.sin(this.time * 0.7 + i * 1.9) * 0.04;
+    this.village.keeper.obj.userData.halo.scale.setScalar(1.6 * (1 + Math.sin(this.time * 11) * 0.08));
   }
 
   die() {
@@ -818,7 +878,8 @@ class Game {
     this.indoor += ((inside ? 1 : 0) - this.indoor) * Math.min(1, dt * 4);
     if (p.hp <= 0) this.die();
 
-    if (mapOpen) ui.drawMap(p, this.allMarkers(), this.discovered, LOCATIONS);
+    // in the arena every place is on the map from the start
+    if (mapOpen) ui.drawMap(p, this.allMarkers(), ARENA ? ARENA_IDS : this.discovered, ARENA ? ARENA_LOCATIONS : LOCATIONS);
     this.updateHud();
     this.saveTimer = (this.saveTimer || 0) + dt;
     if (this.saveTimer > 20) { this.saveTimer = 0; this.save(); }
@@ -864,7 +925,7 @@ class Game {
       this.deadT += dt;
       this.pipeline.uniforms.uFade.value = clamp(this.deadT / 1.5, 0, 1);
       if (this.deadT > (this.moba ? 6 : 2)) {
-        if (this.moba) { const [bx, bz] = SEATS[this.moba.me].base; this.checkpoint = { x: bx + 7, z: bz + 7 }; }
+        if (this.moba) { const [sx, sz] = baseSpawn(this.moba.me); this.checkpoint = { x: sx, z: sz }; }
         p.place(this.checkpoint.x, this.checkpoint.z, p.yaw);
         p.hp = p.maxHp;
         this.combat.resetAggro();
@@ -903,16 +964,7 @@ class Game {
     this.loot.update(dt, this.time);
 
     // NPC idle animation
-    const crow = this.npcs.crow.obj;
-    const dCrow = crow.position.distanceTo(p.pos);
-    crow.rotation.z = Math.sin(this.time * 0.9) * 0.015;
-    const crowGoal = dCrow < 7 ? Math.atan2(p.pos.x - crow.position.x, p.pos.z - crow.position.z) : crow.userData.baseRy;
-    crow.userData.ry = (crow.userData.ry ?? crow.userData.baseRy) + wrapHeading(crowGoal - (crow.userData.ry ?? crow.userData.baseRy)) * Math.min(1, dt * 3);
-    crow.rotation.y = crow.userData.ry;
-    const toad = this.npcs.toad.obj;
-    toad.scale.set(1, 1 + Math.sin(this.time * 1.8) * 0.02, 1);
-    for (const [i, pt] of this.village.patrons.entries()) pt.rotation.z = Math.sin(this.time * 0.7 + i * 1.9) * 0.04;
-    this.village.keeper.obj.userData.halo.scale.setScalar(1.6 * (1 + Math.sin(this.time * 11) * 0.08));
+    if (!ARENA) this.animateNpcs(dt);
     for (const f of this.fx.fires) f.s.scale.setScalar(f.base * (1 + Math.sin(this.time * 9 + f.ph) * 0.1 + Math.sin(this.time * 23 + f.ph * 2) * 0.06));
     for (const m of this.fx.mists) m.s.scale.setScalar(m.base * (1 + Math.sin(this.time * 0.6 + m.ph) * 0.12));
     for (const l of this.fx.lights) l.l.intensity = l.base * (1 + Math.sin(this.time * 8 + l.base) * 0.08 + Math.sin(this.time * 17) * 0.05);

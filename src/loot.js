@@ -54,8 +54,10 @@ export class Loot {
     this.chests = [];
     this.opened = new Set();
     this.texCache = new Map();
-    this.placeNodes();
-    this.placeChests();
+    if (!game.arena) {          // the online arena has no herbs, ore veins or chests
+      this.placeNodes();
+      this.placeChests();
+    }
   }
 
   // terrain, or the top of a low platform / step (never the top of a pillar or wall)
