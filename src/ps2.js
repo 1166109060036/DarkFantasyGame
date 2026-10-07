@@ -98,13 +98,15 @@ void main(){
   c += b * uBloom;
   c += uFlash * vec3(0.10, 0.13, 0.22);
   // moonlit grade: lift blacks into navy, push saturation, cool highlights
-  // night: cold saturated moonlight. day: drained, sickly grey-green overcast
+  // night: cold, vivid moonlight. day: overcast grey-green, but with colour left in it
   c += mix(vec3(0.004, 0.012, 0.035), vec3(0.012, 0.016, 0.014), uDay) * (1.0 - c);
   float l = dot(c, vec3(0.299, 0.587, 0.114));
-  c = mix(vec3(l), c, mix(1.22, 0.62, uDay));
-  c *= mix(vec3(0.9, 1.0, 1.14), vec3(0.94, 1.0, 0.95), uDay);
+  c = mix(vec3(l), c, mix(1.5, 1.2, uDay));
+  c *= mix(vec3(0.9, 1.0, 1.14), vec3(0.96, 1.0, 0.95), uDay);
   c = mix(c, c * c * 1.35, uDay * 0.12);
   c = pow(max(c, 0.0), vec3(0.92));
+  // contrast: deeper shadows, brighter lights, pivoting around the dim mid-tones this world lives in
+  c = max((c - 0.24) * 1.22 + 0.24, 0.0);
   vec2 q = vUv - 0.5;
   c *= 1.0 - dot(q, q) * 1.15;
   c = mix(c, vec3(0.45, 0.02, 0.04), uHurt * smoothstep(0.15, 0.75, length(q)));
