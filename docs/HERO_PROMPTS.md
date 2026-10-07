@@ -378,7 +378,28 @@ grey background, front view, full bodies.
 
 ---
 
-## 10. หลังได้โมเดลแล้ว
+## 10. แบบที่เลือกแล้ว
+
+ภาพ concept ที่ใช้เป็นแบบจริงเก็บไว้ใน [`hero-concepts/`](hero-concepts/): `wanderer` `bell` `leech` `coffin` `wick`
+
+**ก่อนแปลงเป็น 3D** ให้สร้างภาพ "มือเปล่า" ของแต่ละตัวอีกรอบ โดยแนบภาพ concept เป็นภาพอ้างอิง ถ้าส่งภาพที่ถืออาวุธเข้า image-to-3D อาวุธจะติดเป็นก้อนเดียวกับตัว แล้ว auto-rig จะพัง ส่วนอาวุธให้ทำแยกด้วย prompt D
+
+```
+Same character, exactly the same design, outfit and colours as the reference image, empty hands,
+no weapon and nothing held, arms out in a relaxed A-pose at 45 degrees, standing straight, legs
+slightly apart, front view only, full body from hat to boots, centred, plain dark grey background,
+PS2-era low-poly 3D game character, faceted low polygons, hand-painted low-resolution texture, matte
+```
+
+| วิถี | สิ่งที่ต้องระวังตอนทำ 3D |
+|---|---|
+| ผู้พเนจร | ภาพนี้ตรงสไตล์ที่สุด ผ้าคลุมเทาอ่อนผืนใหญ่เป็นสีทีมได้ทั้งผืน ทำตามภาพได้เลย |
+| ผู้ตีระฆัง | จีวรเทาอ่อนเป็นสีทีม (ลายป่าที่ชายผ้าให้อยู่ในวัสดุ `body` หรือทาสีเข้มทับ) · ภาพมือเปล่าต้องเอาค้อนออกจากไหล่ |
+| หมอปลิง | สีทีมตอนนี้มีแค่เสื้อเชิ้ตตัวใน มองจากด้านหลังแทบไม่เห็น **ให้ทาผ้าคลุมไหล่สั้นเป็นเทาอ่อน** แล้วใส่วัสดุ `team` ทำในภาพมือเปล่าหรือใน Blender ก็ได้ |
+| สัปเหร่อแบกโลง | ผ้าพันรอบโลงกับเสื้อโค้ตเป็นสีทีม · คราบโคลนบนโค้ตให้ทาลงในเท็กซ์เจอร์ได้ (เกมย้อมสีทับ คราบยังอยู่) · โลงทำแยกเป็น `weapon` |
+| ผู้แบกไส้เทียน | ภาพนี้ละเอียดและสมจริงกว่าตัวอื่น (ลายเหล็กดัด ไม้กางเขน) ตอนลด polygon รายละเอียดพวกนี้จะหายเอง ไม่ต้องห่วง · สีทีมคือผ้าคาดเอวกับผ้าพันแขน ซึ่งยังน้อย **ให้ทาซับในโค้ตด้านในเป็นเทาอ่อนด้วย** |
+
+## 11. หลังได้โมเดลแล้ว
 
 1. ทำตาม checklist ข้อ 5 ใน `MODEL_PROMPTS.md`: ลด polygon ลดเท็กซ์เจอร์ ตัด PBR
 2. ตรวจว่ามีวัสดุ 4 ชื่อครบ: `body` `team` `glow` `weapon` และผ้าสีทีมต้องเป็น **สีเทาอ่อนล้วน** ไม่มีสีอื่นปน
