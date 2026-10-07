@@ -3,6 +3,7 @@
 import { ITEMS, itemIconURL } from './items.js';
 import { BAG_SIZES } from './inventory.js';
 import { AFFIXES } from './contracts.js';
+import { BUILDINGS, CREEPS, SEATS, costText, canPay } from './moba.js';
 
 export const RECIPES = [
   { out: 'potion', n: 1, need: [['moon_herb', 2]] },
@@ -75,7 +76,7 @@ export class Menus {
   }
 
   update(input) {
-    if (input.consume('escape') || input.consume('interact') || input.consume('bag')) this.close();
+    if (input.consume('escape') || input.consume('interact') || input.consume('bag') || (this.kind === 'moba' && input.consume('build'))) this.close();
   }
 
   has(need) { return need.every(([id, n]) => this.g.bag.count(id) >= n); }
@@ -114,6 +115,7 @@ export class Menus {
     if (k === 'shop') (this.tab === 'buy' ? this.renderBuy() : this.renderSell());
     if (k === 'merchant') (this.tab === 'buy' ? this.renderMerchant() : this.renderSell(1.3));
     if (k === 'board') this.renderBoard();
+    if (k === 'moba') this.renderMoba();
   }
 
   renderAlchemy() {
@@ -192,6 +194,41 @@ export class Menus {
         button: 'ซื้อ', enabled: g.coins >= price,
         onClick: () => { g.coins -= price; g.bag.upgrade(); g.audio.coin(); g.ui.toast(`กระเป๋าใหม่ขนาด ${c} × ${r}`); },
       });
+    }
+  }
+
+  // online siege: raise buildings in your base, send packs of creatures at another king
+  renderMoba() {
+    const g = this.g, M = g.moba, w = M.wallet;
+    $('svc-title').textContent = 'ค่ายของเจ้า';
+    $('svc-coins').textContent = `🪵 ${Math.floor(w.wood)} · ⛏ ${Math.floor(w.ore)} · ✦ ${Math.floor(w.soul)}`;
+    $('svc-hint').textContent = 'สร้างได้ในวงแหวนสีรอบฐานของเจ้า · ครีปจะเดินไปตีฐานที่เลือกเอง';
+    const head = (t) => { const d = document.createElement('div'); d.className = 'svc-empty'; d.textContent = t; this.list.appendChild(d); };
+    head('— สิ่งปลูกสร้าง —');
+    for (const [type, b] of Object.entries(BUILDINGS)) {
+      this.row({
+        title: b.name, sub: b.desc, cost: `<span class="cost ${canPay(w, b.cost) ? 'ok' : 'no'}">${costText(b.cost)}</span>`,
+        button: 'วาง', enabled: canPay(w, b.cost),
+        onClick: () => { this.close(); g.startPlacing(type); },
+      });
+    }
+    head('— ซัมม่อนครีป —');
+    const foes = M.aliveSlots().filter((s) => s !== M.me);
+    for (const [type, c] of Object.entries(CREEPS)) {
+      const locked = c.needs && ![...M.S.values()].some((s) => s.owner === M.me && s.type === c.needs && s.built >= 1);
+      const r = document.createElement('div');
+      r.className = 'svc-row summon-row';
+      r.innerHTML = `<div class="svc-icon"></div><div class="svc-main"><div class="svc-title">${c.name}</div><div class="svc-sub">${c.desc}${locked ? ' · 🔒 ต้องมีรังเพาะ' : ''}</div>
+        <div class="svc-costs"><span class="cost ${canPay(w, c.cost) ? 'ok' : 'no'}">${costText(c.cost)}</span></div></div><div class="svc-btns"></div>`;
+      for (const t of foes) {
+        const b = document.createElement('button');
+        b.textContent = `→ ${SEATS[t].name}`;
+        b.style.borderColor = SEATS[t].css;
+        b.disabled = locked || !canPay(w, c.cost);
+        b.addEventListener('click', () => { M.requestSummon(type, t); this.render(); });
+        r.querySelector('.svc-btns').appendChild(b);
+      }
+      this.list.appendChild(r);
     }
   }
 

@@ -256,6 +256,7 @@ export class Combat {
   playerStrike(kind, spec) {
     const g = this.g, cam = g.camera.position, p = g.player, dir = p.forwardVec;
     g.kit.onStrike(kind, spec);
+    g.moba?.strike(spec, cam, dir);
     // a ground slam lands on a circle in front of you
     const ax = spec.aoe ? p.pos.x - Math.sin(p.yaw) * spec.aoe.dist : 0, az = spec.aoe ? p.pos.z - Math.cos(p.yaw) * spec.aoe.dist : 0;
     for (const e of this.enemies) {
@@ -280,6 +281,17 @@ export class Combat {
   damageEnemy(e, heavy, dir, base = heavy ? 3 : 1) {
     const g = this.g, def = e.def;
     let dmg = base * g.damageMul;
+    if (e.moba) {
+      // an online creep: your own are safe, everyone else's hit goes to the host
+      if (e.moba.owner === g.moba.me) return;
+      g.moba.hit('c', e.moba.id, dmg);
+      e.flash = 1;
+      g.audio.hit(heavy, e.type, e.pos);
+      g.particles.burst(e.pos.clone().setY(e.pos.y + def.height * 0.55), heavy ? 10 : 5, 3, 0.5);
+      this.hitStop = Math.max(this.hitStop, heavy ? 0.06 : 0.025);
+      this.target = e; this.targetT = 3;
+      return;
+    }
     // a stone-skinned bounty shrugs off light blows
     if (e.named?.affix === 'stone' && !heavy) { dmg *= 0.25; g.ui.combatText('ฟันไม่เข้า! ต้องฟันหนัก', 'info'); }
     // an oiled blade sets foes alight
@@ -302,11 +314,13 @@ export class Combat {
 
   kill(e) {
     const g = this.g, def = e.def;
+    if (e.moba) { if (g.moba?.host) g.moba.killCreep(e, g.moba.me); return; }   // online creeps die on the host
     e.state = 'dying';
     e.t = e.obj.userData.animate ? 2.6 : 0.9;
     g.audio.enemyDie(e.type, e.pos);
     g.kit.onKill(e);
     g.contracts?.onKill(e);
+    if (g.moba) g.moba.earn({ soul: def.elite || def.named ? 4 : 1 }, def.name);
     g.particles.burst(e.pos.clone().setY(e.pos.y + def.height * 0.5), 22, 5, 0.9);
     const [a, b] = def.coins;
     g.addCoins(a + Math.floor(Math.random() * (b - a + 1)));
@@ -385,6 +399,40 @@ export class Combat {
     if (d > 1e-3) { p.vel.x += dx / d * 5; p.vel.z += dz / d * 5; }
   }
 
+  // a blow from something that is not a local enemy (online creeps, towers, kings, other heroes):
+  // dodging, parrying and blocking work just as they do against the wild
+  takeHit(dmg, from, by = null) {
+    const g = this.g, p = g.player;
+    if (p.hp <= 0 || g.state !== 'play') return;
+    if (this.iframes > 0) { this.say('หลบ!'); return; }
+    const dx = p.pos.x - from.x, dz = p.pos.z - from.z, d = Math.max(Math.hypot(dx, dz), 1e-3);
+    const facing = (-dx * -Math.sin(p.yaw) - dz * -Math.cos(p.yaw)) / d > 0.3;
+    if (this.blocking && facing) {
+      if (g.kit.blockMode === 'wall') {
+        this.spend(dmg * 0.6); g.audio.block();
+        if (this.stamina > 0) return;
+        dmg *= 0.5; this.staggerT = 0.8; this.blocking = false;
+      } else if (g.time - this.blockStart < PARRY_WINDOW) {
+        this.stamina = Math.min(this.maxStamina, this.stamina + 15);
+        g.audio.parry(); g.ui.combatText('ปัดสำเร็จ!', 'parry'); g.hud.grin();
+        return;
+      } else {
+        this.spend(dmg * 1.2); g.audio.block();
+        if (this.stamina > 0) dmg *= 0.12;
+        else { dmg *= 0.6; this.staggerT = 0.7; this.blocking = false; g.ui.combatText('การ์ดแตก!', 'bad'); }
+      }
+    }
+    dmg = g.kit.onHurt(dmg * g.armorMul * g.kit.armorMul, null);
+    p.hurt(dmg, g.time);
+    this.lastHitBy = by;
+    const rightDot = (-dx * Math.cos(p.yaw) + dz * Math.sin(p.yaw)) / d;
+    g.hud.hurt(Math.abs(rightDot) < 0.35 ? 0 : Math.sign(rightDot), dmg);
+    g.hurtFlash = 1;
+    g.audio.hurt();
+    p.shake = Math.max(p.shake, 0.25);
+    p.vel.x += dx / d * 4; p.vel.z += dz / d * 4;
+  }
+
   say(text) { this.g.ui.combatText(text, 'info'); }
 
   // ---------------------------------------------------------------- enemy AI
@@ -411,7 +459,8 @@ export class Combat {
       const hidden = !active && (def.fly || def.water || !!e.obj.userData.animate);
       e.obj.visible = !hidden && !far;
       if (e.shadow) e.shadow.visible = e.obj.visible;
-      if (hidden || far) {
+      // online creeps keep marching out of sight; the match host drives them, not this loop
+      if ((hidden || far) && !e.moba) {
         // out of sight: anything mid-death finishes dying now (otherwise it would never respawn)
         if (e.state === 'dying') { e.alive = false; e.respawn = def.respawn || 1e9; if (e.shadow) e.shadow.visible = false; }
         else e.state = 'idle';
@@ -443,6 +492,13 @@ export class Combat {
           if (e.shadow) e.shadow.visible = false;
           e.respawn = def.respawn || 1e9;
         }
+        continue;
+      }
+
+      if (e.moba) {
+        if (e.obj.visible) this.animate(e, dt, t, true);
+        else e.pos.y = this.groundY(e.pos.x, e.pos.z, def);
+        if (e.moba.owner !== g.moba?.me && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < 25) engaged++;
         continue;
       }
 

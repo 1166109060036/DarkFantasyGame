@@ -124,6 +124,22 @@ function glowMushroomGeom() {
   ]);
 }
 
+// hide every tree, fern, rock and mushroom inside a circle (grass stays), e.g. to clear a base
+export function clearVegetation(veg, M, x, z, r) {
+  const mat = new THREE.Matrix4(), zero = new THREE.Matrix4().makeScale(0, 0, 0);
+  for (const m of veg.meshes) {
+    if (m.material === M.grass) continue;
+    let hit = false;
+    for (let i = 0; i < m.count; i++) {
+      m.getMatrixAt(i, mat);
+      if (Math.hypot(mat.elements[12] - x, mat.elements[14] - z) > r) continue;
+      m.setMatrixAt(i, zero);
+      hit = true;
+    }
+    if (hit) m.instanceMatrix.needsUpdate = true;
+  }
+}
+
 export function buildVegetation(scene, terrain, M, collision, quality) {
   const r = rng(2024);
   const H = (x, z) => terrain.getHeight(x, z);
@@ -185,6 +201,7 @@ export function buildVegetation(scene, terrain, M, collision, quality) {
     collision.addCircle(x, z, 0.3 * s + 0.1);
   }
 
+  const meshes = [];
   const addInstanced = (geom, mat, list, shadowY = 0) => {
     if (!list.length) return null;
     const m = new THREE.InstancedMesh(geom, mat, list.length);
@@ -202,6 +219,7 @@ export function buildVegetation(scene, terrain, M, collision, quality) {
     if (m.instanceColor) m.instanceColor.needsUpdate = true;
     m.computeBoundingSphere();
     scene.add(m);
+    meshes.push(m);
     return m;
   };
 
@@ -298,6 +316,6 @@ export function buildVegetation(scene, terrain, M, collision, quality) {
   }
   addInstanced(glowMushroomGeom(), M.glow, glow);
 
-  return { treeCount: placed };
+  return { treeCount: placed, meshes };
 }
 

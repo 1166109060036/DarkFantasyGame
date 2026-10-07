@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-47SYuv52ST9yQ76ncm8OHvWn4zem0EXrZt9l4WuC2XY='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-47SYuv52ST9yQ76ncm8OHvWn4zem0EXrZt9l4WuC2XY='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://0.peerjs.com wss://0.peerjs.com http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:*; media-src 'self' blob:; object-src 'none'; base-uri 'none'">
   <meta name="theme-color" content="#050a1c">
   <title>Moonmire — ตำนานบึงจันทรา</title>
   <link rel="stylesheet" href="fonts/fonts.css">
@@ -27,6 +27,7 @@
       <div id="inv"><span class="coin">●</span> <span id="coins">0</span> &nbsp; <span class="potion">⚱</span> <span id="potions">0</span></div>
     </div>
     <div id="crosshair"></div>
+    <div id="mobahud" class="hidden"></div>
     <div id="beat" class="hidden"></div>
     <div id="target" class="hidden"><div class="name"></div><div class="bar"><div class="fill"></div></div></div>
     <div id="boss" class="hidden"><div class="name"></div><div class="bar"><div class="fill"></div></div></div>
@@ -109,6 +110,7 @@
       <button data-act="bag">🎒</button>
       <button data-act="potion">⚱</button>
       <button data-act="map">⌖</button>
+      <button data-act="build" class="moba-only">🏰</button>
       <button data-act="pause">❚❚</button>
     </div>
   </div>
@@ -155,6 +157,38 @@
     </div>
   </div>
 
+  <div id="lobby" class="hidden overlay">
+    <div class="panel lb-panel">
+      <h2>ศึกราชาจันทรา</h2>
+      <p class="small lb-rules">ผู้เล่น 2–4 คนต่างมีฐานและราชาของตัวเอง ออกไปหาไม้ แร่ และวิญญาณ สร้างหอคอยกับแคมป์ฮีลในฐาน ซัมม่อนฝูงร่างซีดไปตีฐานศัตรู · ราชาองค์สุดท้ายที่ยังมีชีวิตคือผู้ชนะ</p>
+      <label>ชื่อของเจ้า <input id="lobby-name" maxlength="16" placeholder="ผู้เดินทาง"></label>
+      <label>วิถี <select id="lobby-class"></select></label>
+      <div id="lobby-menu">
+        <div class="buttons"><button id="lobby-host">สร้างห้องใหม่</button></div>
+        <div class="lb-join"><input id="lobby-code-in" maxlength="5" placeholder="รหัสห้อง 5 ตัว" autocomplete="off"><button id="lobby-join">เข้าร่วม</button></div>
+        <div class="buttons"><button id="lobby-back" class="ghost">กลับ</button></div>
+      </div>
+      <div id="lobby-room" class="hidden">
+        <div class="lb-codebox">รหัสห้อง <b id="lobby-code">-----</b> <button id="lobby-copy" class="ghost">คัดลอก</button></div>
+        <div id="lobby-list"></div>
+        <div class="buttons">
+          <button id="lobby-addbot" class="ghost">+ เพิ่มบอท</button>
+          <button id="lobby-start">เริ่มเกม</button>
+          <button id="lobby-leave" class="ghost">ออกจากห้อง</button>
+        </div>
+      </div>
+      <p id="lobby-status" class="small"></p>
+    </div>
+  </div>
+
+  <div id="mobaover" class="hidden overlay">
+    <div class="panel">
+      <h2 id="mobaover-title"></h2>
+      <p id="mobaover-text"></p>
+      <div class="buttons"><button id="mobaover-back">กลับหน้าหลัก</button></div>
+    </div>
+  </div>
+
   <div id="title" class="overlay">
     <div class="title-wrap">
       <h1>MOONMIRE</h1>
@@ -163,6 +197,7 @@
       <div class="buttons">
         <button id="btn-new">เริ่มการเดินทาง</button>
         <button id="btn-continue" class="hidden">เล่นต่อจากที่บันทึกไว้</button>
+        <button id="btn-online">ศึกราชาจันทรา (ออนไลน์ 2–4 คน)</button>
         <button id="btn-quit-title" class="ghost desktop-only">ออกจากเกม</button>
       </div>
       <p class="small">คลิกเพื่อเริ่ม · แนะนำให้ใส่หูฟัง<span class="desktop-only"> · F11 เต็มจอ</span></p>
@@ -180,6 +215,7 @@
   <div id="fade"></div>
   <div id="loading" class="overlay"><div>กำลังสร้างโลก...</div></div>
 
+  <script src="vendor/peerjs.min.js"></script>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>

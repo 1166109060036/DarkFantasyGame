@@ -24,6 +24,8 @@ import { Ambience } from './ambience.js';
 import { CLASSES, createKit, STARTING_GEAR } from './classes.js';
 import { WorldEvents } from './events.js';
 import { Contracts } from './contracts.js';
+import { Moba, SEATS, BUILDINGS } from './moba.js';
+import { Lobby } from './lobby.js';
 import { UI } from './ui.js';
 import { Quests } from './quests.js';
 import { PASTURE, FENCE_R, TOAD, TEMPLE, SPAWN, LOST_SHEEP, LOCATIONS, TAVERN, CASTLE, HEAD, RIBCAGE } from './layout.js';
@@ -102,7 +104,7 @@ class Game {
     const toadLight = new THREE.PointLight(0xffb060, 6, 14, 1.5);
     toadLight.position.copy(st.lantern);
     scene.add(toadLight);
-    buildVegetation(scene, this.terrain, M, this.collision, this.quality);
+    this.veg = buildVegetation(scene, this.terrain, M, this.collision, this.quality);
     for (const b of st.braziers) {
       const halo = new THREE.Sprite(M.sprite);
       halo.position.copy(b);
@@ -237,6 +239,10 @@ class Game {
     const on = (id, fn) => document.getElementById(id).addEventListener('click', fn);
     on('btn-new', () => this.pickClass((id) => { if (!id) return; this.setClass(id); this.start(false); }));
     on('btn-continue', () => this.start(true));
+    this.lobby = new Lobby(this);
+    on('btn-online', () => { this.audio.init(); this.lobby.open(); });
+    on('lobby-back', () => this.lobby.close());
+    on('mobaover-back', () => location.reload());
     on('btn-resume', () => this.resume());
     on('btn-restart', () => { store.del(SAVE_KEY); location.reload(); });
     // desktop build (Electron) only
@@ -340,7 +346,7 @@ class Game {
   }
 
   save() {
-    if (this.state === 'title' || this.state === 'loading') return;
+    if (this.state === 'title' || this.state === 'loading' || this.moba) return;   // online matches never touch the story save
     store.set(SAVE_KEY, {
       quests: this.quests.serialize(), combat: this.combat.serialize(), coins: this.coins, hp: this.player.hp,
       bag: this.bag.serialize(), gear: this.gear, loot: this.loot.serialize(),
@@ -564,6 +570,67 @@ class Game {
     else mat.emissive.setRGB(0, 0, 0);
   }
 
+  // ---------------------------------------------------------------- online siege mode (src/moba.js)
+  startMoba(net, roster, me) {
+    const mine = roster.find((r) => r.slot === me);
+    this.audio.init();
+    this.audio.stopMusic(2);
+    this.applySettings();
+    if (this.audio.ctx && !this.music) this.music = new MusicDirector(this.audio);
+    this.setClass(mine.cls);
+    this.coins = 0;
+    this.moba = new Moba(this, net, roster, me);
+    const [bx, bz] = SEATS[me].base;
+    this.checkpoint = { x: bx + 7, z: bz + 7 };
+    this.player.place(bx + 7, bz + 7, Math.atan2(-(10 - bx), -(10 - bz)));
+    document.getElementById('title').classList.add('hidden');
+    document.body.classList.add('in-game', 'moba');
+    this.ui.show('hud');
+    this.ui.show('mobahud');
+    this.resize();
+    if (this.input.touch) this.ui.show('touch');
+    this.state = 'play';
+    this.input.enabled = true;
+    this.input.requestLock();
+    this.ui.banner('ศึกราชาจันทรา', `เจ้าคือฐาน${SEATS[me].name} — ปกป้องราชาของเจ้า`);
+    setTimeout(() => this.ui.toast('ตัดไม้/ทุบหินด้วย [E] · ฆ่าสัตว์ป่าได้วิญญาณ · [B] สร้างสิ่งปลูกสร้างและซัมม่อนครีป'), 2500);
+  }
+
+  // building placement: a ghost of the building follows your gaze; click to build, right-click to cancel
+  startPlacing(type) {
+    const ghost = this.moba.buildingMesh(type, this.moba.me);
+    ghost.traverse((o) => { if (o.material) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.55; } });
+    this.scene.add(ghost);
+    this.placing = { type, ghost, ry: 0 };
+    this.ui.toast('คลิกซ้ายเพื่อสร้าง · คลิกขวาเพื่อยกเลิก · T หมุน');
+  }
+
+  updatePlacing(input) {
+    const pl = this.placing;
+    if (!pl) return false;
+    const p = this.player, x = p.pos.x - Math.sin(p.yaw) * 5, z = p.pos.z - Math.cos(p.yaw) * 5;
+    if (input.consume('turn')) pl.ry += Math.PI / 4;
+    pl.ghost.position.set(x, this.terrain.getHeight(x, z), z);
+    pl.ghost.rotation.y = p.yaw + pl.ry;
+    const bad = this.moba.canPlace(pl.type, this.moba.me, x, z);
+    pl.ghost.traverse((o) => { if (o.material?.color && o.isMesh) o.material.emissive?.setRGB(bad ? 0.5 : 0, bad ? 0 : 0.35, 0); });
+    this.ui.setPrompt(bad ? `✕ ${bad}` : `[คลิก] สร้าง${BUILDINGS[pl.type].name}`);
+    const done = () => { this.scene.remove(pl.ghost); this.placing = null; this.ui.setPrompt(null); };
+    if (input.consume('attack')) { if (this.moba.requestBuild(pl.type, x, z, p.yaw + pl.ry)) done(); }
+    else if (input.blockHeld || input.consume('build')) { done(); input.mouseBlock = false; }
+    return false;
+  }
+
+  mobaOver(win, seat, name) {
+    const el = document.getElementById('mobaover');
+    document.getElementById('mobaover-title').textContent = win == null ? 'การเชื่อมต่อขาด' : win ? 'ชัยชนะ!' : 'จบเกม';
+    document.getElementById('mobaover-text').textContent = win == null ? 'โฮสต์ออกจากเกมไปแล้ว' : win ? 'ราชาของเจ้าคือราชาองค์สุดท้ายแห่งบึงจันทรา' : `ผู้ชนะคือฐาน${seat} (${name})`;
+    if (document.pointerLockElement) document.exitPointerLock();
+    this.state = 'paused';
+    el.classList.remove('hidden');
+    if (win) this.music?.sting('victory');
+  }
+
   // quest targets first, then whatever the world is up to (the pedlar, a fallen star, a chest)
   allMarkers() { return [...this.quests.markers(), ...this.contracts.markers(), ...this.events.markers()].slice(0, 6); }
 
@@ -571,6 +638,7 @@ class Game {
     const it = this.interactables.find((i) => i.id === id);
     if (id === 'merchant') { this.ui.openDialogue(this.events.talk(), () => this.updateHud()); return; }
     if (id === 'board') { this.audio.ui(); this.openMenu('board'); return; }
+    if (id.startsWith('node:')) { this.moba?.gather(id); return; }
     if (id.startsWith('clue:')) { this.contracts.inspect(id); return; }
     this.checkpoint = it.checkpoint || { x: this.npcs[id].pos.x + 2, z: this.npcs[id].pos.z + 2 };
     if (id === 'crow') this.audio.caw(this.npcs.crow.obj.position);
@@ -679,6 +747,11 @@ class Game {
   die() {
     this.state = 'dead';
     this.deadT = 0;
+    if (this.moba) {
+      const by = this.combat.lastHitBy;
+      if (!this.moba.host) this.moba.net.send({ t: 'died', by });
+      else if (by != null && by !== this.moba.me) this.moba.reward(by, { soul: 3 }, `ฆ่า ${this.moba.P[this.moba.me].name}`);
+    }
     this.audio.hurt();
     this.audio.death();
     this.music?.sting('death');
@@ -694,12 +767,14 @@ class Game {
     if (input.consume('pause')) { if (document.pointerLockElement) document.exitPointerLock(); this.pause(); return; }
 
     const c = this.combat;
+    if (this.moba && this.updatePlacing(input)) return;
     c.updatePlayer(dt, input, frozen);
     p.update(dt, input, this.time, frozen, c.playerMods());
 
     if (!frozen) {
       if (input.consume('potion')) this.quickHeal();
       if (input.consume('bag')) { this.openBag(); return; }
+      if (this.moba && input.consume('build') && !this.moba.over) { this.openMenu('moba'); return; }
       // nearest interactable in front of the player
       let best = null, bd = Infinity;
       const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
@@ -734,8 +809,8 @@ class Game {
     }
 
     c.updateEnemies(dt, true);
-    this.events.update(dt);
-    this.contracts.update(dt);
+    if (this.moba) this.moba.update(dt);
+    else { this.events.update(dt); this.contracts.update(dt); }
     this.updateBuffs(dt);
     this.checkDiscoveries();
     const v = this.village.indoor;
@@ -751,6 +826,7 @@ class Game {
 
   frame() {
     let dt = Math.min(0.05, this.clock.getDelta());
+    const rawDt = dt;
     // the world holds still behind the case, shops and the pause menu
     const halted = this.state === 'bag' || this.state === 'menu' || this.state === 'paused' || this.state === 'classpick';
     if (halted) dt = 0;
@@ -787,16 +863,22 @@ class Game {
     } else if (this.state === 'dead') {
       this.deadT += dt;
       this.pipeline.uniforms.uFade.value = clamp(this.deadT / 1.5, 0, 1);
-      if (this.deadT > 2) {
+      if (this.deadT > (this.moba ? 6 : 2)) {
+        if (this.moba) { const [bx, bz] = SEATS[this.moba.me].base; this.checkpoint = { x: bx + 7, z: bz + 7 }; }
         p.place(this.checkpoint.x, this.checkpoint.z, p.yaw);
         p.hp = p.maxHp;
         this.combat.resetAggro();
         this.combat.stamina = this.combat.maxStamina;
-        const lost = Math.floor(this.coins * 0.25);
+        const lost = this.moba ? 0 : Math.floor(this.coins * 0.25);
         this.coins -= lost;
         this.state = 'play';
         this.ui.toast(lost ? `เจ้าฟื้นขึ้นมาอีกครั้ง... ทำเหรียญหล่นหาย ${lost} เหรียญ` : 'เจ้าฟื้นขึ้นมาอีกครั้ง...');
       }
+    }
+    // an online match never stops for one player's menu, bag, pause or death
+    if (this.moba && this.state !== 'play') {
+      this.moba.update(rawDt);
+      if (halted) this.combat.updateEnemies(rawDt, false);
     }
     if (this.state !== 'dead' && this.state !== 'sleeping') {
       const u = this.pipeline.uniforms.uFade;
@@ -861,7 +943,7 @@ class Game {
     if (this.clockTimer <= 0) {
       this.clockTimer = 0.5;
       this.ui.setClock(this.dayNight.clockText());
-      this.ui.setQuest(this.quests.objective());
+      this.ui.setQuest(this.moba ? { title: 'ศึกราชาจันทรา', text: 'ปกป้องราชาของเจ้า และสังหารราชาของผู้อื่น' } : this.quests.objective());
     }
     if (this.state === 'play' || halted) {
       this.ui.updateCompass(wrapHeading(-p.yaw), p.pos.x, p.pos.z, this.allMarkers());

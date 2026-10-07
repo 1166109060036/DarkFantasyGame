@@ -26,6 +26,17 @@ export class CollisionWorld {
     return this.insert({ type: 0, x, z, r, yMin, yMax, q: 0 }, x - r, x + r, z - r, z + r);
   }
 
+  // drop the round obstacles (trees, rocks) inside a circle, e.g. to clear ground for a base
+  clearCircles(x, z, r) {
+    const c = this.cell;
+    for (let i = Math.floor((x - r) / c); i <= Math.floor((x + r) / c); i++) {
+      for (let j = Math.floor((z - r) / c); j <= Math.floor((z + r) / c); j++) {
+        const arr = this.map.get(i + ',' + j);
+        if (arr) this.map.set(i + ',' + j, arr.filter((o) => o.type !== 0 || Math.hypot(o.x - x, o.z - z) > r));
+      }
+    }
+  }
+
   // centre (x,y,z), half extents, rotation around Y (same convention as Object3D.rotation.y)
   addBox(x, y, z, hx, hy, hz, ry = 0) {
     const R = Math.hypot(hx, hz);

@@ -309,3 +309,33 @@ button.ghost { background: transparent; font-size: 15px; color: var(--dim); }
 @media (pointer: coarse) {
   #buffs { bottom: calc(var(--bar) + 64px); max-width: 55vw; }
 }
+
+/* ---------- online mode: lobby, resource bar, results ---------- */
+#lobby, #mobaover { z-index: 30; background: radial-gradient(ellipse at center, rgba(2, 4, 16, 0.55), rgba(2, 4, 16, 0.92)); }
+.lb-panel { width: min(560px, 94vw); }
+.lb-rules { margin: 0 0 10px; line-height: 1.5; }
+.lb-panel input, .lb-panel select { font: inherit; background: #0b1230; color: var(--ink); border: 1px solid var(--edge); padding: 4px 8px; min-width: 0; }
+.lb-join { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
+.lb-join input { width: 160px; text-transform: uppercase; letter-spacing: 0.25em; text-align: center; font-size: 18px; }
+.lb-join button { min-width: 0; }
+.lb-codebox { text-align: center; margin: 6px 0 12px; font-size: 16px; }
+.lb-codebox b { font-family: 'Cinzel', monospace; font-size: 30px; letter-spacing: 0.25em; color: var(--gold); margin: 0 8px; }
+.lb-codebox button { min-width: 0; padding: 4px 10px; font-size: 13px; }
+.lb-seat { display: flex; align-items: center; gap: 8px; padding: 7px 10px; margin: 5px 0; border: 1px solid var(--edge); background: rgba(10, 16, 40, 0.6); }
+.lb-seat.empty { opacity: 0.5; }
+.lb-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.lb-cls { color: var(--dim); font-size: 13px; }
+.lb-host { margin-left: auto; font-size: 12px; color: var(--gold); }
+.lb-kick { min-width: 0; padding: 0 8px; margin-left: 6px; }
+#lobby-status { min-height: 1.2em; text-align: center; }
+#lobby-status.bad { color: #ff8a7a; }
+#mobahud { position: absolute; top: 64px; right: 12px; text-align: right; font-size: 14px; pointer-events: none; }
+#mobahud .mw { display: flex; gap: 10px; justify-content: flex-end; font-size: 18px; text-shadow: 0 1px 2px #000; }
+#mobahud .mk-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; text-shadow: 0 1px 2px #000; }
+#mobahud .mk.dead { opacity: 0.35; text-decoration: line-through; }
+#mobahud .mhint { color: var(--dim); font-size: 12px; margin-top: 4px; }
+body.moba #quest { display: none; }
+.summon-row .svc-btns { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; max-width: 46%; }
+.summon-row .svc-btns button { min-width: 0; padding: 6px 10px; font-size: 14px; }
+.moba-only { display: none; }
+body.moba .moba-only { display: inline-block; }
