@@ -294,3 +294,18 @@ button.ghost { background: transparent; font-size: 15px; color: var(--dim); }
 .cmp-marker.evt { color: var(--gold); }
 .cmp-marker.evt .gem { filter: drop-shadow(0 0 4px #e8a040); }
 .buff.evt { border-color: rgba(220, 90, 70, 0.55); color: #ffd8c8; }
+
+/* bounty contracts */
+.cmp-marker.bounty { color: #ff8a6a; }
+.cmp-marker.bounty .gem { filter: drop-shadow(0 0 4px #ff4a2a); }
+.buff.bounty { border-color: rgba(255, 140, 100, 0.5); color: #ffe0d0; }
+.svc-row.contract .svc-sub { white-space: normal; }
+.contract-tag { display: inline-block; font-size: 12px; padding: 1px 6px; margin-right: 6px; border: 1px solid rgba(255, 140, 100, 0.5); color: #ffb89a; }
+
+/* status chips stack down the left edge so they never sit under the boss bar */
+@media (pointer: fine) {
+  #buffs { top: 64px; bottom: auto; flex-direction: column; align-items: flex-start; max-width: 34vw; }
+}
+@media (pointer: coarse) {
+  #buffs { bottom: calc(var(--bar) + 64px); max-width: 55vw; }
+}

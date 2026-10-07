@@ -1,7 +1,7 @@
 {
   "name": "moonmire",
   "productName": "Moonmire",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "MOONMIRE - PS2-style open-world dark fantasy adventure",
   "main": "electron/main.cjs",
   "private": true,

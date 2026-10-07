@@ -146,6 +146,7 @@ export class UI {
       d.style.left = `${50 + (rel / half) * 50}%`;
       d.classList.toggle('edge', edge);
       d.classList.toggle('evt', m.kind === 'event');
+      d.classList.toggle('bounty', m.kind === 'bounty');
       d.querySelector('.dist').textContent = `${Math.round(Math.hypot(m.x - px, m.z - pz))}m`;
     });
   }

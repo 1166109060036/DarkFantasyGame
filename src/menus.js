@@ -2,6 +2,7 @@
 // shop (buy supplies / a bigger case, sell treasures like the RE4 merchant).
 import { ITEMS, itemIconURL } from './items.js';
 import { BAG_SIZES } from './inventory.js';
+import { AFFIXES } from './contracts.js';
 
 export const RECIPES = [
   { out: 'potion', n: 1, need: [['moon_herb', 2]] },
@@ -112,6 +113,7 @@ export class Menus {
     if (k === 'smith') this.renderSmith();
     if (k === 'shop') (this.tab === 'buy' ? this.renderBuy() : this.renderSell());
     if (k === 'merchant') (this.tab === 'buy' ? this.renderMerchant() : this.renderSell(1.3));
+    if (k === 'board') this.renderBoard();
   }
 
   renderAlchemy() {
@@ -191,6 +193,36 @@ export class Menus {
         onClick: () => { g.coins -= price; g.bag.upgrade(); g.audio.coin(); g.ui.toast(`กระเป๋าใหม่ขนาด ${c} × ${r}`); },
       });
     }
+  }
+
+  // the bounty board: contracts you are on first (claim the reward here), then today's notices
+  renderBoard() {
+    const g = this.g, K = g.contracts;
+    $('svc-title').textContent = 'บอร์ดประกาศล่าค่าหัว';
+    $('svc-hint').textContent = 'รับงานได้พร้อมกัน 2 งาน · ไปดูที่เกิดเหตุ ตามรอยให้ครบ 3 จุด แล้วจะรู้ว่ามันซ่อนที่ไหนและแพ้อะไร · ใบประกาศใหม่มาทุกเช้า';
+    const reward = (c) => `<span class="cost ok">● ${c.coins}</span>${c.items.map(([id, n]) => `<span class="cost ok"><img src="${itemIconURL(id)}">${ITEMS[id].name}${n > 1 ? ` ×${n}` : ''}</span>`).join('')}`;
+    const when = { night: 'ออกกลางคืน', day: 'ออกกลางวัน', always: 'ออกทั้งวัน' };
+    for (const a of K.active) {
+      const c = a.c, n = a.found.filter(Boolean).length;
+      const status = a.state === 'scene' ? `กำลังตามรอย (${n}/3) — ไปที่เกิดเหตุตามเข็มทิศ`
+        : a.state === 'hunt' ? `ตามล่าที่รัง · จุดอ่อน: ${AFFIXES[c.affix].name} — ${AFFIXES[c.affix].hint}` : 'ล่าสำเร็จแล้ว! ส่งหลักฐานเพื่อรับรางวัล';
+      const claim = a.state === 'trophy';
+      this.row({
+        icon: itemIconURL('trophy'), title: `<span class="contract-tag">กำลังทำ</span>${c.name}`, sub: `${c.title} · ${status}`, cost: reward(c),
+        button: claim ? 'ส่งหลักฐาน' : 'ยกเลิกงาน', enabled: !claim || g.bag.count('trophy') > 0,
+        onClick: () => (claim ? K.claim(a) : K.abandon(a)),
+      });
+      this.list.lastChild.classList.add('contract');
+    }
+    for (const c of K.offers) {
+      this.row({
+        icon: itemIconURL('trophy'), title: `<span class="contract-tag">${when[c.time]}</span>${c.title}`, sub: `"${c.text}" — ${c.giver}`, cost: reward(c),
+        button: 'รับงาน', enabled: K.active.length < 2,
+        onClick: () => K.take(c),
+      });
+      this.list.lastChild.classList.add('contract');
+    }
+    if (!K.active.length && !K.offers.length) this.list.innerHTML = '<div class="svc-empty">ยังไม่มีใบประกาศใหม่... กลับมาพรุ่งนี้เช้า</div>';
   }
 
   // the wandering pedlar: a few rare wares, a treasure map, and he pays more for treasure

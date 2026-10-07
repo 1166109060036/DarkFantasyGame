@@ -115,6 +115,7 @@ export class Combat {
   isActive(e) {
     const when = e.activeOverride || e.def.active;
     if (when === 'always') return true;
+    if (when === 'never') return false;
     if (when === 'bloodmoon') return !!this.g.events?.bloodMoon && this.g.dayNight.isNight;
     return (when === 'night') === this.g.dayNight.isNight;
   }
@@ -278,7 +279,11 @@ export class Combat {
 
   damageEnemy(e, heavy, dir, base = heavy ? 3 : 1) {
     const g = this.g, def = e.def;
-    const dmg = base * g.damageMul;
+    let dmg = base * g.damageMul;
+    // a stone-skinned bounty shrugs off light blows
+    if (e.named?.affix === 'stone' && !heavy) { dmg *= 0.25; g.ui.combatText('ฟันไม่เข้า! ต้องฟันหนัก', 'info'); }
+    // an oiled blade sets foes alight
+    if (g.buffs.oil > 0) { e.dots = e.dots || {}; e.dots.burn = { dps: 0.25, t: 2.5 }; }
     e.hp -= dmg;
     e.flash = 1;
     e.vel.addScaledVector(V.set(dir.x, 0, dir.z).normalize(), (heavy ? 7 : 3) / def.weight);
@@ -290,7 +295,7 @@ export class Combat {
     this.targetT = 3;
     if (e.hp <= 0) { this.kill(e); return; }
     // ordinary foes flinch (a light hit interrupts their windup); the knight only staggers to heavy blows briefly
-    if (!def.boss) { e.state = 'stagger'; e.t = heavy ? 0.65 : 0.3; }
+    if (!def.boss && (!def.named || heavy)) { e.state = 'stagger'; e.t = heavy ? 0.65 : 0.3; }
     else if (heavy && e.state !== 'windup') { e.state = 'stagger'; e.t = 0.3; }
     if (e.state === 'idle' || e.state === 'return') e.state = 'chase';
   }
@@ -301,6 +306,7 @@ export class Combat {
     e.t = e.obj.userData.animate ? 2.6 : 0.9;
     g.audio.enemyDie(e.type, e.pos);
     g.kit.onKill(e);
+    g.contracts?.onKill(e);
     g.particles.burst(e.pos.clone().setY(e.pos.y + def.height * 0.5), 22, 5, 0.9);
     const [a, b] = def.coins;
     g.addCoins(a + Math.floor(Math.random() * (b - a + 1)));
@@ -337,7 +343,7 @@ export class Combat {
     if (this.iframes > 0) { this.say('หลบ!'); return; }
     const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
     const facingEnemy = (-dx * fx - dz * fz) / Math.max(d, 1e-3) > 0.3;
-    let dmg = def.damage * (slam ? 1.3 : 1) * (PALE_ONES.has(e.type) ? g.events?.enemyDamageMul ?? 1 : 1);
+    let dmg = def.damage * (slam ? 1.3 : 1) * (PALE_ONES.has(e.type) ? g.events?.enemyDamageMul ?? 1 : 1) * (e.dmgMul ?? 1);
     // the coffin is a wall: it stops anything from the front, even a ground slam, but cannot parry
     if (this.blocking && facingEnemy && g.kit.blockMode === 'wall') {
       this.spend(dmg * 0.6);
@@ -385,7 +391,7 @@ export class Combat {
   updateEnemies(dt, inPlay) {
     const g = this.g, p = g.player, t = g.time;
     const playerOk = inPlay && p.hp > 0;
-    let bossEngaged = false, engaged = 0;
+    let bossEngaged = false, engaged = 0, namedEngaged = null;
 
     for (const e of this.enemies) {
       const def = e.def;
@@ -394,7 +400,7 @@ export class Combat {
         if (!def.boss && e.respawn <= 0 && e.home.distanceTo(p.pos) > 45) {
           Object.assign(e, { alive: true, hp: def.hp, state: 'idle', t: 2, dots: null, corpseHold: 0 });
           e.pos.copy(e.home);
-          e.obj.scale.setScalar(def.boss ? 1.55 : 1);
+          e.obj.scale.setScalar(def.scale ?? (def.boss ? 1.55 : 1));
           e.obj.position.copy(e.pos);
         }
         continue;
@@ -427,7 +433,7 @@ export class Combat {
           e.obj.userData.animate(e, dt, t, { dying: Math.min(1, (2.6 - e.t) / 1.0), moving: 0, speed: 0 });
           e.obj.position.y = e.pos.y - Math.max(0, 0.8 - e.t) * 1.6;
         } else {
-          e.obj.scale.setScalar((def.boss ? 1.55 : 1) * (0.2 + 0.8 * k));
+          e.obj.scale.setScalar((def.scale ?? (def.boss ? 1.55 : 1)) * (0.2 + 0.8 * k));
           e.obj.position.y = e.pos.y - (1 - k) * (def.fly ? 0 : 0.8);
         }
         if (e.t <= 0) {
@@ -468,6 +474,7 @@ export class Combat {
         if (!seen && e.state === 'chase' && dist < 24 && (e.sobT = (e.sobT || 0) - dt) <= 0) { g.audio.sob(e.pos); e.sobT = 3 + Math.random() * 3; }
       }
       e.wasSeen = seen;
+      if (e.named) g.contracts?.updateNamed(e, dt, dist);
       e.frozen = seen && (e.state === 'chase' || e.state === 'idle' || e.state === 'return');
 
       switch (e.state) {
@@ -535,6 +542,7 @@ export class Combat {
       }
       const fighting = e.state === 'chase' || e.state === 'windup' || e.state === 'strike' || e.state === 'recover' || e.state === 'stagger';
       if (fighting && def.boss) bossEngaged = true;
+      if (fighting && e.named && dist < 30) namedEngaged = e;
       // a weeper creeping up unseen must not give herself away by starting the battle music
       if (fighting && dist < 35 && !(def.stalker && e.state === 'chase' && dist > 5)) engaged += def.weight > 2 ? 2 : 1;
 
@@ -543,6 +551,7 @@ export class Combat {
       const rate = turn || 6;
       if (!e.frozen) e.ry += clamp(wrapAngle(goal - e.ry), -rate * dt, rate * dt);
       if (PALE_ONES.has(e.type)) moveSpeed *= g.events?.enemySpeedMul ?? 1;
+      moveSpeed *= e.spdMul ?? 1;
       e.curSpeed = moveSpeed;
       // movement (aim may differ from facing for a frame or two; that's fine)
       if (moveSpeed > 0) this.moveEnemy(e, Math.sin(moveAngle) * moveSpeed * dt, Math.cos(moveAngle) * moveSpeed * dt);
@@ -552,7 +561,8 @@ export class Combat {
 
       this.animate(e, dt, t, active);
     }
-    g.ui.setBoss(bossEngaged && this.boss.alive ? this.boss : null);
+    // the boss bar also names a bounty target once it is on you
+    g.ui.setBoss(bossEngaged && this.boss.alive ? this.boss : namedEngaged);
     // the score follows the fight: how many things are on you, and whether it is the knight
     this.engaged = engaged;
     this.bossEngaged = bossEngaged && this.boss.alive;
@@ -607,7 +617,7 @@ export class Combat {
     o.position.copy(e.pos);
     o.rotation.y = e.ry;
     if (e.shadow) { e.shadow.position.set(e.pos.x, e.pos.y + 0.04, e.pos.z); }
-    const s = (def.boss ? 1.55 : 1) * (1 + e.flash * 0.08);
+    const s = (def.scale ?? (def.boss ? 1.55 : 1)) * (1 + e.flash * 0.08);
     o.scale.setScalar(s);
 
     if (e.type === 'straw') {

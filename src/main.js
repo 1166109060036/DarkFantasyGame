@@ -23,6 +23,7 @@ import { MusicDirector } from './music.js';
 import { Ambience } from './ambience.js';
 import { CLASSES, createKit, STARTING_GEAR } from './classes.js';
 import { WorldEvents } from './events.js';
+import { Contracts } from './contracts.js';
 import { UI } from './ui.js';
 import { Quests } from './quests.js';
 import { PASTURE, FENCE_R, TOAD, TEMPLE, SPAWN, LOST_SHEEP, LOCATIONS, TAVERN, CASTLE, HEAD, RIBCAGE } from './layout.js';
@@ -197,6 +198,8 @@ class Game {
     this.classGear = new Set();     // paths whose starting gear was already handed out
     this.setClass('wanderer');
     this.events = new WorldEvents(this);
+    this.contracts = new Contracts(this);
+    this.interactables.push({ id: 'board', pos: this.contracts.boardPos, r: 3.2, label: 'อ่านใบประกาศล่าค่าหัว', checkpoint: { x: TAVERN.x, z: TAVERN.z - 8 } });
     // a private copy of the blade material so oil / the king's sword can make it glow
     const blade = this.view.userData.sword.children[0];
     blade.material = blade.material.clone();
@@ -343,7 +346,7 @@ class Game {
       bag: this.bag.serialize(), gear: this.gear, loot: this.loot.serialize(),
       pos: { x: this.player.pos.x, z: this.player.pos.z }, yaw: this.player.yaw, checkpoint: this.checkpoint,
       time: this.dayNight.t, discovered: [...this.discovered],
-      cls: this.kit.id, kit: this.kit.serialize(), classGear: [...this.classGear], events: this.events.serialize(),
+      cls: this.kit.id, kit: this.kit.serialize(), classGear: [...this.classGear], events: this.events.serialize(), contracts: this.contracts.serialize(),
     });
   }
 
@@ -365,6 +368,7 @@ class Game {
     this.setClass(d.cls || 'wanderer', { gear: false });
     this.kit.load(d.kit || {});
     this.events.load(d.events || {});
+    this.contracts.load(d.contracts || {});
     if (d.pos) this.player.place(d.pos.x, d.pos.z, d.yaw ?? 0);
     this.player.hp = Math.max(30, d.hp ?? 100);
     this.quests.sheepFound.forEach((f, i) => {
@@ -549,6 +553,7 @@ class Game {
       this.buffs[k] = Math.max(0, this.buffs[k] - dt);
       if (this.buffs[k] > 0) html += `<span class="buff">${names[k]} ${Math.ceil(this.buffs[k])}s</span>`;
     }
+    for (const chip of this.contracts.chips()) html += `<span class="buff bounty">${chip}</span>`;
     for (const chip of this.events.chips()) html += `<span class="buff evt">${chip}</span>`;
     for (const chip of this.kit.chips()) html += `<span class="buff cls">${chip}</span>`;
     if (html !== this._buffHTML) { this._buffHTML = html; document.getElementById('buffs').innerHTML = html; }
@@ -560,11 +565,13 @@ class Game {
   }
 
   // quest targets first, then whatever the world is up to (the pedlar, a fallen star, a chest)
-  allMarkers() { return [...this.quests.markers(), ...this.events.markers()].slice(0, 6); }
+  allMarkers() { return [...this.quests.markers(), ...this.contracts.markers(), ...this.events.markers()].slice(0, 6); }
 
   interact(id) {
     const it = this.interactables.find((i) => i.id === id);
     if (id === 'merchant') { this.ui.openDialogue(this.events.talk(), () => this.updateHud()); return; }
+    if (id === 'board') { this.audio.ui(); this.openMenu('board'); return; }
+    if (id.startsWith('clue:')) { this.contracts.inspect(id); return; }
     this.checkpoint = it.checkpoint || { x: this.npcs[id].pos.x + 2, z: this.npcs[id].pos.z + 2 };
     if (id === 'crow') this.audio.caw(this.npcs.crow.obj.position);
     if (id === 'toad') this.audio.croak(this.npcs.toad.obj.position);
@@ -728,6 +735,7 @@ class Game {
 
     c.updateEnemies(dt, true);
     this.events.update(dt);
+    this.contracts.update(dt);
     this.updateBuffs(dt);
     this.checkDiscoveries();
     const v = this.village.indoor;
