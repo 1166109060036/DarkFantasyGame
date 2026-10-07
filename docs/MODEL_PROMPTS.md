@@ -77,7 +77,7 @@ full body, neutral A-pose, front three-quarter view, plain dark grey background,
 | หญิงร่ำไห้ | `weeper.jpg` | 2.3 ม. | 1,000–1,500 | rig มนุษย์ |
 | ร่างซูบยักษ์ | `brute.jpg` | 3.3 ม. | 1,200–1,800 | rig มนุษย์ |
 | ราชาประจำฐาน (ออนไลน์) | — | 1.6 ม. (นั่งบนบัลลังก์) | 800–1,200 | ไม่มี |
-| ฮีโร่ 5 วิถี (ออนไลน์) | — | 1.8 ม. | 1,000–1,500 | rig มนุษย์ + อาวุธแยกชิ้น |
+| ฮีโร่ 5 วิถี (ออนไลน์) | — | 1.8–2.0 ม. | 1,200–1,800 | ดู `HERO_PROMPTS.md` |
 
 ---
 
@@ -380,71 +380,9 @@ low-poly PS2-style seated old king with gold five-point crown, white beard, plai
 and cape, gold chain, sword across knees, hand-painted 128px texture, ~1000 triangles, throne not included
 ```
 
-#### ฮีโร่: ผู้พเนจร (อาวุธ: ดาบ)
-**Concept**
-```
-A weathered wandering swordsman: a long travel-worn hooded cloak in light grey (team colour),
-a dark leather jerkin, wrapped forearms, a worn straight longsword with a simple crossguard, and
-a small moon-lantern with a pale blue glow hanging from the belt. Calm, scarred, alone.
-PS2-era low-poly 3D game character, early 2000s PlayStation 2 dark fantasy, faceted low-polygon
-silhouette, simple chunky shapes, small hand-painted low-resolution texture, matte, lantern as
-flat bright emissive. Full body, neutral A-pose, front three-quarter view, plain dark grey background.
-```
+#### ฮีโร่ 5 วิถี (ตัวที่ผู้เล่นบังคับ)
 
-#### ฮีโร่: ผู้ตีระฆัง (อาวุธ: ค้อนระฆัง)
-**Concept**
-```
-The bell-keeper of a drowned temple: soaked heavy robes in light grey (team colour) with a dark
-waterlogged hem, a rope belt strung with small tarnished bronze bells, a hood pulled low, and a
-long-handled war hammer whose head is a dented bronze church bell. Hears the rhythm in everything.
-PS2-era low-poly 3D game character, early 2000s PlayStation 2 dark fantasy, faceted low-polygon
-silhouette, simple chunky shapes, small hand-painted low-resolution texture, matte. Full body,
-neutral A-pose, front three-quarter view, plain dark grey background.
-```
-
-#### ฮีโร่: หมอปลิง (อาวุธ: มีดกรีด + ปลิง)
-**Concept**
-```
-A back-alley swamp leech doctor: thin and pale, a stained long leather surgeon's apron over a light
-grey (team colour) shirt, a bandolier of small glass jars with live black leeches inside, a few
-leeches clinging to the bare forearms, a short curved lancet knife in one hand, a beaked cloth mask
-pushed up on the forehead. Creepy and clinical. PS2-era low-poly 3D game character, early 2000s
-PlayStation 2 dark fantasy, faceted low-polygon silhouette, simple chunky shapes, small
-hand-painted low-resolution texture, matte. Full body, neutral A-pose, front three-quarter view,
-plain dark grey background.
-```
-
-#### ฮีโร่: สัปเหร่อแบกโลง (อาวุธ: โลงศพ)
-**Concept**
-```
-A huge broad-shouldered gravedigger carrying a heavy iron-banded wooden coffin as a weapon,
-strapped to his back with leather belts and gripped by one handle, muddy boots and trousers,
-a worn light grey (team colour) coat with the sleeves torn off, a wide-brimmed undertaker's hat,
-a grim stubbled face. Slow, unstoppable. PS2-era low-poly 3D game character, early 2000s
-PlayStation 2 dark fantasy, faceted low-polygon silhouette, simple chunky shapes, small
-hand-painted low-resolution texture, matte. Full body, neutral A-pose, front three-quarter view,
-plain dark grey background.
-```
-
-#### ฮีโร่: ผู้แบกไส้เทียน (อาวุธ: กระถางไฟติดโซ่)
-ญาติห่าง ๆ ของเทียนหลอม หัวเป็นเทียนแท่งเดียวที่ไม่เคยดับ
-
-**Concept**
-```
-A slender figure whose head is a single tall melting cream-white candle with a bright orange flame,
-wax dripping down over the collar of a long dark coat with light grey (team colour) lining and
-sash, swinging an iron censer on a long chain, embers and smoke spilling from its holes.
-Melting away with every breath. PS2-era low-poly 3D game character, early 2000s PlayStation 2
-dark fantasy, faceted low-polygon silhouette, simple chunky shapes, small hand-painted
-low-resolution texture, matte, flame and embers as flat bright emissive. Full body, neutral
-A-pose, front three-quarter view, plain dark grey background.
-```
-
-**3D** (ใช้ได้กับฮีโร่ทุกตัว แค่เปลี่ยนคำอธิบายในวงเล็บ)
-```
-low-poly PS2-style [hero description], light-grey team-colour cloth areas, hand-painted 128px
-texture, ~1300 triangles, A-pose, rigged humanoid, weapon as a separate object
-```
+แยกไว้อีกไฟล์ที่ละเอียดกว่า: **[`HERO_PROMPTS.md`](HERO_PROMPTS.md)** มี turnaround ภาพท่าต่อสู้ prompt 3D อาวุธแยก แบบผู้หญิง และหลักออกแบบให้อ่านออกตอนสู้กันออนไลน์
 
 ---
 
