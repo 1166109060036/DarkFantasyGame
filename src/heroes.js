@@ -270,12 +270,12 @@ const HEROES = {
 export const HERO_KINDS = Object.keys(HEROES);
 
 // ---------------------------------------------------------------- assembly
-function rig(groups, mats) {
+function rig(groups, mats, layout = BONES) {
   const root = new THREE.Group(), bones = {};
   for (const name of NAMES) {
-    const [parent, x, y, z] = BONES[name], b = new THREE.Bone();
+    const parent = BONES[name][0], [x, y, z] = layout === BONES ? BONES[name].slice(1) : layout[name], b = new THREE.Bone();
     b.name = name;
-    if (parent) { const [, px, py, pz] = BONES[parent]; b.position.set(x - px, y - py, z - pz); bones[parent].add(b); }
+    if (parent) { const [px, py, pz] = layout === BONES ? BONES[parent].slice(1) : layout[parent]; b.position.set(x - px, y - py, z - pz); bones[parent].add(b); }
     else { b.position.set(x, y, z); root.add(b); }
     bones[name] = b;
   }
@@ -284,6 +284,7 @@ function rig(groups, mats) {
   for (const [key, list] of Object.entries(groups)) {
     if (!list.length) continue;
     const geoms = list.map(([bone, g]) => {
+      if (g.userData.skin) return [g, g.userData.skin.si, g.userData.skin.sw];      // an imported model: weights per vertex
       const n = g.attributes.position.count, bi = NAMES.indexOf(bone);
       const si = new Uint16Array(n * 4), sw = new Float32Array(n * 4);
       for (let i = 0; i < n; i++) { si[i * 4] = bi; sw[i * 4] = 1; }
@@ -306,9 +307,84 @@ function rig(groups, mats) {
 }
 
 // kind: one of HERO_KINDS; team: THREE.Color (the base's colour)
+// ---------------------------------------------------------------- imported models
+// Heroes made from a real model (tools/import-hero.mjs → assets/heroes/<kind>.json) replace the
+// primitive ones once loaded. Each triangle carries its colour, material group and bone.
+const ASSETS = {};
+export async function loadHeroAssets() {
+  await Promise.all(HERO_KINDS.map(async (kind) => {
+    try {
+      const res = await fetch(`assets/heroes/${kind}.json`);
+      if (res.ok) ASSETS[kind] = await res.json();
+    } catch { /* no model for this path yet: the primitive hero stands in */ }
+  }));
+  return Object.keys(ASSETS);
+}
+const unb64 = (s, T) => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new T(u.buffer); };
+
+// things the model lacks that the game adds (the wanderer's moon-lantern)
+const EXTRAS = {
+  wanderer(kit) {
+    kit.add('metal', 'hips', box(0.27, 0.8, 0.08, 0.11, 0.02, 0.11, C(0.3, 0.3, 0.32)));
+    kit.add('metal', 'hips', box(0.27, 0.66, 0.08, 0.11, 0.02, 0.11, C(0.3, 0.3, 0.32)));
+    kit.add('metal', 'hips', seg(V(0.22, 0.95, 0.08), V(0.27, 0.81, 0.08), 0.008, 0.008, C(0.35, 0.35, 0.37), 4));
+    kit.add('glow', 'hips', box(0.27, 0.73, 0.08, 0.085, 0.12, 0.085, C(0.6, 0.95, 1.6)));
+    kit.glows = [['hips', [0.27, 0.73, 0.08], 'sprite', 1.1]];
+  },
+};
+
+function assetKit(a) {
+  const kit = new Kit(), pos = unb64(a.pos, Float32Array), col = unb64(a.col, Uint8Array), grp = unb64(a.grp, Uint8Array), bone = unb64(a.bone, Uint8Array);
+  const skin = a.skin ? unb64(a.skin, Uint8Array) : null;
+  // one geometry per material group (per bone for old files), box-projected UVs so the cloth/iron textures show
+  const buckets = {};
+  for (let t = 0; t < a.tris; t++) {
+    const key = `${a.groups[grp[t]]}|${skin ? 'hips' : a.boneOrder[bone[t]]}`;
+    (buckets[key] = buckets[key] || []).push(t);
+  }
+  for (const [key, list] of Object.entries(buckets)) {
+    const [g, b] = key.split('|');
+    const P = new Float32Array(list.length * 9), Cc = new Float32Array(list.length * 9), U = new Float32Array(list.length * 6);
+    list.forEach((t, i) => {
+      P.set(pos.subarray(t * 9, t * 9 + 9), i * 9);
+      for (let v = 0; v < 3; v++) Cc.set([col[t * 3] / 255, col[t * 3 + 1] / 255, col[t * 3 + 2] / 255], i * 9 + v * 3);
+      const ax = P[i * 9 + 3] - P[i * 9], ay = P[i * 9 + 4] - P[i * 9 + 1], az = P[i * 9 + 5] - P[i * 9 + 2];
+      const bx = P[i * 9 + 6] - P[i * 9], by = P[i * 9 + 7] - P[i * 9 + 1], bz = P[i * 9 + 8] - P[i * 9 + 2];
+      const nx = Math.abs(ay * bz - az * by), ny = Math.abs(az * bx - ax * bz), nz = Math.abs(ax * by - ay * bx);
+      for (let v = 0; v < 3; v++) {
+        const x = P[i * 9 + v * 3], y = P[i * 9 + v * 3 + 1], z = P[i * 9 + v * 3 + 2];
+        const [u0, u1] = nx >= ny && nx >= nz ? [z, y] : ny >= nz ? [x, z] : [x, y];
+        U[i * 6 + v * 2] = u0 * 2.5; U[i * 6 + v * 2 + 1] = u1 * 2.5;
+      }
+    });
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(P, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(Cc, 3));
+    geo.setAttribute('uv', new THREE.BufferAttribute(U, 2));
+    geo.computeVertexNormals();          // flat faces: the faceted PS2 look
+    if (skin) {
+      const si = new Uint16Array(list.length * 12), sw = new Float32Array(list.length * 12);
+      list.forEach((t, i) => {
+        for (let v = 0; v < 3; v++) {
+          const [b1, b2, w] = skin.subarray(t * 9 + v * 3, t * 9 + v * 3 + 3), o = (i * 3 + v) * 4;
+          si[o] = NAMES.indexOf(a.boneOrder[b1]); si[o + 1] = NAMES.indexOf(a.boneOrder[b2]);
+          sw[o] = 1 - w / 255; sw[o + 1] = w / 255;
+        }
+      });
+      geo.userData.skin = { si, sw };
+    }
+    kit.add(g, b, geo);
+  }
+  EXTRAS[a.kind]?.(kit);
+  kit.rest = a.bones;
+  kit.grip = { pos: [0, 0, 0], rot: [0, 0, 0] };   // the weapon is part of the model
+  return kit;
+}
+
 export function createHero(kind, M, team) {
-  const kit = new Kit();
-  (HEROES[kind] || HEROES.wanderer)(kit);
+  let kit;
+  if (ASSETS[kind]) kit = assetKit(ASSETS[kind]);
+  else { kit = new Kit(); (HEROES[kind] || HEROES.wanderer)(kit); }
   // the team cloth: plain weave dyed in the base's colour, kept light so it reads in the dark
   const teamMat = M.plain.clone();
   teamMat.color.copy(team).multiplyScalar(0.9).lerp(new THREE.Color(0.5, 0.5, 0.5), 0.18);
@@ -316,7 +392,7 @@ export function createHero(kind, M, team) {
   // coats and robes are open shells: show their insides too
   if (!M.plainTwoSided) { M.plainTwoSided = M.plain.clone(); M.plainTwoSided.side = THREE.DoubleSide; }
   const mats = { plain: M.plainTwoSided, metal: M.metal, wood: M.wood, gold: M.gold, team: teamMat, glow: M.glow };
-  const r = rig(kit.parts, mats);
+  const r = rig(kit.parts, mats, kit.rest || BONES);
   const obj = new THREE.Group();
   obj.add(r.root);
   // the weapon rides on the right hand
@@ -331,7 +407,7 @@ export function createHero(kind, M, team) {
   }
   r.bones.haR.add(weapon);
   for (const [bone, p, mat, s] of kit.glows || []) {
-    const sp = new THREE.Sprite(M[mat]), b = P(bone);
+    const sp = new THREE.Sprite(M[mat]), b = kit.rest ? V(...kit.rest[bone]) : P(bone);
     sp.position.set(p[0] - b.x, p[1] - b.y, p[2] - b.z);
     sp.scale.setScalar(s);
     r.bones[bone].add(sp);

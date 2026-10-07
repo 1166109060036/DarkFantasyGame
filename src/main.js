@@ -27,6 +27,7 @@ import { WorldEvents } from './events.js';
 import { Contracts } from './contracts.js';
 import { Moba, SEATS, BUILDINGS, baseSpawn } from './moba.js';
 import { Progress, SkillsUI, TREES } from './upgrades.js';
+import { loadHeroAssets } from './heroes.js';
 import { Lobby } from './lobby.js';
 import { UI } from './ui.js';
 import { Quests } from './quests.js';
@@ -147,6 +148,8 @@ class Game {
     this.classGear = new Set();     // paths whose starting gear was already handed out
     this.useProgress(new Progress());
     this.skillsUI = new SkillsUI(this);
+    // imported hero models (assets/heroes/) load in the background; until then the built ones stand in
+    loadHeroAssets().then((k) => { this.heroModels = k; });
     this.setClass('wanderer');
     this.events = new WorldEvents(this);
     if (ARENA) this.contracts = { chips: () => [], markers: () => [], update() {}, onKill() {}, serialize: () => ({}), load() {} };
