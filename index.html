@@ -33,6 +33,7 @@
     <div id="boss" class="hidden"><div class="name"></div><div class="bar"><div class="fill"></div></div></div>
     <div id="ctext"></div>
     <div id="buffs"></div>
+    <div id="xpbar"><span id="xp-lv">Lv 1</span><div class="xp-track"><div id="xp-fill"></div></div><span id="xp-pts"></span></div>
     <div id="banner"><div class="title"></div><div class="sub"></div></div>
     <div id="prompt" class="hidden"></div>
     <div id="toasts"></div>
@@ -87,6 +88,16 @@
     </div>
   </div>
 
+  <div id="skills" class="hidden overlay">
+    <div class="panel sk-panel">
+      <h2 id="skills-title"></h2>
+      <div id="skills-head"></div>
+      <div id="skills-cols"></div>
+      <p class="small">ผสมขั้นของสองสายได้ แต่ไปถึงขั้นสุดท้าย (★) ได้สายเดียว · ขั้นลึก ๆ ต้องใช้ของสะสมของวิถีนี้ · K หรือ Esc เพื่อปิด</p>
+      <div class="buttons"><button id="skills-close">ปิด</button></div>
+    </div>
+  </div>
+
   <div id="map" class="hidden">
     <div class="panel">
       <h2>แผนที่บึงจันทรา</h2>
@@ -110,6 +121,7 @@
       <button data-act="bag">🎒</button>
       <button data-act="potion">⚱</button>
       <button data-act="map">⌖</button>
+      <button data-act="skills">⬆</button>
       <button data-act="build" class="moba-only">🏰</button>
       <button data-act="pause">❚❚</button>
     </div>

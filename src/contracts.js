@@ -369,6 +369,7 @@ export class Contracts {
     this.clearClues(a);
     this.active = this.active.filter((x) => x !== a);
     g.audio.coin(); g.audio.chime();
+    g.gainXP(100);
     g.ui.banner('รับค่าหัว', `+${c.coins} เหรียญ · ${c.items.map(([id, n]) => `${ITEMS[id].name}${n > 1 ? ` ×${n}` : ''}`).join(' · ')}`);
     g.save();
     return true;

@@ -26,6 +26,7 @@ import { CLASSES, createKit, STARTING_GEAR } from './classes.js';
 import { WorldEvents } from './events.js';
 import { Contracts } from './contracts.js';
 import { Moba, SEATS, BUILDINGS, baseSpawn } from './moba.js';
+import { Progress, SkillsUI, TREES } from './upgrades.js';
 import { Lobby } from './lobby.js';
 import { UI } from './ui.js';
 import { Quests } from './quests.js';
@@ -144,6 +145,8 @@ class Game {
     this.bagUI = new BagUI(this);
     this.menus = new Menus(this);
     this.classGear = new Set();     // paths whose starting gear was already handed out
+    this.useProgress(new Progress());
+    this.skillsUI = new SkillsUI(this);
     this.setClass('wanderer');
     this.events = new WorldEvents(this);
     if (ARENA) this.contracts = { chips: () => [], markers: () => [], update() {}, onKill() {}, serialize: () => ({}), load() {} };
@@ -392,6 +395,7 @@ class Game {
       pos: { x: this.player.pos.x, z: this.player.pos.z }, yaw: this.player.yaw, checkpoint: this.checkpoint,
       time: this.dayNight.t, discovered: [...this.discovered],
       cls: this.kit.id, kit: this.kit.serialize(), classGear: [...this.classGear], events: this.events.serialize(), contracts: this.contracts.serialize(),
+      progress: this.progress.serialize(), questStage: this.lastStage,
     });
   }
 
@@ -410,6 +414,8 @@ class Game {
     this.discovered = new Set(d.discovered || []);
     this.combat.load(d.combat);
     this.classGear = new Set(d.classGear || []);
+    this.progress.load(d.progress || {});
+    this.lastStage = d.questStage ?? this.quests.stage;
     this.setClass(d.cls || 'wanderer', { gear: false });
     this.kit.load(d.kit || {});
     this.events.load(d.events || {});
@@ -432,6 +438,7 @@ class Game {
     this.kit?.dispose();
     this.kit = createKit(id, this);
     this.player.regenMul = this.kit.regenMul;
+    this.applyKitStats();
     this.player.climb = this.kit.climb;
     this.view.userData.lantern.visible = this.kit.showLantern;
     document.getElementById('beat').classList.toggle('hidden', id !== 'bell');
@@ -486,9 +493,61 @@ class Game {
 
   updateHud() {
     this.ui.setStats(this.player.hp, this.player.maxHp, this.coins, this.potionCount, this.combat.stamina, this.combat.exhausted);
+    this.updateXPBar();
   }
 
+  // ---------------------------------------------------------------- path upgrades (src/upgrades.js)
+  useProgress(pr) {
+    this.progress = pr;
+    pr.onChange = (what, n, cls) => {
+      if (what === 'xp' && n > 0) {
+        this.ui.banner(`เลเวล ${pr.level}!`, `ได้แต้มอัพเกรด +${n} · กด K เพื่อเลือกสายอัพเกรด`);
+        this.audio?.discover();
+      }
+      if (what === 'token' && cls === this.kit?.id) {
+        const t = TREES[cls].token;
+        this.ui.toast(`ได้${t.name} ${t.icon} +${n} (มี ${pr.tokens[cls]})`);
+        this.audio?.chime();
+      }
+      this.updateXPBar();
+    };
+  }
+
+  gainXP(n) { if (n > 0) this.progress.addXP(n); this.updateXPBar(); }
+
+  // max health and the like follow the path's upgrades
+  applyKitStats() {
+    const p = this.player, max = 100 + (this.kit?.hpBonus || 0);
+    if (p.maxHp !== max) { p.hp = Math.min(max, p.hp + Math.max(0, max - p.maxHp)); p.maxHp = max; }
+  }
+
+  updateXPBar() {
+    const pr = this.progress, cls = this.kit?.id;
+    if (!pr || !cls) return;
+    const maxed = pr.level >= Progress.MAX_LEVEL, pts = pr.points(cls);
+    const key = `${pr.level}|${Math.round(pr.xp)}|${pts}|${cls}`;
+    if (key === this._xpKey) return;
+    this._xpKey = key;
+    document.getElementById('xp-lv').textContent = `Lv ${pr.level}`;
+    document.getElementById('xp-fill').style.width = `${maxed ? 100 : (pr.xp / pr.need() * 100).toFixed(1)}%`;
+    const el = document.getElementById('xp-pts');
+    el.textContent = pts > 0 ? `+${pts} แต้ม [K]` : '';
+    el.classList.toggle('pulse', pts > 0);
+  }
+
+  openSkills() {
+    this.state = 'skills';
+    this.ui.setPrompt(null);
+    if (document.pointerLockElement) document.exitPointerLock();
+    this.skillsUI.show();
+  }
+
+  onSkillsClosed() { this.resumePlay(); }
+
   onQuestChanged(saveNow = true) {
+    // every step of the story is worth some experience
+    if (this.lastStage == null) this.lastStage = this.quests.stage;
+    if (this.quests.stage > this.lastStage) { this.gainXP(60 * (this.quests.stage - this.lastStage)); this.lastStage = this.quests.stage; }
     this.ui.setQuest(this.quests.objective());
     this.updateHud();
     if (saveNow) {
@@ -616,6 +675,8 @@ class Game {
     this.audio.stopMusic(2);
     this.applySettings();
     if (this.audio.ctx && !this.music) this.music = new MusicDirector(this.audio);
+    // an online match starts everyone at level 1 with fresh upgrades
+    this.useProgress(new Progress({ online: true }));
     this.setClass(mine.cls);
     this.coins = 0;
     this.moba = new Moba(this, net, roster, me);
@@ -810,7 +871,7 @@ class Game {
     if (this.moba) {
       const by = this.combat.lastHitBy;
       if (!this.moba.host) this.moba.net.send({ t: 'died', by });
-      else if (by != null && by !== this.moba.me) this.moba.reward(by, { soul: 3 }, `ฆ่า ${this.moba.P[this.moba.me].name}`);
+      else if (by != null && by !== this.moba.me) this.moba.reward(by, { soul: 3, xp: 40 }, `ฆ่า ${this.moba.P[this.moba.me].name}`);
     }
     this.audio.hurt();
     this.audio.death();
@@ -835,6 +896,7 @@ class Game {
       if (input.consume('potion')) this.quickHeal();
       if (input.consume('bag')) { this.openBag(); return; }
       if (this.moba && input.consume('build') && !this.moba.over) { this.openMenu('moba'); return; }
+      if (input.consume('skills')) { this.openSkills(); return; }
       // nearest interactable in front of the player
       let best = null, bd = Infinity;
       const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
@@ -889,10 +951,11 @@ class Game {
     let dt = Math.min(0.05, this.clock.getDelta());
     const rawDt = dt;
     // the world holds still behind the case, shops and the pause menu
-    const halted = this.state === 'bag' || this.state === 'menu' || this.state === 'paused' || this.state === 'classpick';
+    const halted = this.state === 'bag' || this.state === 'menu' || this.state === 'paused' || this.state === 'classpick' || this.state === 'skills';
     if (halted) dt = 0;
     if (this.state === 'bag') this.bagUI.update(this.input);
     if (this.state === 'menu') this.menus.update(this.input);
+    if (this.state === 'skills') this.skillsUI.update(this.input);
     // hit-stop: freeze the world for a heartbeat on heavy blows and parries
     if (this.combat.hitStop > 0) { this.combat.hitStop -= dt; dt *= 0.08; }
     this.time += dt;

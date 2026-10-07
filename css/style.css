@@ -339,3 +339,34 @@ body.moba #quest { display: none; }
 .summon-row .svc-btns button { min-width: 0; padding: 6px 10px; font-size: 14px; }
 .moba-only { display: none; }
 body.moba .moba-only { display: inline-block; }
+
+/* path upgrades (src/upgrades.js) */
+#xpbar { position: absolute; right: 12px; bottom: calc(var(--bar) + 10px); display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim); text-shadow: 0 1px 2px #000; }
+#xp-lv { color: #f2d48a; font-weight: bold; }
+#xpbar .xp-track { width: 140px; height: 6px; background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(242, 212, 138, 0.35); }
+#xp-fill { height: 100%; width: 0; background: linear-gradient(90deg, #a07a30, #f2d48a); }
+#xp-pts { color: #9fe8a0; }
+#xp-pts.pulse { animation: xp-pulse 1.2s ease-in-out infinite; }
+@keyframes xp-pulse { 50% { opacity: 0.4; } }
+.sk-panel { max-width: 920px; width: 94vw; max-height: 92vh; overflow-y: auto; background: rgba(8, 11, 19, 0.97); }
+#skills-head { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; margin: 4px 0 12px; font-size: 14px; }
+#skills-head b { color: #f2d48a; font-size: 18px; }
+#skills-head span { display: block; font-size: 11px; color: var(--dim); }
+.sk-xp { display: inline-block; width: 120px; height: 6px; margin: 0 8px; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(242, 212, 138, 0.3); vertical-align: middle; }
+.sk-xp i { display: block; height: 100%; background: #e0b860; }
+#skills-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.sk-col { display: flex; flex-direction: column; align-items: stretch; }
+.sk-line { font-size: 18px; color: #f2d48a; text-align: center; }
+.sk-blurb { font-size: 12px; color: var(--dim); text-align: center; margin-bottom: 8px; }
+.sk-step { text-align: left; padding: 8px 10px; border: 1px solid rgba(160, 180, 220, 0.25); background: rgba(10, 14, 24, 0.7); color: var(--text); cursor: default; font: inherit; }
+.sk-step.can { border-color: #9fe8a0; cursor: pointer; box-shadow: 0 0 8px rgba(120, 220, 130, 0.25); }
+.sk-step.can:hover { background: rgba(30, 50, 34, 0.8); }
+.sk-step.own { border-color: #f2d48a; background: rgba(60, 46, 18, 0.65); }
+.sk-step.locked { opacity: 0.62; }
+.sk-step.cap { border-width: 2px; }
+.sk-name { font-size: 15px; font-weight: bold; }
+.sk-desc { font-size: 12px; margin: 3px 0; line-height: 1.4; }
+.sk-cost { font-size: 11px; color: var(--dim); }
+.sk-step.own .sk-cost { color: #f2d48a; }
+.sk-link { width: 2px; height: 10px; margin: 0 auto; background: rgba(160, 180, 220, 0.3); }
+@media (max-width: 640px) { #skills-cols { grid-template-columns: 1fr; } }

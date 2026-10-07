@@ -189,7 +189,7 @@ export class Combat {
 
   playerMods() {
     return {
-      speedMul: (this.blocking ? 0.45 : this.charging ? 0.6 : 1) * this.g.kit.speedMul,
+      speedMul: (this.blocking && !this.g.kit.speedBoost ? 0.45 : this.charging ? 0.6 : 1) * this.g.kit.speedMul,
       sprintOk: !this.exhausted && !this.blocking,
       dodgeVel: this.dodgeT > 0 ? this.dodgeVel : null,
       locked: this.staggerT > 0,
@@ -305,7 +305,7 @@ export class Combat {
 
   damageEnemy(e, heavy, dir, base = heavy ? 3 : 1) {
     const g = this.g, def = e.def;
-    let dmg = base * g.damageMul;
+    let dmg = base * g.damageMul * g.kit.targetMul(e);
     if (e.moba) {
       // an online creep: your own are safe, everyone else's hit goes to the host
       if (e.moba.owner === g.moba.me) return;
@@ -345,7 +345,8 @@ export class Combat {
     g.audio.enemyDie(e.type, e.pos);
     g.kit.onKill(e);
     g.contracts?.onKill(e);
-    if (g.moba) g.moba.earn({ soul: e.soul ?? (def.elite || def.named ? 4 : 1) }, def.name);
+    if (g.moba) g.moba.earn({ soul: e.soul ?? (def.elite || def.named ? 4 : 1), xp: 5 }, def.name);
+    else g.gainXP(Math.round(def.hp * 3 + (def.elite ? 20 : 0) + (def.named ? 60 : 0) + (def.boss ? 120 : 0)));
     g.particles.burst(e.pos.clone().setY(e.pos.y + def.height * 0.5), 22, 5, 0.9);
     const [a, b] = def.coins;
     g.addCoins(a + Math.floor(Math.random() * (b - a + 1)));
@@ -390,10 +391,11 @@ export class Combat {
       g.audio.thump({ freq: 80, dur: 0.3, gain: 0.3 });
       p.shake = Math.max(p.shake, 0.15);
       p.vel.x += dx / d * 2; p.vel.z += dz / d * 2;
+      g.kit.onWallBlock(e, dmg);
       if (this.stamina > 0) return;
       dmg *= 0.5; this.staggerT = 0.8; this.blocking = false; g.ui.combatText('การ์ดแตก!', 'bad');
     } else if (this.blocking && facingEnemy && !slam) {
-      if (g.time - this.blockStart < PARRY_WINDOW) {
+      if (g.time - this.blockStart < PARRY_WINDOW + g.kit.parryBonus) {
         e.state = 'stagger';
         e.t = def.boss ? 1.9 : 1.4;
         e.vel.set(-dx, 0, -dz).normalize().multiplyScalar(4 / def.weight);
@@ -404,6 +406,7 @@ export class Combat {
         g.particles.burst(g.camera.position.clone().addScaledVector(p.forwardVec, 0.9), 16, 4, 0.35);
         g.ui.combatText('ปัดสำเร็จ!', 'parry');
         g.hud.grin();
+        g.kit.onParry(e);
         return;
       }
       this.spend(dmg * 1.2);
@@ -435,11 +438,13 @@ export class Combat {
     if (this.blocking && facing) {
       if (g.kit.blockMode === 'wall') {
         this.spend(dmg * 0.6); g.audio.block();
+        g.kit.onWallBlock(null, dmg, by);
         if (this.stamina > 0) return;
         dmg *= 0.5; this.staggerT = 0.8; this.blocking = false;
-      } else if (g.time - this.blockStart < PARRY_WINDOW) {
+      } else if (g.time - this.blockStart < PARRY_WINDOW + g.kit.parryBonus) {
         this.stamina = Math.min(this.maxStamina, this.stamina + 15);
         g.audio.parry(); g.ui.combatText('ปัดสำเร็จ!', 'parry'); g.hud.grin();
+        g.kit.onParry(null, by);
         return;
       } else {
         this.spend(dmg * 1.2); g.audio.block();
@@ -524,6 +529,15 @@ export class Combat {
         if (e.obj.visible) this.animate(e, dt, t, true);
         else e.pos.y = this.groundY(e.pos.x, e.pos.z, def);
         if (e.moba.owner !== g.moba?.me && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < 25) engaged++;
+        // your bleeding and burning tick on the host
+        if (e.dots && e.moba.owner !== g.moba?.me) {
+          for (const k in e.dots) {
+            const dot = e.dots[k];
+            if ((dot.t -= dt) <= 0) { delete e.dots[k]; continue; }
+            e.dotAcc = (e.dotAcc || 0) + dot.dps * dt;
+          }
+          if (e.dotAcc >= 0.25) { g.moba.hit('c', e.moba.id, e.dotAcc); e.dotAcc = 0; }
+        }
         continue;
       }
 

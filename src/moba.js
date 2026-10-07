@@ -34,7 +34,7 @@ const PVP = 9;                 // a sword blow that takes 1 from a gaunt takes 9
 const UNIT = 1 / 8;            // creature damage (tuned against players) scaled to creatures/buildings
 const MAX_CREEPS = 14;
 
-export const RES = { wood: 'ไม้', ore: 'แร่', soul: 'วิญญาณ' };
+export const RES = { wood: 'ไม้', ore: 'แร่', soul: 'วิญญาณ', xp: 'XP' };
 const START_WALLET = { wood: 80, ore: 30, soul: 6 };
 
 export const BUILDINGS = {
@@ -265,7 +265,8 @@ export class Moba {
   }
 
   earn(res, why = '') {
-    for (const [k, n] of Object.entries(res)) this.wallet[k] = (this.wallet[k] || 0) + n;
+    if (res.xp) this.g.gainXP(res.xp);
+    for (const [k, n] of Object.entries(res)) if (k !== 'xp') this.wallet[k] = (this.wallet[k] || 0) + n;
     const txt = Object.entries(res).filter(([, n]) => n).map(([k, n]) => `+${n} ${RES[k]}`).join(' ');
     if (txt) this.g.ui.combatText(`${txt}${why ? ` (${why})` : ''}`, 'parry');
   }
@@ -275,7 +276,7 @@ export class Moba {
     const p = this.P[slot];
     if (!p) return;
     if (slot === this.me) this.earn(res, why);
-    else if (p.bot) for (const [k, n] of Object.entries(res)) p.wallet[k] += n;
+    else if (p.bot) for (const [k, n] of Object.entries(res)) if (k !== 'xp') p.wallet[k] += n;
     else this.net?.sendTo(p.peer, { t: 'res', res, why });
   }
 
@@ -533,7 +534,7 @@ export class Moba {
     e.t = e.obj.userData.animate ? 2.6 : 0.9;
     e.hp = 0;
     this.g.audio.enemyDie(e.type, e.pos);
-    if (killer != null && killer !== e.moba.owner) this.reward(killer, { soul: 1, wood: 2 }, 'ฆ่าครีป');
+    if (killer != null && killer !== e.moba.owner) this.reward(killer, { soul: 1, wood: 2, xp: 6 }, 'ฆ่าครีป');
   }
 
   damageStruct(s, dmg, by = null) {
@@ -545,6 +546,7 @@ export class Moba {
       this.g.particles.burst(new THREE.Vector3(s.x, s.y + 1, s.z), 20, 5, 1);
       this.g.audio.slam({ x: s.x, y: s.y, z: s.z });
       this.removeStruct(s);
+      if (by != null && by !== s.owner) this.reward(by, { xp: 20 }, `ทำลาย${BUILDINGS[s.type].name}`);
       this.broadcast({ t: 'msg', text: `${BUILDINGS[s.type].name}ของ${SEATS[s.owner].name}ถูกทำลาย` });
     }
   }
@@ -767,7 +769,7 @@ export class Moba {
     p.hp = 0; p.dead = true;
     ai.respawn = BOT_HERO.respawn; ai.push = null; ai.hit = null;
     this.g.audio.hit(true, 'flesh', { x: p.x, y: p.y + 1, z: p.z });
-    if (by != null && by !== p.slot) this.reward(by, { soul: 3 }, `ฆ่า ${p.name}`);
+    if (by != null && by !== p.slot) this.reward(by, { soul: 3, xp: 40 }, `ฆ่า ${p.name}`);
   }
 
   // the nearest thing of another seat around (x, z): creeps and heroes; buildings and the king only
@@ -918,7 +920,7 @@ export class Moba {
         const n = this.summon(m.type, slot, m.target);
         if (!n) this.net.sendTo(from, { t: 'refund', cost: CREEPS[m.type].cost, why: 'ซัมม่อนไม่ได้ (ครีปเต็มหรือเป้าหมายตกรอบแล้ว)' });
       }
-      if (m.t === 'died' && m.by != null && m.by !== slot) this.reward(m.by, { soul: 3 }, `ฆ่า ${p.name}`);
+      if (m.t === 'died' && m.by != null && m.by !== slot) this.reward(m.by, { soul: 3, xp: 40 }, `ฆ่า ${p.name}`);
       return;
     }
     // client side
@@ -942,6 +944,9 @@ export class Moba {
   }
 
   // a blow from this player: the host applies it, a client sends it
+  // a riposte or a reflected blow aimed at another hero (path upgrades)
+  riposte(slot, dmg) { if (this.P[slot] && slot !== this.me) this.hit('p', slot, dmg * PVP * this.g.damageMul); }
+
   hit(k, id, d) {
     if (this.host) this.applyHit({ k, id, d }, this.me);
     else this.net.send({ t: 'hit', k, id, d });
