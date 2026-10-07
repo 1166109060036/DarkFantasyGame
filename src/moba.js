@@ -12,6 +12,7 @@
 import * as THREE from 'three';
 import { part, mergeGeometries, clamp } from './util.js';
 import { createPatron } from './characters.js';
+import { createHero, animateHero } from './heroes.js';
 import { ENEMY_TYPES } from './combat.js';
 import { CLASSES } from './classes.js';
 import { rng } from './noise.js';
@@ -95,7 +96,7 @@ export class Moba {
     this.me = me;
     this.P = [];
     // bots hold their first wave for two minutes so players have time to build
-    for (const r of roster) this.P[r.slot] = { ...r, x: 0, y: 0, z: 0, yaw: 0, hp: 100, dead: false, alive: true, sw: 0, wallet: { ...START_WALLET }, aiT: 2 + r.slot, waveT: 120 + r.slot * 12 };
+    for (const r of roster) this.P[r.slot] = { ...r, x: 0, y: 0, z: 0, yaw: 0, hp: 100, dead: false, alive: true, sw: 0, sn: 0, wallet: { ...START_WALLET }, aiT: 2 + r.slot, waveT: 120 + r.slot * 12 };
     this.wallet = { ...START_WALLET };
     this.S = new Map();       // structures
     this.Cr = new Map();      // creeps (combat enemies with .moba)
@@ -743,7 +744,7 @@ export class Moba {
       const slot = this.slotOf(from);
       if (slot == null) return;
       const p = this.P[slot];
-      if (m.t === 'st') Object.assign(p, { x: m.x, y: m.y, z: m.z, yaw: m.yaw, hp: m.hp, dead: !!m.dead, sw: m.sw });
+      if (m.t === 'st') Object.assign(p, { x: m.x, y: m.y, z: m.z, yaw: m.yaw, hp: m.hp, dead: !!m.dead, sw: m.sw | 0, sn: m.sn | 0 });
       if (m.t === 'hit') this.applyHit(m, slot);
       if (m.t === 'build') {
         const why = this.canPlace(m.type, slot, m.x, m.z);
@@ -805,7 +806,7 @@ export class Moba {
     const r1 = (v) => Math.round(v * 10) / 10;
     return {
       t: 'snap',
-      p: this.P.filter(Boolean).map((p) => [p.slot, r1(p.x), r1(p.y), r1(p.z), r1(p.yaw), Math.round(p.hp), p.dead ? 1 : 0, p.sw ? 1 : 0, p.bot ? 1 : 0, p.alive ? 1 : 0]),
+      p: this.P.filter(Boolean).map((p) => [p.slot, r1(p.x), r1(p.y), r1(p.z), r1(p.yaw), Math.round(p.hp), p.dead ? 1 : 0, p.sw | 0, p.bot ? 1 : 0, p.alive ? 1 : 0, p.sn | 0]),
       c: [...this.Cr.values()].map((e) => [e.moba.id, CTYPES.indexOf(e.type), e.moba.owner, r1(e.pos.x), r1(e.pos.z), r1(e.ry), r1(Math.max(0, e.hp)), Math.max(0, STATES.indexOf(e.state))]),
       s: [...this.S.values()].map((s) => [s.id, BTYPES.indexOf(s.type), s.owner, r1(s.x), r1(s.z), r1(s.ry), r1(s.hp), Math.round(s.built * 100) / 100]),
       k: this.K.map((k) => (k ? r1(k.hp) : 0)),
@@ -815,12 +816,12 @@ export class Moba {
 
   applySnapshot(m) {
     // heroes
-    for (const [slot, x, y, z, yaw, hp, dead, sw, bot, alive] of m.p) {
+    for (const [slot, x, y, z, yaw, hp, dead, sw, bot, alive, sn] of m.p) {
       const p = this.P[slot];
       if (!p) continue;
       p.alive = !!alive; p.bot = !!bot;
       if (slot === this.me) continue;
-      Object.assign(p, { x, y, z, yaw, hp, dead: !!dead, sw: !!sw });
+      Object.assign(p, { x, y, z, yaw, hp, dead: !!dead, sw: sw | 0, sn: sn | 0 });
     }
     // creeps
     const seen = new Set();
@@ -863,13 +864,8 @@ export class Moba {
     let a = this.avatars.get(slot);
     if (a) return a;
     const g = this.g, p = this.P[slot], s = SEATS[slot];
-    const obj = createPatron(g.M, C(...s.color).multiplyScalar(0.7));
-    obj.scale.setScalar(1.15);
-    const blade = new THREE.Mesh(part(new THREE.BoxGeometry(0.07, 0.9, 0.03), C(0.75, 0.8, 0.9), { pos: [0, 0.45, 0] }), g.M.metal);
-    const arm = new THREE.Group();
-    arm.position.set(0.28, 1.05, 0.25);
-    arm.add(blade);
-    obj.add(arm);
+    // the hero of their path (src/heroes.js), wearing their base's colour
+    const obj = createHero(p.cls, g.M, C(...s.color));
     // a name tag
     const cv = document.createElement('canvas');
     cv.width = 256; cv.height = 48;
@@ -882,10 +878,10 @@ export class Moba {
     ctx.fillText(`${p.name} · ${CLASSES[p.cls]?.name || ''}`, 128, 34);
     const tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }));
     tag.scale.set(2.6, 0.5, 1);
-    tag.position.y = 2.25;
+    tag.position.y = 2.55;
     obj.add(tag);
     g.scene.add(obj);
-    a = { obj, arm, pos: new THREE.Vector3(p.x, p.y, p.z), yaw: p.yaw, swing: 0 };
+    a = { obj, pos: new THREE.Vector3(p.x, p.y, p.z), yaw: p.yaw, sn: p.sn, speed: 0 };
     this.avatars.set(slot, a);
     return a;
   }
@@ -905,11 +901,12 @@ export class Moba {
       a.pos.lerp(V.set(p.x, p.y, p.z), k);
       a.yaw += Math.atan2(Math.sin(p.yaw - a.yaw), Math.cos(p.yaw - a.yaw)) * k;
       a.obj.position.copy(a.pos);
-      a.obj.position.y += Math.abs(Math.sin(this.g.time * 9)) * Math.min(0.08, moved * 0.5);
       a.obj.rotation.y = a.yaw + Math.PI;
-      if (p.sw) a.swing = 1;
-      a.swing = Math.max(0, a.swing - dt * 3);
-      a.arm.rotation.x = -0.4 - Math.sin(a.swing * Math.PI) * 1.6;
+      // walk/run from how fast they are really moving; a new blow when their count goes up
+      a.speed += ((dt > 0 ? moved * k / dt : 0) - a.speed) * Math.min(1, dt * 6);
+      const blow = p.sn !== a.sn;
+      a.sn = p.sn;
+      if (a.obj.visible) animateHero(a.obj, dt, { speed: a.speed, action: blow ? (p.sw === 2 ? 2 : 1) : p.sw === 3 ? 3 : 0 });
     }
   }
 
@@ -967,11 +964,13 @@ export class Moba {
     const g = this.g, p = g.player;
     // my hero
     const me = this.P[this.me];
-    Object.assign(me, { x: p.pos.x, y: p.pos.y, z: p.pos.z, yaw: p.yaw, hp: p.hp, dead: g.state === 'dead', sw: !!g.combat.swing });
+    // sw: what the hero is doing (1 light blow, 2 heavy, 3 guarding); sn counts blows so each one is seen once
+    const c = g.combat, act = c.swing ? (c.swing.kind === 'heavy' ? 2 : 1) : c.blocking ? 3 : 0;
+    Object.assign(me, { x: p.pos.x, y: p.pos.y, z: p.pos.z, yaw: p.yaw, hp: p.hp, dead: g.state === 'dead', sw: act, sn: c.swingN || 0 });
     this.pushOut(p.pos, 0.4, this.me);
     if (!this.host) {
       this.sendT -= dt;
-      if (this.sendT <= 0) { this.sendT = 1 / 12; this.net.send({ t: 'st', x: +me.x.toFixed(2), y: +me.y.toFixed(2), z: +me.z.toFixed(2), yaw: +me.yaw.toFixed(3), hp: Math.round(me.hp), dead: me.dead ? 1 : 0, sw: me.sw ? 1 : 0 }); }
+      if (this.sendT <= 0) { this.sendT = 1 / 12; this.net.send({ t: 'st', x: +me.x.toFixed(2), y: +me.y.toFixed(2), z: +me.z.toFixed(2), yaw: +me.yaw.toFixed(3), hp: Math.round(me.hp), dead: me.dead ? 1 : 0, sw: me.sw, sn: me.sn }); }
     }
     if (this.host && !this.over) {
       for (const e of this.Cr.values()) if (e.alive && e.state !== 'dying') this.updateCreepAI(e, dt);

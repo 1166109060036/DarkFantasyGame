@@ -263,6 +263,7 @@ export class Combat {
     const spec = this.g.kit.swing(kind);
     if (!spec) return;                       // handled by the kit (e.g. a thrown leech)
     this.swing = { kind, t: 0, dur: spec.dur, hit: false, spec };
+    this.swingN = (this.swingN || 0) + 1;       // online: other players see each new blow
     this.spend(spec.cost);
     this.g.kit.swingSound(kind);
   }
