@@ -12,7 +12,7 @@ export const DROPS = {
   wisp: [['essence', 1, 0.85]],
   straw: [['straw', 1, 1], ['straw', 1, 0.35], ['token', 1, 0.12], ['moonstone', 1, 0.05]],
   wolf: [['fang', 1, 0.9], ['fang', 1, 0.3], ['moonstone', 1, 0.05]],
-  leech: [['slime', 1, 0.9], ['pearl', 1, 0.15]],
+  leech: [['slime', 1, 0.9], ['pearl', 1, 0.15], ['leech_live', 2, 0.8]],
   knight: [['knight_core', 1, 1], ['idol', 1, 1]],
   gaunt: [['claw', 1, 0.8], ['token', 1, 0.15], ['watch', 1, 0.04]],
   crawler: [['claw', 1, 1], ['claw', 1, 0.3], ['slime', 1, 0.2]],

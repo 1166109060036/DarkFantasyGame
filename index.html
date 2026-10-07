@@ -27,6 +27,7 @@
       <div id="inv"><span class="coin">●</span> <span id="coins">0</span> &nbsp; <span class="potion">⚱</span> <span id="potions">0</span></div>
     </div>
     <div id="crosshair"></div>
+    <div id="beat" class="hidden"></div>
     <div id="target" class="hidden"><div class="name"></div><div class="bar"><div class="fill"></div></div></div>
     <div id="boss" class="hidden"><div class="name"></div><div class="bar"><div class="fill"></div></div></div>
     <div id="ctext"></div>
@@ -102,6 +103,7 @@
       <button data-act="sprint">»</button>
       <button data-act="block">🛡</button>
       <button data-act="dodge">↯</button>
+      <button data-act="skill">✦</button>
     </div>
     <div class="tbtns top">
       <button data-act="bag">🎒</button>
@@ -140,7 +142,16 @@
         <button id="btn-restart" class="ghost">เริ่มใหม่ทั้งหมด</button>
         <button id="btn-quit" class="ghost desktop-only">ออกจากเกม</button>
       </div>
-      <p class="small controls">เวลาในเกม 1 วัน = 15 นาที · พักที่โรงเตี๊ยมเพื่อข้ามเวลาได้<br>WASD เดิน · Shift วิ่ง · Space กระโดด · คลิกซ้าย ฟัน (กดค้าง = ฟันหนัก) · คลิกขวาค้าง ป้องกัน/ปัด · C หรือ Ctrl หลบ · E คุย/เก็บของ · I หรือ Tab กระเป๋า · Q ดื่มยา · M แผนที่ · Esc หยุด</p>
+      <p class="small controls">เวลาในเกม 1 วัน = 15 นาที · พักที่โรงเตี๊ยมเพื่อข้ามเวลาได้<br>WASD เดิน · Shift วิ่ง · Space กระโดด · คลิกซ้าย ฟัน (กดค้าง = ฟันหนัก) · คลิกขวาค้าง ป้องกัน/ปัด · C หรือ Ctrl หลบ · G สกิลประจำสาย · E คุย/เก็บของ · I หรือ Tab กระเป๋า · Q ดื่มยา · M แผนที่ · Esc หยุด</p>
+    </div>
+  </div>
+
+  <div id="classpick" class="hidden overlay">
+    <div class="cp-wrap">
+      <h2 id="classpick-title">เลือกวิถีของเจ้า</h2>
+      <div id="classpick-list"></div>
+      <button id="classpick-cancel" class="ghost">ยกเลิก</button>
+      <p class="small">เปลี่ยนวิถีได้ภายหลังที่โรงเตี๊ยม (คุยกับเทียนหลอม) · ปุ่มสกิลของทุกสาย: G</p>
     </div>
   </div>
 

@@ -9,6 +9,7 @@ export const RECIPES = [
   { out: 'tonic', n: 1, need: [['fang', 1], ['mushroom', 1]] },
   { out: 'oil', n: 1, need: [['essence', 2], ['straw', 1]] },
   { out: 'sight', n: 1, need: [['mushroom', 2], ['essence', 1]] },
+  { out: 'leech_live', n: 3, need: [['slime', 1], ['moon_herb', 1]] },
 ];
 
 // level n costs UPGRADES[part].levels[n] to reach level n+1
@@ -42,7 +43,7 @@ export const UPGRADES = {
 };
 
 const BAG_PRICES = [60, 150];
-const BUY = [['potion', 12], ['tonic', 18], ['moon_herb', 5]];
+const BUY = [['potion', 12], ['tonic', 18], ['moon_herb', 5], ['leech_live', 6]];
 
 const $ = (id) => document.getElementById(id);
 
@@ -122,7 +123,7 @@ export class Menus {
       rc.need.forEach(([id, n]) => room.remove(id, n));
       const fits = room.add(rc.out, rc.n) === 0;
       this.row({
-        icon: itemIconURL(rc.out), title: def.name, sub: def.desc, cost: this.costHTML(rc.need),
+        icon: itemIconURL(rc.out), title: rc.n > 1 ? `${def.name} ×${rc.n}` : def.name, sub: def.desc, cost: this.costHTML(rc.need),
         button: ok && !fits ? 'กระเป๋าเต็ม' : 'ปรุง', enabled: ok && fits,
         onClick: () => {
           rc.need.forEach(([id, n]) => this.g.bag.remove(id, n));
@@ -138,7 +139,9 @@ export class Menus {
     const g = this.g;
     $('svc-title').textContent = 'เตาหลอมของลุงทั่ง';
     $('svc-hint').textContent = 'เหล็กดีต้องตีตอนร้อน เอาของมา แล้วจ่ายค่าแรงข้าด้วย';
-    for (const [key, up] of Object.entries(UPGRADES)) {
+    for (const [key, base] of Object.entries(UPGRADES)) {
+      // the weapon line follows your path: sword, bell hammer, lancet, coffin or censer
+      const up = key === 'sword' ? { ...base, name: g.kit.def.weapon } : base;
       const lv = g.gear[key], max = up.levels.length;
       const pips = '◆'.repeat(lv) + '◇'.repeat(max - lv);
       if (lv >= max) {

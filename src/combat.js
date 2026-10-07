@@ -9,6 +9,7 @@ import {
 import { createGaunt, createCrawler, createWeeper, createBrute } from './gaunts.js';
 import { clamp, lerp, wrapAngle } from './util.js';
 import { rng } from './noise.js';
+import { SWORD_POSE } from './classes.js';
 
 export const ENEMY_TYPES = {
   wisp: { name: 'วิญญาณบึง', hp: 2, speed: 3.2, range: 1.3, windup: 0.55, recover: 0.9, damage: 12, aggro: 15, leash: 50, radius: 0.4, height: 1.5, weight: 0.4, active: 'night', fly: true, coins: [2, 4], respawn: 30 },
@@ -28,15 +29,7 @@ const PARRY_WINDOW = 0.3;
 const CULL = 115;
 const V = new THREE.Vector3();
 
-// view-model poses: [x, y, z, rx, ry, rz]
-const POSE = {
-  rest: [0.34, -0.4, -0.62, -1.05, -0.25, -0.3],
-  guard: [0.08, -0.3, -0.52, -0.25, 0.15, 1.3],
-  charge: [0.38, -0.3, -0.55, -0.35, -0.55, -0.95],
-  up: [0.42, -0.16, -0.45, -0.25, -0.6, -1.25],
-  end: [-0.28, -0.42, -0.55, -1.55, 0.55, 0.95],
-  heavyEnd: [-0.36, -0.52, -0.5, -1.75, 0.75, 1.15],
-};
+// view-model poses come from the class kit (src/classes.js)
 const ease = (x) => x * x * (3 - 2 * x);
 const mixPose = (a, b, k) => a.map((v, i) => lerp(v, b[i], k));
 
@@ -57,7 +50,7 @@ export class Combat {
     this.iframes = 0;
     this.staggerT = 0;
     this.hitStop = 0;
-    this.pose = POSE.rest.slice();
+    this.pose = SWORD_POSE.rest.slice();
     this.swordMul = 1;
     this.bossDefeated = false;
     this.target = null;
@@ -153,6 +146,7 @@ export class Combat {
       e.state = 'idle';
       e.pos.copy(e.home);
       e.hp = e.def.hp;
+      e.dots = null;
     }
   }
 
@@ -168,7 +162,7 @@ export class Combat {
 
   playerMods() {
     return {
-      speedMul: this.blocking ? 0.45 : this.charging ? 0.6 : 1,
+      speedMul: (this.blocking ? 0.45 : this.charging ? 0.6 : 1) * this.g.kit.speedMul,
       sprintOk: !this.exhausted && !this.blocking,
       dodgeVel: this.dodgeT > 0 ? this.dodgeVel : null,
       locked: this.staggerT > 0,
@@ -182,14 +176,17 @@ export class Combat {
     this.staggerT = Math.max(0, this.staggerT - dt);
     this.targetT = Math.max(0, this.targetT - dt);
 
-    if (p.sprinting) this.spend(13 * dt);
+    if (p.sprinting && g.kit.sprintCost) this.spend(13 * dt * g.kit.sprintCost);
     if (t - this.lastUse > 0.9) this.stamina = Math.min(this.maxStamina, this.stamina + (this.blocking ? 12 : 32) * (g.buffs.tonic > 0 ? 2 : 1) * dt);
     if (this.exhausted && this.stamina > 35) this.exhausted = false;
 
     if (frozen) { this.blocking = false; this.charging = false; return; }
+    const kit = g.kit;
+    kit.update(dt, input);
+    if (input.consume('skill')) kit.skill();
 
     // block (hold right mouse); the first PARRY_WINDOW seconds of a block parry
-    const wantBlock = input.blockHeld && !this.swing && this.dodgeT <= 0 && this.staggerT <= 0 && this.stamina > 0;
+    const wantBlock = kit.blockMode !== 'none' && input.blockHeld && !this.swing && this.dodgeT <= 0 && this.staggerT <= 0 && this.stamina > 0;
     if (wantBlock && !this.blocking) this.blockStart = t;
     this.blocking = wantBlock;
 
@@ -214,10 +211,11 @@ export class Combat {
     }
 
     // attack: tap = light, hold then release = heavy
-    if (input.consume('attack') && !this.swing && this.dodgeT <= 0 && this.staggerT <= 0) {
+    if (input.consume('attack') && !this.swing && this.dodgeT <= 0 && this.staggerT <= 0 && !kit.noAttack) {
       this.charging = true;
       this.charge = 0;
       this.heavyReady = false;
+      kit.onPress?.();
     }
     if (this.charging) {
       if (input.attackHeld && !this.blocking) {
@@ -232,41 +230,53 @@ export class Combat {
     if (this.dodgeT <= 0) p.roll *= Math.max(0, 1 - dt * 8);
   }
 
+  // the kit decides what a blow is: timing, cost, reach, arc (or a spin / ground slam), damage
   startSwing(kind) {
     if (this.stamina <= 0) { this.say('เหนื่อย!'); return; }
-    this.swing = { kind, t: 0, dur: kind === 'heavy' ? 0.62 : 0.36, hit: false };
-    this.spend(COST[kind]);
-    this.g.audio.swing(kind === 'heavy');
+    const spec = this.g.kit.swing(kind);
+    if (!spec) return;                       // handled by the kit (e.g. a thrown leech)
+    this.swing = { kind, t: 0, dur: spec.dur, hit: false, spec };
+    this.spend(spec.cost);
+    this.g.kit.swingSound(kind);
   }
 
   advanceSwing(dt) {
     const s = this.swing;
     s.t += dt / s.dur;
-    if (!s.hit && s.t > (s.kind === 'heavy' ? 0.42 : 0.35)) {
+    if (!s.hit && s.t > s.spec.hitAt) {
       s.hit = true;
-      this.playerStrike(s.kind);
+      this.playerStrike(s.kind, s.spec);
     }
     if (s.t >= 1) this.swing = null;
   }
 
-  playerStrike(kind) {
-    const g = this.g, cam = g.camera.position, dir = g.player.forwardVec;
-    const heavy = kind === 'heavy';
+  playerStrike(kind, spec) {
+    const g = this.g, cam = g.camera.position, p = g.player, dir = p.forwardVec;
+    g.kit.onStrike(kind, spec);
+    // a ground slam lands on a circle in front of you
+    const ax = spec.aoe ? p.pos.x - Math.sin(p.yaw) * spec.aoe.dist : 0, az = spec.aoe ? p.pos.z - Math.cos(p.yaw) * spec.aoe.dist : 0;
     for (const e of this.enemies) {
       if (!e.alive || e.state === 'dying' || !e.obj.visible) continue;
       V.copy(e.pos);
       if (!e.def.fly) V.y += e.def.height * 0.5;
       V.sub(cam);
       const d = V.length();
-      if (d > (heavy ? 3.4 : 2.9) + e.def.radius) continue;
-      if (V.normalize().dot(dir) < (heavy ? 0.3 : 0.5) && d > e.def.radius + 0.8) continue;
-      this.damageEnemy(e, heavy, V);
+      if (spec.aoe) {
+        if (Math.hypot(e.pos.x - ax, e.pos.z - az) > spec.aoe.r + e.def.radius || Math.abs(V.y) > 3) continue;
+      } else {
+        if (d > spec.range + e.def.radius) continue;
+        if (spec.radial) { if (Math.abs(V.y) > 2.5) continue; }
+        else if (V.clone().normalize().dot(dir) < spec.arc && d > e.def.radius + 0.8) continue;
+      }
+      V.normalize();
+      this.damageEnemy(e, spec.heavy, V, spec.dmg);
+      if (e.alive) g.kit.onHit(e, kind);
     }
   }
 
-  damageEnemy(e, heavy, dir) {
+  damageEnemy(e, heavy, dir, base = heavy ? 3 : 1) {
     const g = this.g, def = e.def;
-    const dmg = (heavy ? 3 : 1) * g.damageMul;
+    const dmg = base * g.damageMul;
     e.hp -= dmg;
     e.flash = 1;
     e.vel.addScaledVector(V.set(dir.x, 0, dir.z).normalize(), (heavy ? 7 : 3) / def.weight);
@@ -288,6 +298,7 @@ export class Combat {
     e.state = 'dying';
     e.t = e.obj.userData.animate ? 2.6 : 0.9;
     g.audio.enemyDie(e.type, e.pos);
+    g.kit.onKill(e);
     g.particles.burst(e.pos.clone().setY(e.pos.y + def.height * 0.5), 22, 5, 0.9);
     const [a, b] = def.coins;
     g.addCoins(a + Math.floor(Math.random() * (b - a + 1)));
@@ -325,7 +336,16 @@ export class Combat {
     const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
     const facingEnemy = (-dx * fx - dz * fz) / Math.max(d, 1e-3) > 0.3;
     let dmg = def.damage * (slam ? 1.3 : 1);
-    if (this.blocking && facingEnemy && !slam) {
+    // the coffin is a wall: it stops anything from the front, even a ground slam, but cannot parry
+    if (this.blocking && facingEnemy && g.kit.blockMode === 'wall') {
+      this.spend(dmg * 0.6);
+      g.audio.block();
+      g.audio.thump({ freq: 80, dur: 0.3, gain: 0.3 });
+      p.shake = Math.max(p.shake, 0.15);
+      p.vel.x += dx / d * 2; p.vel.z += dz / d * 2;
+      if (this.stamina > 0) return;
+      dmg *= 0.5; this.staggerT = 0.8; this.blocking = false; g.ui.combatText('การ์ดแตก!', 'bad');
+    } else if (this.blocking && facingEnemy && !slam) {
       if (g.time - this.blockStart < PARRY_WINDOW) {
         e.state = 'stagger';
         e.t = def.boss ? 1.9 : 1.4;
@@ -346,7 +366,7 @@ export class Combat {
       if (this.stamina > 0) dmg *= 0.12;
       else { dmg *= 0.6; this.staggerT = 0.7; this.blocking = false; g.ui.combatText('การ์ดแตก!', 'bad'); }
     }
-    dmg *= g.armorMul;
+    dmg = g.kit.onHurt(dmg * g.armorMul * g.kit.armorMul, e);
     p.hurt(dmg, g.time);
     // the status-bar face flinches toward whoever landed the blow
     const rightDot = (-dx * Math.cos(p.yaw) + dz * Math.sin(p.yaw)) / Math.max(d, 1e-3);
@@ -370,7 +390,7 @@ export class Combat {
       if (!e.alive) {
         e.respawn -= dt;
         if (!def.boss && e.respawn <= 0 && e.home.distanceTo(p.pos) > 45) {
-          Object.assign(e, { alive: true, hp: def.hp, state: 'idle', t: 2 });
+          Object.assign(e, { alive: true, hp: def.hp, state: 'idle', t: 2, dots: null, corpseHold: 0 });
           e.pos.copy(e.home);
           e.obj.scale.setScalar(def.boss ? 1.55 : 1);
           e.obj.position.copy(e.pos);
@@ -391,6 +411,13 @@ export class Combat {
       }
 
       if (e.state === 'dying') {
+        // the undertaker's corpses lie still until they are taken (or left too long)
+        if (e.corpseHold > 0) {
+          e.corpseHold -= dt;
+          const hold = e.obj.userData.animate ? 1.0 : 0.9;
+          if (e.t < hold) e.t = hold;
+          if (!e.obj.userData.animate) e.obj.rotation.z = Math.min(1.4, (e.obj.rotation.z || 0) + dt * 4);
+        }
         e.t -= dt;
         const k = Math.max(0, e.t / 0.9);
         if (e.obj.userData.animate) {
@@ -404,10 +431,21 @@ export class Combat {
         if (e.t <= 0) {
           e.alive = false;
           e.obj.visible = false;
+          e.obj.rotation.z = 0;
           if (e.shadow) e.shadow.visible = false;
           e.respawn = def.respawn || 1e9;
         }
         continue;
+      }
+
+      // burning, bleeding
+      if (e.dots) {
+        for (const k in e.dots) {
+          const dot = e.dots[k];
+          if ((dot.t -= dt) <= 0) { delete e.dots[k]; continue; }
+          e.hp -= dot.dps * dt;
+        }
+        if (e.hp <= 0) { this.kill(e); continue; }
       }
 
       // knockback
@@ -441,7 +479,7 @@ export class Combat {
             const wd = Math.hypot(e.wander.x - e.pos.x, e.wander.z - e.pos.z);
             if (wd > 0.6) { moveSpeed = def.speed * 0.3; moveAngle = Math.atan2(e.wander.x - e.pos.x, e.wander.z - e.pos.z); }
           }
-          if (active && playerOk && dist < def.aggro) {
+          if (active && playerOk && dist < def.aggro && !g.kit.hidden) {
             e.state = 'chase';
             g.audio.enemyCue(e.type, 'aggro', e.pos);
             if (!this.hintShown) {
@@ -452,7 +490,7 @@ export class Combat {
           }
           break;
         case 'chase':
-          if (!playerOk || !active || fromHome > def.leash) { e.state = 'return'; break; }
+          if (!playerOk || !active || fromHome > def.leash || (g.kit.hidden && dist > 2.5)) { e.state = 'return'; break; }
           moveSpeed = def.speed;
           moveAngle = toPlayer;
           // gaunts shamble, then break into a sprint once they are close
@@ -470,7 +508,7 @@ export class Combat {
           moveSpeed = def.speed * 0.8;
           moveAngle = Math.atan2(e.home.x - e.pos.x, e.home.z - e.pos.z);
           if (fromHome < 1) { e.state = 'idle'; e.hp = def.hp; e.t = 2; }
-          if (active && playerOk && dist < def.aggro * 0.6 && fromHome < def.leash * 0.7) e.state = 'chase';
+          if (active && playerOk && dist < def.aggro * 0.6 && fromHome < def.leash * 0.7 && !g.kit.hidden) e.state = 'chase';
           break;
         }
         case 'windup':
@@ -530,6 +568,7 @@ export class Combat {
     e.pos.x = nx;
     e.pos.z = nz;
     if (!def.fly) this.g.collision.resolve(e.pos, def.radius, def.height);
+    this.g.kit.constrain?.(e);
   }
 
   animate(e, dt, t, active) {
@@ -604,7 +643,8 @@ export class Combat {
 
   // ---------------------------------------------------------------- view model
   updateViewModel(dt) {
-    const g = this.g, sw = g.view.userData.sword;
+    const g = this.g, sw = g.kit.weapon, POSE = g.kit.poses;
+    if (!sw) return;
     let target = POSE.rest;
     if (this.swing) {
       const s = this.swing, k = s.t;
@@ -618,7 +658,7 @@ export class Combat {
       }
       this.pose = target.slice();
     } else {
-      if (this.blocking) target = POSE.guard;
+      if (this.blocking || g.kit.snuffed) target = POSE.guard;
       else if (this.charging) target = mixPose(POSE.rest, POSE.charge, clamp(this.charge / 0.38, 0, 1));
       const k = Math.min(1, dt * 14);
       this.pose = this.pose.map((v, i) => lerp(v, target[i], k));
@@ -627,5 +667,6 @@ export class Combat {
     const tremble = this.heavyReady && this.charging ? (Math.random() - 0.5) * 0.006 : 0;
     sw.position.set(p[0] + tremble, p[1] + bob + dip, p[2]);
     sw.rotation.set(p[3], p[4], p[5]);
+    g.kit.animateWeapon(sw, dt);
   }
 }

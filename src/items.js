@@ -17,6 +17,7 @@ export const ITEMS = {
   essence: { name: 'แก่นวิญญาณ', desc: 'ประกายจากวิญญาณบึง อุ่นเหมือนมีชีวิต', w: 1, h: 1, stack: 5, kind: 'mat', value: 4 },
   ore: { name: 'แร่เหล็กมืด', desc: 'แร่หนักจากหน้าผาทางเหนือ ใช้ตีอาวุธ', w: 2, h: 1, stack: 3, kind: 'mat', value: 6 },
   claw: { name: 'กรงเล็บซีด', desc: 'เล็บยาวจากร่างซูบ แข็งเหมือนกระดูก ช่างตีเหล็กใช้ทำคมดาบ', w: 1, h: 1, stack: 10, kind: 'mat', value: 3 },
+  leech_live: { name: 'ปลิงดูดเลือด', desc: 'ปลิงหิวเลือดในขวดโหล หมอปลิงปาใส่ศัตรูได้ (กดค้างแล้วปล่อย)', w: 1, h: 1, stack: 6, kind: 'mat', value: 2 },
   knight_core: { name: 'แกนหินอัศวิน', desc: 'หัวใจหินที่ยังเต้นอยู่ ช่างตีเหล็กใช้ตีดาบขั้นสุดท้าย', w: 2, h: 2, stack: 1, kind: 'mat', value: 40 },
   // treasures: worthless to you, valuable to the innkeeper
   moonstone: { name: 'มูนสโตน', desc: 'สมบัติ · ขายได้ที่โรงเตี๊ยม (ช่างตีเหล็กใช้ทำตะเกียงได้)', w: 1, h: 1, stack: 1, kind: 'treasure', value: 22 },
@@ -84,6 +85,11 @@ const DRAW = {
   slime: (d) => {
     d.r(3, 6, 10, 7, '#7a3a6a'); d.r(4, 5, 8, 1, '#9a4a88'); d.r(2, 9, 12, 3, '#6a2a5a');
     d.r(5, 7, 2, 2, '#e0a0d0'); d.r(9, 12, 2, 3, '#7a3a6a');
+  },
+  leech_live: (d) => {
+    d.r(3, 3, 10, 12, '#3a4a56'); d.r(4, 2, 8, 2, '#8a6040'); d.r(4, 4, 1, 10, '#8aa0b4');
+    d.r(5, 6, 6, 3, '#4a1a30'); d.r(6, 9, 5, 3, '#5a2238'); d.r(5, 12, 4, 2, '#4a1a30');
+    d.p(9, 7, '#c86a88'); d.p(7, 10, '#c86a88');
   },
   essence: (d) => {
     for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {

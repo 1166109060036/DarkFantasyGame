@@ -30,6 +30,8 @@ export class Player {
     this.sprinting = false;
     this.shake = 0;
     this.roll = 0;
+    this.regenMul = 1;     // the leech-doctor and the wick-bearer do not heal on their own
+    this.climb = 1.25;     // steepest slope you can walk up (a crawler in the coffin raises it)
   }
 
   place(x, z, yaw = 0) {
@@ -79,7 +81,7 @@ export class Player {
       const gOld = this.terrain.getHeight(this.pos.x, this.pos.z);
       const gNew = this.terrain.getHeight(nx, nz);
       const dist = Math.hypot(nx - this.pos.x, nz - this.pos.z);
-      if (dist > 1e-5 && gNew > this.pos.y + 0.5 && (gNew - gOld) / dist > 1.25) return false;
+      if (dist > 1e-5 && gNew > this.pos.y + 0.5 && (gNew - gOld) / dist > this.climb) return false;
       this.pos.x = nx; this.pos.z = nz;
       return true;
     };
@@ -128,7 +130,7 @@ export class Player {
     this.camera.rotation.set(this.pitch, this.yaw, this.roll, 'YXZ');
 
     // health regen
-    if (time - this.lastHurt > 6 && this.hp > 0) this.hp = Math.min(this.maxHp, this.hp + 2.5 * dt);
+    if (time - this.lastHurt > 6 && this.hp > 0) this.hp = Math.min(this.maxHp, this.hp + 2.5 * this.regenMul * dt);
   }
 
   hurt(amount, time) {

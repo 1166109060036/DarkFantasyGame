@@ -611,6 +611,20 @@ export class MusicDirector {
     }
   }
 
+  // Where the loudest piece is in its beat, for the Bellwright. `latency` shifts the clock back so
+  // the beat matches what is actually coming out of the speakers. Recorded tracks have no grid.
+  beat(latency = 0) {
+    let best = null;
+    for (const [name, p] of Object.entries(this.pieces)) {
+      if (!p.active || name === 'awe' || p instanceof FilePiece) continue;
+      if (p.target > (best?.target ?? 0.05)) best = p;
+    }
+    if (!best) return null;
+    const period = best instanceof TavernPiece ? best.beat * 3 : best.beat;   // the jig is felt in dotted quarters
+    const x = (this.audio.now - latency - best.next) / period;
+    return { phase: x - Math.floor(x), period };
+  }
+
   // one-off cues on top of everything
   sting(kind) {
     const I = this.ins, d = this.bus, t = this.audio.now + 0.02;

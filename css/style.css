@@ -256,3 +256,36 @@ button.ghost { background: transparent; font-size: 15px; color: var(--dim); }
 #buffs { position: absolute; left: 12px; bottom: calc(var(--bar) + 10px); display: flex; gap: 6px; }
 .buff { font-size: 13px; padding: 3px 8px; background: rgba(4, 8, 24, 0.75); border: 1px solid var(--edge); }
 @media (pointer: coarse) { .bag-side { width: 170px; } .bag-side .small { display: none; } }
+
+/* ---------- path (class) picker ---------- */
+#classpick { z-index: 30; background: radial-gradient(ellipse at center, rgba(2, 4, 16, 0.6), rgba(2, 4, 16, 0.94)); overflow-y: auto; align-items: flex-start; }
+.cp-wrap { width: min(1180px, 100%); padding: 24px 16px 32px; box-sizing: border-box; text-align: center; margin: auto; }
+.cp-wrap h2 { font-family: 'Cinzel', var(--font); color: var(--gold); font-weight: 600; margin: 0 0 16px; letter-spacing: 0.06em; }
+#classpick-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.cp-card {
+  min-width: 0; text-align: left; padding: 14px 14px 10px; font-size: 14px; line-height: 1.45; display: flex; flex-direction: column; gap: 4px;
+  background: linear-gradient(rgba(16, 22, 52, 0.92), rgba(6, 10, 28, 0.95));
+}
+.cp-card:hover { border-color: var(--gold); box-shadow: 0 0 18px rgba(232, 196, 106, 0.35); }
+.cp-card.current { border-color: var(--accent); }
+.cp-icon { font-size: 30px; }
+.cp-name { font-size: 20px; color: var(--gold); }
+.cp-weapon { font-size: 13px; color: var(--accent); }
+.cp-blurb { font-size: 13px; color: var(--dim); font-style: italic; margin: 2px 0 4px; }
+.cp-card ul { margin: 0; padding-left: 18px; }
+.cp-card li { margin: 3px 0; }
+.buff.cls { border-color: rgba(232, 196, 106, 0.45); color: #f0e2b8; }
+#buffs { flex-wrap: wrap; max-width: 60vw; }
+
+/* the Bellwright's metronome: a ring round the crosshair that swells on every beat */
+#beat {
+  position: absolute; left: 50%; top: calc((100% - var(--bar)) / 2); width: 26px; height: 26px; margin: -13px;
+  border: 2px solid rgba(232, 196, 106, 0.9); border-radius: 50%; pointer-events: none; opacity: 0;
+}
+#beat.full { border-color: rgba(255, 140, 80, 1); box-shadow: 0 0 12px rgba(255, 140, 80, 0.8); }
+
+/* seven combat buttons: keep them clear of the top on short landscape phones */
+@media (max-height: 460px) {
+  .tbtns.right { grid-template-columns: repeat(2, 52px); grid-auto-rows: 52px; gap: 8px; }
+  .tbtns.right button, .tbtns.right button.big { width: 52px; height: 52px; font-size: 21px; }
+}

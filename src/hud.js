@@ -59,12 +59,13 @@ function drawFace(ctx, s) {
   ctx.clearRect(0, 0, 32, 32);
   rect(0, 0, 32, 32, '#0b0c12');
 
-  // hood
+  // hood, dyed by the path you walk
+  const H = HOODS[s.cls] || HOODS.wanderer;
   for (let y = 0; y < 32; y++) {
     const half = Math.min(14, 6 + Math.sqrt(Math.max(0, y * 22)));
-    rect(16 - half, y, half * 2, 1, y < 3 ? '#2a3456' : '#1d2542');
+    rect(16 - half, y, half * 2, 1, y < 3 ? H[0] : H[1]);
   }
-  rect(5, 3, 1, 29, '#323c62'); rect(26, 3, 1, 29, '#121830');
+  rect(5, 3, 1, 29, H[2]); rect(26, 3, 1, 29, H[3]);
 
   // face (an ellipse, lit from the upper left)
   const cx = 16 + lx * 0.6;
@@ -142,6 +143,40 @@ function drawFace(ctx, s) {
   if (s.tier >= 2 || dead) { for (let y = 8; y < 14; y++) px(12 + (y > 11 ? 1 : 0), y, y > 11 ? dark : blood); px(11, 9, blood); }
   if (s.tier >= 3 || dead) { rect(19, 9, 3, 1, blood); for (let y = 20; y < 26; y++) px(9 + (y > 23 ? 1 : 0), y, dark); }
   if (s.tier >= 4 || dead) { rect(14, 8, 2, 2, blood); for (let y = 24; y < 29; y++) px(18, y, dark); px(20, 22, blood); px(11, 18, blood); }
+  drawClassMark(ctx, s);
+}
+
+// each path marks the face: a bell earring, a leech on the cheek, an undertaker's top hat, a head of wax
+const HOODS = {
+  wanderer: ['#2a3456', '#1d2542', '#323c62', '#121830'],
+  bell: ['#5a4426', '#3e2e1a', '#6a5232', '#22180c'],
+  leech: ['#2c3a26', '#1e2a1a', '#384a30', '#0e160c'],
+  coffin: ['#262628', '#18181a', '#323236', '#0a0a0c'],
+  wick: ['#3a2a3a', '#281c28', '#4a364a', '#140c14'],
+};
+
+function drawClassMark(ctx, s) {
+  const px = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1); };
+  const rect = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
+  const lx = s.look;
+  if (s.cls === 'bell') {
+    // a brass bell hanging from the left ear
+    px(7 + lx, 18, '#8a6a30'); rect(6 + lx, 19, 3, 2, '#d8a848'); rect(5 + lx, 21, 5, 1, '#b08030'); px(7 + lx, 22, '#6a4a18');
+  } else if (s.cls === 'leech') {
+    // a fat leech feeding on the cheek, and a blood-stained mask band
+    rect(19 + lx, 18, 4, 2, '#3a1424'); rect(20 + lx, 17, 3, 1, '#4a1a30'); px(23 + lx, 19, '#2a0a18'); px(21 + lx, 17, '#8a3a58');
+    for (let x = 9; x < 24; x++) if (x % 4 === 1) px(x + lx, 26, '#7a1a14');
+  } else if (s.cls === 'coffin') {
+    // an undertaker's tall hat over the hood
+    rect(7, 5, 18, 2, '#0c0c0e'); rect(10, 0, 12, 5, '#141416'); rect(10, 3, 12, 1, '#5a1a1a'); rect(10, 0, 12, 1, '#26262a');
+  } else if (s.cls === 'wick') {
+    // the head is wax: drips over the brow and three little candles burning on top
+    rect(9, 5, 15, 3, '#e0d6bc'); for (const [x, h] of [[10, 3], [13, 5], [17, 2], [21, 4]]) rect(x + lx, 8, 1, h, '#d8ccb0');
+    for (const [x, h] of [[11, 4], [15, 5], [20, 3]]) {
+      rect(x, 5 - h, 2, h, '#ece4cc');
+      if (s.lit) { px(x, 3 - h, '#ffb040'); px(x + 1, 4 - h, '#ffe090'); px(x, 2 - h, '#ff7a20'); }
+    }
+  }
 }
 
 // ---------------------------------------------------------------- weapon icon
@@ -236,7 +271,7 @@ export class DoomHud {
     else if (s.attacking) { mode = 'attack'; look = 0; }
     else if (s.exhausted) { mode = 'pant'; }
     const blink = s.exhausted && Math.floor(s.time * 4) % 2 === 0;
-    const face = { mode, look, tier, blink, tired: s.stamina < 25 };
+    const face = { mode, look, tier, blink, tired: s.stamina < 25, cls: s.kit?.id || 'wanderer', lit: !s.kit?.snuffed };
     this.paint('face', JSON.stringify(face), () => drawFace(this.face, face));
 
     const hp = Math.max(0, Math.ceil(frac * 100));
@@ -245,9 +280,12 @@ export class DoomHud {
     const stPal = s.exhausted ? (Math.floor(s.time * 3) % 2 ? 'ember' : 'red') : st < 30 ? 'ember' : 'gold';
     this.paint('st', `${st}|${stPal}`, () => drawNumber(this.st, `${st}%`, PALETTES[stPal]));
 
-    const kingly = s.swordMul > 1;
-    this.paint('wpn', `${kingly}|${s.attacking}`, () => drawSword(this.wpn, kingly, s.attacking));
-    const wname = `${kingly ? 'ดาบแห่งราชาหิน' : 'ดาบเก่า'}${s.swordLv ? ` +${s.swordLv}` : ''} ×${(s.damageMul ?? s.swordMul).toFixed(1)}`;
+    const kingly = s.swordMul > 1, kit = s.kit;
+    if (!kit || kit.id === 'wanderer') this.paint('wpn', `${kingly}|${s.attacking}`, () => drawSword(this.wpn, kingly, s.attacking));
+    else this.paint('wpn', `${kit.id}|${s.attacking}|${kit.snuffed}|${kit.slots?.length}`, () => kit.drawIcon(this.wpn, s.attacking));
+    const wname = !kit || kit.id === 'wanderer'
+      ? `${kingly ? 'ดาบแห่งราชาหิน' : 'ดาบเก่า'}${s.swordLv ? ` +${s.swordLv}` : ''} ×${(s.damageMul ?? s.swordMul).toFixed(1)}`
+      : kit.label();
     this.paint('wname', wname, () => { this.wpnName.textContent = wname; });
     this.paint('items', `${s.potions}|${s.coins}`, () => { this.potions.textContent = s.potions; this.coins.textContent = s.coins; });
   }

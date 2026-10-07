@@ -21,6 +21,7 @@ import { Input } from './input.js';
 import { AudioSys } from './audio.js';
 import { MusicDirector } from './music.js';
 import { Ambience } from './ambience.js';
+import { CLASSES, createKit, STARTING_GEAR } from './classes.js';
 import { UI } from './ui.js';
 import { Quests } from './quests.js';
 import { PASTURE, FENCE_R, TOAD, TEMPLE, SPAWN, LOST_SHEEP, LOCATIONS, TAVERN, CASTLE, HEAD, RIBCAGE } from './layout.js';
@@ -192,6 +193,8 @@ class Game {
     this.loot = new Loot(this);
     this.bagUI = new BagUI(this);
     this.menus = new Menus(this);
+    this.classGear = new Set();     // paths whose starting gear was already handed out
+    this.setClass('wanderer');
     // a private copy of the blade material so oil / the king's sword can make it glow
     const blade = this.view.userData.sword.children[0];
     blade.material = blade.material.clone();
@@ -227,7 +230,7 @@ class Game {
 
   bindUI() {
     const on = (id, fn) => document.getElementById(id).addEventListener('click', fn);
-    on('btn-new', () => this.start(false));
+    on('btn-new', () => this.pickClass((id) => { if (!id) return; this.setClass(id); this.start(false); }));
     on('btn-continue', () => this.start(true));
     on('btn-resume', () => this.resume());
     on('btn-restart', () => { store.del(SAVE_KEY); location.reload(); });
@@ -337,6 +340,7 @@ class Game {
       bag: this.bag.serialize(), gear: this.gear, loot: this.loot.serialize(),
       pos: { x: this.player.pos.x, z: this.player.pos.z }, yaw: this.player.yaw, checkpoint: this.checkpoint,
       time: this.dayNight.t, discovered: [...this.discovered],
+      cls: this.kit.id, kit: this.kit.serialize(), classGear: [...this.classGear],
     });
   }
 
@@ -354,6 +358,9 @@ class Game {
     if (typeof d.time === 'number') this.dayNight.t = d.time;
     this.discovered = new Set(d.discovered || []);
     this.combat.load(d.combat);
+    this.classGear = new Set(d.classGear || []);
+    this.setClass(d.cls || 'wanderer', { gear: false });
+    this.kit.load(d.kit || {});
     if (d.pos) this.player.place(d.pos.x, d.pos.z, d.yaw ?? 0);
     this.player.hp = Math.max(30, d.hp ?? 100);
     this.quests.sheepFound.forEach((f, i) => {
@@ -364,6 +371,57 @@ class Game {
     // lost sheep that were never searched for go home once the quest is past them
     if (this.quests.stage >= 2) this.lostSheep.forEach((s, i) => { if (s.mode === 'lost') { s.x = PASTURE.x + i * 3; s.z = PASTURE.z - 5; s.mode = 'graze'; } });
     if (this.quests.stage >= 7) this.spawnBeam();
+  }
+
+  // ---------------------------------------------------------------- classes (src/classes.js)
+  setClass(id, { gear = true } = {}) {
+    if (!CLASSES[id]) id = 'wanderer';
+    this.kit?.dispose();
+    this.kit = createKit(id, this);
+    this.player.regenMul = this.kit.regenMul;
+    this.player.climb = this.kit.climb;
+    this.view.userData.lantern.visible = this.kit.showLantern;
+    document.getElementById('beat').classList.toggle('hidden', id !== 'bell');
+    if (gear && !this.classGear.has(id)) {
+      this.classGear.add(id);
+      for (const [item, n] of STARTING_GEAR[id] || []) this.bag.add(item, n);
+    }
+    this.hud.keys = {};          // repaint the weapon panel and face
+    this.combat.swing = null;
+  }
+
+  // The path picker: on a new game, or when changing paths at the inn
+  pickClass(done, { current = null } = {}) {
+    const el = document.getElementById('classpick'), list = document.getElementById('classpick-list');
+    list.innerHTML = '';
+    const close = () => { el.classList.add('hidden'); removeEventListener('keydown', esc); };
+    const esc = (e) => { if (e.code === 'Escape') { close(); done(null); } };
+    for (const [id, c] of Object.entries(CLASSES)) {
+      const card = document.createElement('button');
+      card.className = 'cp-card' + (id === current ? ' current' : '');
+      card.innerHTML = `<div class="cp-icon">${c.icon}</div><div class="cp-name">${c.name}</div><div class="cp-weapon">อาวุธ: ${c.weapon}</div>
+        <div class="cp-blurb">${c.blurb}</div><ul>${c.lines.map((l) => `<li>${l}</li>`).join('')}</ul>`;
+      card.addEventListener('click', () => { close(); this.audio.ui(); done(id); });
+      list.appendChild(card);
+    }
+    document.getElementById('classpick-cancel').onclick = () => { close(); done(null); };
+    document.getElementById('classpick-title').textContent = current ? 'เปลี่ยนวิถี' : 'เลือกวิถีของเจ้า';
+    el.classList.remove('hidden');
+    addEventListener('keydown', esc);
+  }
+
+  changeClassAtInn() {
+    this.state = 'classpick';
+    this.ui.setPrompt(null);
+    if (document.pointerLockElement) document.exitPointerLock();
+    this.pickClass((id) => {
+      if (id && id !== this.kit.id) {
+        this.setClass(id);
+        this.ui.banner(CLASSES[id].name, `อาวุธใหม่: ${CLASSES[id].weapon}`);
+        this.audio.discover();
+      }
+      this.resumePlay();
+    }, { current: this.kit.id });
   }
 
   addCoins(n) {
@@ -487,6 +545,7 @@ class Game {
       this.buffs[k] = Math.max(0, this.buffs[k] - dt);
       if (this.buffs[k] > 0) html += `<span class="buff">${names[k]} ${Math.ceil(this.buffs[k])}s</span>`;
     }
+    for (const chip of this.kit.chips()) html += `<span class="buff cls">${chip}</span>`;
     if (html !== this._buffHTML) { this._buffHTML = html; document.getElementById('buffs').innerHTML = html; }
     // blade glow: amber while oiled, cold blue for the stone king's sword
     const mat = this.view.userData.sword.children[0].material;
@@ -667,7 +726,7 @@ class Game {
   frame() {
     let dt = Math.min(0.05, this.clock.getDelta());
     // the world holds still behind the case, shops and the pause menu
-    const halted = this.state === 'bag' || this.state === 'menu' || this.state === 'paused';
+    const halted = this.state === 'bag' || this.state === 'menu' || this.state === 'paused' || this.state === 'classpick';
     if (halted) dt = 0;
     if (this.state === 'bag') this.bagUI.update(this.input);
     if (this.state === 'menu') this.menus.update(this.input);
@@ -713,7 +772,10 @@ class Game {
         this.ui.toast(lost ? `เจ้าฟื้นขึ้นมาอีกครั้ง... ทำเหรียญหล่นหาย ${lost} เหรียญ` : 'เจ้าฟื้นขึ้นมาอีกครั้ง...');
       }
     }
-    if (this.state !== 'dead' && this.state !== 'sleeping') this.pipeline.uniforms.uFade.value = Math.max(0, this.pipeline.uniforms.uFade.value - dt * 1.5);
+    if (this.state !== 'dead' && this.state !== 'sleeping') {
+      const u = this.pipeline.uniforms.uFade;
+      u.value = Math.max(this.state === 'play' ? this.kit.darkness : 0, u.value - dt * 1.5);
+    }
 
     // world animation runs in every state so the title screen is alive too
     this.weather.update(dt);
@@ -751,7 +813,7 @@ class Game {
     // lantern follows the player; view model bobs
     const flick = 1 + Math.sin(this.time * 13) * 0.04 + Math.sin(this.time * 7.3) * 0.05;
     this.lantern.position.copy(this.camera.position).add(new THREE.Vector3(0, -0.3, 0));
-    this.lantern.intensity = this.state === 'title' ? 0 : 6 * flick * this.dayNight.p.lantern * (1 - this.indoor * 0.6) * (1 + this.gear.lantern * 0.35);
+    this.lantern.intensity = this.state === 'title' ? 0 : 6 * flick * this.dayNight.p.lantern * (1 - this.indoor * 0.6) * (1 + this.gear.lantern * 0.35) * this.kit.lightMul;
     this.viewCam.position.copy(this.camera.position);
     this.viewCam.quaternion.copy(this.camera.quaternion);
     const lan = this.view.userData.lantern;
@@ -766,6 +828,7 @@ class Game {
       this.hud.update(dt, {
         hp: p.hp, maxHp: p.maxHp, stamina: c.stamina, exhausted: c.exhausted, dead: this.state === 'dead' || p.hp <= 0,
         attacking: !!c.swing || (c.charging && c.heavyReady), swordMul: c.swordMul, swordLv: this.gear.sword, damageMul: this.damageMul, potions: this.potionCount, coins: this.coins, time: this.time,
+        kit: this.kit,
       });
     }
     this.clockTimer = (this.clockTimer || 0) - dt;
