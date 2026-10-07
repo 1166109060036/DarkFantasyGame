@@ -59,6 +59,9 @@ const CTYPES = Object.keys(CREEPS);
 const STATES = ['chase', 'windup', 'strike', 'recover', 'stagger', 'dying'];
 
 const KING = { hp: 90, range: 4.2, dmg: 22, every: 2.2 };
+// bot lords also walk the field as heroes: they guard their base, march behind their waves and
+// fight whatever is in reach (run by the host like the creeps)
+const BOT_HERO = { hp: 100, speed: 4.6, run: 5.6, reach: 2.4, every: 1.45, vsHero: 13, vsUnit: 1.3, respawn: 12, guard: 34 };
 
 export const canPay = (w, cost) => Object.entries(cost).every(([k, n]) => (w[k] || 0) >= n);
 export const pay = (w, cost) => { for (const [k, n] of Object.entries(cost)) w[k] -= n; };
@@ -399,7 +402,7 @@ export class Moba {
       if (d < bd) { bd = d; best = { kind: 'c', e: o }; }
     }
     for (const p of this.P) {
-      if (!p || p.slot === m.owner || p.bot || p.dead || !p.alive) continue;
+      if (!p || p.slot === m.owner || p.dead || !p.alive) continue;
       const d = Math.hypot(p.x - me.x, p.z - me.z);
       if (d < bd) { bd = d; best = { kind: 'p', slot: p.slot }; }
     }
@@ -557,7 +560,8 @@ export class Moba {
 
   damagePlayer(slot, dmg, from, by) {
     const p = this.P[slot];
-    if (!p || p.bot || p.dead) return;
+    if (!p || p.dead) return;
+    if (p.bot) { this.hurtBot(p, dmg, by); return; }
     if (slot === this.me) this.g.combat.takeHit(dmg, from, by);
     else this.net?.sendTo(p.peer, { t: 'hurt', d: dmg, x: from.x, z: from.z, by });
   }
@@ -635,8 +639,9 @@ export class Moba {
         s.cool = 0.5;
         for (const e of this.Cr.values()) if (e.moba.owner === s.owner && e.state !== 'dying' && Math.hypot(e.pos.x - s.x, e.pos.z - s.z) < 9) e.hp = Math.min(e.def.hp, e.hp + 0.25);
         const p = this.P[s.owner];
-        if (p && !p.bot && !p.dead && Math.hypot(p.x - s.x, p.z - s.z) < 9) {
-          if (s.owner === this.me) g.player.hp = Math.min(g.player.maxHp, g.player.hp + 4);
+        if (p && !p.dead && Math.hypot(p.x - s.x, p.z - s.z) < 9) {
+          if (p.bot) p.hp = Math.min(BOT_HERO.hp, p.hp + 4);
+          else if (s.owner === this.me) g.player.hp = Math.min(g.player.maxHp, g.player.hp + 4);
           else this.net?.sendTo(p.peer, { t: 'heal', n: 4 });
         }
       }
@@ -650,7 +655,7 @@ export class Moba {
           break;
         }
         for (const p of this.P) {
-          if (!p || p.bot || p.dead || p.slot === s.owner || s.cool > 0 || Math.hypot(p.x - s.x, p.z - s.z) > 1.2) continue;
+          if (!p || p.dead || p.slot === s.owner || s.cool > 0 || Math.hypot(p.x - s.x, p.z - s.z) > 1.2) continue;
           this.damagePlayer(p.slot, 18, { x: s.x, z: s.z }, s.owner);
           s.cool = 1; s.uses--;
         }
@@ -671,7 +676,7 @@ export class Moba {
       if (d < bd) { bd = d; best = { kind: 'c', e, x: e.pos.x, y: e.pos.y, z: e.pos.z }; }
     }
     for (const p of this.P) {
-      if (!p || p.bot || p.dead || !p.alive || p.slot === owner) continue;
+      if (!p || p.dead || !p.alive || p.slot === owner) continue;
       const d = Math.hypot(p.x - x, p.z - z);
       if (d < bd) { bd = d; best = { kind: 'p', slot: p.slot, x: p.x, y: p.y, z: p.z }; }
     }
@@ -730,7 +735,165 @@ export class Moba {
           while (canPay(w, c.cost) && sent < 3) { pay(w, c.cost); this.summon(type, p.slot, target); sent++; }
         }
         p.waveT = sent ? 38 + Math.random() * 14 : 8;
+        if (sent) this.botPush(p, target);
       }
+    }
+  }
+
+  // ---------------------------------------------------------------- host: bot heroes
+  botAI(p) {
+    if (!p.ai) {
+      const [x, z, yaw] = p.x || p.z ? [p.x, p.z, p.yaw] : baseSpawn(p.slot);
+      p.ai = { pos: new THREE.Vector3(x, this.g.terrain.getHeight(x, z), z), cool: 1, hitT: 0, hit: null, swT: 0, respawn: 0, push: null, wp: null, wi: 0, n: 0, idleT: 0, goal: null };
+      Object.assign(p, { x, y: p.ai.pos.y, z, yaw, hp: p.dead ? 0 : Math.min(p.hp || BOT_HERO.hp, BOT_HERO.hp) });
+    }
+    return p.ai;
+  }
+
+  // after a bot sends a wave, its hero follows the creeps for a while
+  botPush(p, target) {
+    const ai = this.botAI(p);
+    ai.push = { target, until: this.g.time + 80 };
+    ai.wp = this.route(p.slot, target, p.slot);
+    ai.wi = 0;
+  }
+
+  hurtBot(p, dmg, by) {
+    if (p.dead || !p.alive) return;
+    p.hp -= dmg * 0.8;
+    const ai = this.botAI(p);
+    if (by != null && by !== p.slot) ai.lastBy = by;
+    if (p.hp > 0) return;
+    p.hp = 0; p.dead = true;
+    ai.respawn = BOT_HERO.respawn; ai.push = null; ai.hit = null;
+    this.g.audio.hit(true, 'flesh', { x: p.x, y: p.y + 1, z: p.z });
+    if (by != null && by !== p.slot) this.reward(by, { soul: 3 }, `ฆ่า ${p.name}`);
+  }
+
+  // the nearest thing of another seat around (x, z): creeps and heroes; buildings and the king only
+  // when `siege` (a bot on the march)
+  botFoe(p, x, z, range, siege) {
+    let best = null, bd = range;
+    for (const e of this.Cr.values()) {
+      if (e.moba.owner === p.slot || e.state === 'dying' || !e.alive) continue;
+      const d = Math.hypot(e.pos.x - x, e.pos.z - z);
+      if (d < bd) { bd = d; best = { kind: 'c', e }; }
+    }
+    for (const o of this.P) {
+      if (!o || o.slot === p.slot || o.dead || !o.alive) continue;
+      const d = Math.hypot(o.x - x, o.z - z);
+      if (d < bd) { bd = d; best = { kind: 'p', slot: o.slot }; }
+    }
+    if (siege) {
+      for (const st of this.S.values()) {
+        if (st.owner === p.slot || st.type === 'trap') continue;
+        const d = Math.hypot(st.x - x, st.z - z) - BUILDINGS[st.type].r;
+        if (d < bd) { bd = d; best = { kind: 's', s: st }; }
+      }
+      for (const o of this.P) {
+        if (!o || o.slot === p.slot || !o.alive) continue;
+        const k = this.K[o.slot], d = Math.hypot(k.x - x, k.z - z) - 2.5;
+        if (d < bd) { bd = d; best = { kind: 'k', slot: o.slot }; }
+      }
+    }
+    return best;
+  }
+
+  updateBotHeroes(dt) {
+    const g = this.g, t = g.time;
+    for (const p of this.P) {
+      if (!p || !p.bot) continue;
+      const ai = this.botAI(p);
+      if (!p.alive) { p.dead = true; continue; }
+      if (p.dead) {
+        ai.respawn -= dt;
+        if (ai.respawn <= 0) {
+          const [x, z, yaw] = baseSpawn(p.slot);
+          ai.pos.set(x, g.terrain.getHeight(x, z), z);
+          Object.assign(p, { x, y: ai.pos.y, z, yaw, hp: BOT_HERO.hp, dead: false });
+        }
+        continue;
+      }
+      const k = this.K[p.slot], home = Math.hypot(ai.pos.x - k.x, ai.pos.z - k.z);
+      if (home < BASE_R) p.hp = Math.min(BOT_HERO.hp, p.hp + 1.5 * dt);
+      // what to do: drive off anything near the king; else march with the wave; else stand guard
+      const threat = this.botFoe(p, k.x, k.z, BOT_HERO.guard, false);
+      if (ai.push && (t > ai.push.until || !this.alive(ai.push.target) || p.hp < BOT_HERO.hp * 0.35)) ai.push = null;
+      let foe = null, goal = null;
+      if (threat) foe = threat;
+      else if (ai.push) {
+        const atBase = Math.hypot(ai.pos.x - this.K[ai.push.target].x, ai.pos.z - this.K[ai.push.target].z) < BASE_R + 6;
+        foe = this.botFoe(p, ai.pos.x, ai.pos.z, atBase ? 30 : 12, atBase);
+        if (!foe) {
+          const [wx, wz] = ai.wp[Math.min(ai.wi, ai.wp.length - 1)];
+          if (Math.hypot(wx - ai.pos.x, wz - ai.pos.z) < 5 && ai.wi < ai.wp.length - 1) ai.wi++;
+          goal = [wx, wz];
+        }
+      } else {
+        foe = this.botFoe(p, ai.pos.x, ai.pos.z, 8, false);
+        if (!foe) {
+          // stand guard a little in front of the throne, shifting about now and then
+          ai.idleT -= dt;
+          if (ai.idleT <= 0 || !ai.goal) {
+            ai.idleT = 4 + Math.random() * 5;
+            const [sx, sz] = baseSpawn(p.slot), a = Math.random() * Math.PI * 2, r = 2 + Math.random() * 6;
+            ai.goal = [sx + Math.cos(a) * r, sz + Math.sin(a) * r];
+          }
+          goal = ai.goal;
+        }
+      }
+      // fight
+      const ti = foe && this.targetInfo(foe);
+      let speed = 0;
+      if (ti) {
+        const d = Math.hypot(ti.x - ai.pos.x, ti.z - ai.pos.z);
+        if (d > BOT_HERO.reach + ti.r) goal = [ti.x, ti.z];
+        else {
+          p.yaw = Math.atan2(-(ti.x - ai.pos.x), -(ti.z - ai.pos.z));
+          if (ai.cool <= 0 && !ai.hit) {
+            ai.n++;
+            const heavy = ai.n % 3 === 0;
+            ai.cool = BOT_HERO.every * (heavy ? 1.4 : 1);
+            ai.hit = { foe, heavy };
+            ai.hitT = heavy ? 0.55 : 0.32;
+            ai.swT = heavy ? 0.7 : 0.45;
+            p.sn = (p.sn || 0) + 1;
+            p.sw = heavy ? 2 : 1;
+          }
+        }
+      }
+      ai.cool -= dt;
+      if (ai.hit) {
+        ai.hitT -= dt;
+        if (ai.hitT <= 0) {
+          const h = ai.hit, info = this.targetInfo(h.foe);
+          ai.hit = null;
+          if (info && Math.hypot(info.x - ai.pos.x, info.z - ai.pos.z) < BOT_HERO.reach + info.r + 0.8) {
+            const mul = h.heavy ? 1.7 : 1;
+            if (h.foe.kind === 'p') this.damagePlayer(h.foe.slot, BOT_HERO.vsHero * mul, { x: ai.pos.x, z: ai.pos.z }, p.slot);
+            else if (h.foe.kind === 'c') this.damageCreep(h.foe.e, BOT_HERO.vsUnit * mul, p.slot);
+            else if (h.foe.kind === 's') this.damageStruct(h.foe.s, BOT_HERO.vsUnit * mul, p.slot);
+            else if (h.foe.kind === 'k') this.damageKing(h.foe.slot, BOT_HERO.vsUnit * mul, p.slot);
+            g.audio.hit(h.heavy, h.foe.kind === 's' ? 'knight' : 'flesh', { x: info.x, y: ai.pos.y + 1, z: info.z });
+          }
+        }
+      }
+      ai.swT -= dt;
+      if (ai.swT <= 0 && p.sw) p.sw = 0;
+      // walk
+      if (goal && !ai.hit) {
+        const dx = goal[0] - ai.pos.x, dz = goal[1] - ai.pos.z, d = Math.hypot(dx, dz);
+        if (d > 0.6) {
+          speed = foe || ai.push ? BOT_HERO.run : BOT_HERO.speed * 0.5;
+          const step = Math.min(d, speed * dt);
+          ai.pos.x += dx / d * step; ai.pos.z += dz / d * step;
+          p.yaw = Math.atan2(-dx, -dz);
+          g.collision.resolve(ai.pos, 0.4, 1.8);
+          this.pushOut(ai.pos, 0.4, p.slot);
+        }
+      }
+      ai.pos.y = g.terrain.getHeight(ai.pos.x, ai.pos.z);
+      p.x = ai.pos.x; p.y = ai.pos.y; p.z = ai.pos.z;
     }
   }
 
@@ -893,9 +1056,9 @@ export class Moba {
 
   updateAvatars(dt) {
     for (const p of this.P) {
-      if (!p || p.slot === this.me || p.bot) continue;
+      if (!p || p.slot === this.me) continue;
       const a = this.avatar(p.slot);
-      a.obj.visible = !p.dead;
+      a.obj.visible = !p.dead && p.alive;
       const k = Math.min(1, dt * 10);
       const moved = Math.hypot(p.x - a.pos.x, p.z - a.pos.z);
       a.pos.lerp(V.set(p.x, p.y, p.z), k);
@@ -929,7 +1092,7 @@ export class Moba {
       if (!p || p.slot === this.me) continue;
       const k = this.K[p.slot];
       if (p.alive && inReach(k.x, k.y + 2, k.z, 2.2)) { this.hit('k', p.slot, dmg); k.hitT = 0.3; g.audio.hit(spec.heavy, 'flesh', { x: k.x, y: k.y + 1, z: k.z }); }
-      if (!p.bot && !p.dead && inReach(p.x, p.y + 1, p.z, 0.5)) { this.hit('p', p.slot, dmg * PVP); g.audio.hit(spec.heavy, 'flesh', { x: p.x, y: p.y, z: p.z }); g.particles.burst(new THREE.Vector3(p.x, p.y + 1.2, p.z), 8, 3, 0.5); }
+      if (!p.dead && p.alive && inReach(p.x, p.y + 1, p.z, 0.5)) { this.hit('p', p.slot, dmg * PVP); g.audio.hit(spec.heavy, 'flesh', { x: p.x, y: p.y, z: p.z }); g.particles.burst(new THREE.Vector3(p.x, p.y + 1.2, p.z), 8, 3, 0.5); }
     }
   }
 
@@ -977,6 +1140,7 @@ export class Moba {
       this.updateStructures(dt);
       this.updateKings(dt);
       this.updateBots(dt);
+      this.updateBotHeroes(dt);
       this.snapT -= dt;
       if (this.snapT <= 0) { this.snapT = 0.1; this.broadcast(this.snapshot()); for (const sh of this.shots) this.arrow(sh); this.shots = []; }
     }

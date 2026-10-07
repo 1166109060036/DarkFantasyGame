@@ -93,7 +93,10 @@ export class Lobby {
   addBot() {
     const slot = this.freeSlot();
     if (slot < 0) return;
-    this.roster.push({ slot, name: BOT_NAMES[slot], cls: 'wanderer', bot: true, peer: null });
+    // each bot lord takes up a path nobody else at the table has, if there is one left
+    const taken = new Set(this.roster.map((r) => r.cls)), paths = Object.keys(CLASSES);
+    const free = paths.filter((c) => !taken.has(c)), pool = free.length ? free : paths;
+    this.roster.push({ slot, name: BOT_NAMES[slot], cls: pool[Math.floor(Math.random() * pool.length)], bot: true, peer: null });
     this.sync();
   }
 
@@ -153,7 +156,7 @@ export class Lobby {
       if (!r) return `<div class="lb-seat empty"><span class="lb-dot" style="background:${s.css}"></span>ฐาน${s.name} — ว่าง</div>`;
       const kick = host && slot !== 0 ? `<button class="ghost lb-kick" data-slot="${slot}">✕</button>` : '';
       return `<div class="lb-seat"><span class="lb-dot" style="background:${s.css}"></span><b>${esc(r.name)}</b>
-        <span class="lb-cls">${r.bot ? '🤖 บอท' : `${CLASSES[r.cls]?.icon || ''} ${CLASSES[r.cls]?.name || ''}`}</span>${slot === 0 ? '<span class="lb-host">โฮสต์</span>' : ''}${kick}</div>`;
+        <span class="lb-cls">${r.bot ? '🤖 ' : ''}${CLASSES[r.cls]?.icon || ''} ${CLASSES[r.cls]?.name || ''}</span>${slot === 0 ? '<span class="lb-host">โฮสต์</span>' : ''}${kick}</div>`;
     }).join('');
     $('lobby-list').querySelectorAll('.lb-kick').forEach((b) => b.addEventListener('click', () => this.kick(+b.dataset.slot)));
     $('lobby-addbot').classList.toggle('hidden', !host);
