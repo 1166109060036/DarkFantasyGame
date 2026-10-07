@@ -71,7 +71,7 @@ export class Flock {
       } else if (s.mode === 'lost') {
         const pd = Math.hypot(player.pos.x - s.x, player.pos.z - s.z);
         if (pd < 30) s.ry = turnTo(s.ry, Math.atan2(player.pos.x - s.x, player.pos.z - s.z), dt * 1.5);
-        if (pd < 40 && this.bleatTimer < 0) { this.audio.bleat(); this.bleatTimer = 4 + Math.random() * 4; }
+        if (pd < 40 && this.bleatTimer < 0) { this.audio.bleat({ x: s.x, y: this.terrain.getHeight(s.x, s.z), z: s.z }); this.bleatTimer = 4 + Math.random() * 4; }
       }
       // gently keep sheep off the player
       const px = s.x - player.pos.x, pz = s.z - player.pos.z, pd = Math.hypot(px, pz);
@@ -79,8 +79,8 @@ export class Flock {
       this.place(s, t);
     }
     if (this.bleatTimer < 0) {
-      const near = this.sheep.some((s) => Math.hypot(player.pos.x - s.x, player.pos.z - s.z) < 25);
-      if (near) this.audio.bleat();
+      const near = this.sheep.find((s) => Math.hypot(player.pos.x - s.x, player.pos.z - s.z) < 25);
+      if (near) this.audio.bleat({ x: near.x, y: this.terrain.getHeight(near.x, near.z), z: near.z });
       this.bleatTimer = 5 + Math.random() * 8;
     }
   }

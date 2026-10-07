@@ -19,9 +19,11 @@ import { ITEMS } from './items.js';
 import { Player } from './player.js';
 import { Input } from './input.js';
 import { AudioSys } from './audio.js';
+import { MusicDirector } from './music.js';
+import { Ambience } from './ambience.js';
 import { UI } from './ui.js';
 import { Quests } from './quests.js';
-import { PASTURE, FENCE_R, TOAD, TEMPLE, SPAWN, LOST_SHEEP, LOCATIONS, TAVERN } from './layout.js';
+import { PASTURE, FENCE_R, TOAD, TEMPLE, SPAWN, LOST_SHEEP, LOCATIONS, TAVERN, CASTLE, HEAD, RIBCAGE } from './layout.js';
 import { DayNight } from './daynight.js';
 import { clamp } from './util.js';
 
@@ -43,7 +45,7 @@ class Game {
     this.quality = touch
       ? { height: 360, grass: 7000, trees: 480, ferns: 900, rocks: 160, mushrooms: 220, rain: 2500 }
       : { height: 448, grass: 16000, trees: 760, ferns: 1600, rocks: 260, mushrooms: 340, rain: 5000 };
-    this.settings = Object.assign({ height: this.quality.height, snap: 1, sens: 1, volume: 0.8 }, store.get(SETTINGS_KEY) || {});
+    this.settings = Object.assign({ height: this.quality.height, snap: 1, sens: 1, volume: 0.8, music: 0.7, sfx: 0.9 }, store.get(SETTINGS_KEY) || {});
     this.state = 'loading';
     this.time = 0;
     this.coins = 0;
@@ -155,6 +157,7 @@ class Game {
 
     this.audio = new AudioSys();
     this.weather.onThunder = (d) => this.audio.thunder(d);
+    this.ambience = new Ambience(this);
     this.flock = new Flock(scene, M, this.terrain, this.audio);
     for (let i = 0; i < 22; i++) {
       const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * (FENCE_R - 10);
@@ -178,7 +181,7 @@ class Game {
     this.viewCam.add(this.vmLight);
 
     this.player = new Player(this.camera, this.terrain, this.collision);
-    this.player.onStep = (wet) => this.audio.step(wet);
+    this.player.onStep = (wet) => this.audio.step(this.stepSurface(wet));
     this.ui = new UI();
     this.ui.buildMap(this.terrain, this.terrain.rail.pts);
     this.quests = new Quests(this);
@@ -246,6 +249,8 @@ class Game {
     bind('set-snap', 'snap');
     bind('set-sens', 'sens');
     bind('set-vol', 'volume');
+    bind('set-music', 'music');
+    bind('set-sfx', 'sfx');
     document.getElementById('dialogue').addEventListener('touchstart', () => this.input.actions.add('tap'), { passive: true });
     document.getElementById('dialogue').addEventListener('click', () => { if (!this.input.locked) this.input.actions.add('tap'); });
     this.canvas.addEventListener('click', () => {
@@ -258,6 +263,8 @@ class Game {
     this.pipeline.snap = this.settings.snap;
     this.input.sensitivity = this.settings.sens;
     this.audio?.setVolume(this.settings.volume);
+    this.audio?.setMusicVolume(this.settings.music);
+    this.audio?.setSfxVolume(this.settings.sfx);
     this.resize();
   }
 
@@ -274,7 +281,11 @@ class Game {
   start(continueGame) {
     this.audio.init();
     this.audio.stopMusic(2);
-    this.audio.setVolume(this.settings.volume);
+    this.applySettings();
+    if (this.audio.ctx && !this.music) {
+      this.music = new MusicDirector(this.audio);
+      this.music.loadOverrides();
+    }
     if (continueGame) this.load();
     document.getElementById('title').classList.add('hidden');
     this.ui.show('hud');
@@ -408,12 +419,13 @@ class Game {
   // The world freezes while the case or a service screen is open (like RE4).
   openBag(pending = null) {
     this.state = 'bag';
+    this.audio.bagOpen(true);
     this.ui.setPrompt(null);
     if (document.pointerLockElement) document.exitPointerLock();
     this.bagUI.show(pending);
   }
 
-  onBagClosed() { this.resumePlay(); }
+  onBagClosed() { this.audio.bagOpen(false); this.resumePlay(); }
 
   openMenu(kind) {
     this.state = 'menu';
@@ -486,8 +498,8 @@ class Game {
   interact(id) {
     const it = this.interactables.find((i) => i.id === id);
     this.checkpoint = it.checkpoint || { x: this.npcs[id].pos.x + 2, z: this.npcs[id].pos.z + 2 };
-    if (id === 'crow') this.audio.caw();
-    if (id === 'toad') this.audio.croak();
+    if (id === 'crow') this.audio.caw(this.npcs.crow.obj.position);
+    if (id === 'toad') this.audio.croak(this.npcs.toad.obj.position);
     this.ui.openDialogue(this.quests.talk(id), () => this.updateHud());
   }
 
@@ -545,10 +557,48 @@ class Game {
     pu.uBloom.value = P.bloom;
   }
 
+  // what the feet are on: water, the inn's floorboards, stone (anything built above the ground) or grass
+  stepSurface(wet) {
+    if (wet) return 'water';
+    if (this.indoor > 0.5) return 'wood';
+    const p = this.player.pos;
+    return p.y > this.terrain.getHeight(p.x, p.z) + 0.25 ? 'stone' : 'grass';
+  }
+
+  // Pick the music: the knight's hymn, battle, the inn's jig, day or night, and a deep choir that
+  // swells as you approach the giants. Combat keeps playing a few seconds after the last foe.
+  updateMusic(dt, halted) {
+    const m = this.music;
+    if (!m) return;
+    const playing = this.state === 'play' || halted;
+    if (!playing) { m.mix({}, { fade: this.state === 'dead' ? 1 : 3 }); m.update(); return; }
+    const c = this.combat, p = this.player.pos, P = this.dayNight.p;
+    if (c.engaged > 0) this.combatHeat = 7;
+    else this.combatHeat = Math.max(0, (this.combatHeat || 0) - dt);
+    const boss = c.bossEngaged, fight = this.combatHeat > 0 && !boss;
+    const dTav = Math.hypot(p.x - TAVERN.x, p.z - TAVERN.z);
+    const tav = Math.max(this.indoor, clamp(1 - (dTav - 9) / 22, 0, 1) * 0.45);
+    let awe = 0;
+    for (const [o, r] of [[CASTLE, 150], [HEAD, 110], [RIBCAGE, 70]]) awe = Math.max(awe, clamp((1 - Math.hypot(p.x - o.x, p.z - o.z) / r) * 1.8, 0, 1));
+    const explore = fight || boss ? 0 : 1 - tav;
+    const q = (v) => Math.round(v * 20) / 20;
+    m.mix({
+      night: q(explore * (1 - P.day)), day: q(explore * P.day), awe: q(explore * awe * 0.9),
+      tavern: q(tav * (fight || boss ? 0.3 : 1)), combat: fight ? 1 : 0, boss: boss ? 1 : 0,
+    }, {
+      intensity: clamp(c.engaged / 4 + (this.player.hp < this.player.maxHp * 0.35 ? 0.35 : 0), 0, 1),
+      muffle: this.indoor < 0.5 ? 1 : 0,
+      fade: 3,
+    });
+    m.update();
+  }
+
   die() {
     this.state = 'dead';
     this.deadT = 0;
     this.audio.hurt();
+    this.audio.death();
+    this.music?.sting('death');
   }
 
   updatePlay(dt) {
@@ -594,7 +644,7 @@ class Game {
       this.lostSheep.forEach((s, i) => {
         if (s.mode === 'lost' && Math.hypot(s.x - p.pos.x, s.z - p.pos.z) < 3.5 && this.quests.onSheepFound(i)) {
           this.flock.sendHome(s);
-          this.audio.bleat();
+          this.audio.bleat({ x: s.x, y: p.pos.y, z: s.z });
           this.ui.toast(`พบแกะดำ ${this.quests.sheepCount}/3 — มันวิ่งกลับไปหาฝูงแล้ว`);
         }
       });
@@ -726,6 +776,14 @@ class Game {
     }
     if (this.state === 'play' || halted) {
       this.ui.updateCompass(wrapHeading(-p.yaw), p.pos.x, p.pos.z, this.quests.markers());
+    }
+
+    // sound follows the camera; the score follows the situation
+    if (this.audio.ctx) {
+      this.audio.updateListener(this.camera);
+      this.audio.duckMusic(halted);
+      this.ambience.update(dt);
+      this.updateMusic(dt, halted);
     }
 
     this.pipeline.render(this.scene, this.camera, this.view.visible ? this.overlay : null);

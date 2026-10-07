@@ -270,7 +270,7 @@ export class Combat {
     e.hp -= dmg;
     e.flash = 1;
     e.vel.addScaledVector(V.set(dir.x, 0, dir.z).normalize(), (heavy ? 7 : 3) / def.weight);
-    g.audio.hit(heavy);
+    g.audio.hit(heavy, e.type, e.pos);
     g.particles.burst(e.pos.clone().setY(e.pos.y + def.height * 0.55), heavy ? 14 : 7, heavy ? 4 : 3, 0.5);
     this.hitStop = Math.max(this.hitStop, heavy ? 0.09 : 0.035);
     g.player.shake = Math.max(g.player.shake, heavy ? 0.12 : 0.05);
@@ -287,7 +287,7 @@ export class Combat {
     const g = this.g, def = e.def;
     e.state = 'dying';
     e.t = e.obj.userData.animate ? 2.6 : 0.9;
-    g.audio.enemyDie(e.type);
+    g.audio.enemyDie(e.type, e.pos);
     g.particles.burst(e.pos.clone().setY(e.pos.y + def.height * 0.5), 22, 5, 0.9);
     const [a, b] = def.coins;
     g.addCoins(a + Math.floor(Math.random() * (b - a + 1)));
@@ -299,7 +299,7 @@ export class Combat {
       this.swordMul = 1.6;
       g.ui.banner('ชนะ', `${def.name} พ่ายแพ้`);
       setTimeout(() => g.ui.toast('ได้รับ ดาบแห่งราชาหิน — พลังโจมตี ×1.6'), 1800);
-      g.audio.chime();
+      g.music?.sting('victory');
       g.save();
     }
   }
@@ -313,7 +313,7 @@ export class Combat {
     if (slam) {
       g.particles.burst(e.pos.clone().add(new THREE.Vector3(Math.sin(e.ry) * 3, 0.3, Math.cos(e.ry) * 3)), 26, 6, 1.2);
       p.shake = Math.max(p.shake, 0.35);
-      g.audio.slam();
+      g.audio.slam(e.pos);
       if (d > 5.2) return;
     } else {
       if (d > def.range + 0.7) return;
@@ -363,7 +363,7 @@ export class Combat {
   updateEnemies(dt, inPlay) {
     const g = this.g, p = g.player, t = g.time;
     const playerOk = inPlay && p.hp > 0;
-    let bossEngaged = false;
+    let bossEngaged = false, engaged = 0;
 
     for (const e of this.enemies) {
       const def = e.def;
@@ -425,7 +425,7 @@ export class Combat {
         const look = (-Math.sin(p.yaw) * -dx - Math.cos(p.yaw) * -dz) / dist;
         seen = look > 0.74;
         if (seen && !e.wasSeen && e.state === 'chase' && dist < 8) { g.audio.sting(); g.player.shake = Math.max(g.player.shake, 0.15); }
-        if (!seen && e.state === 'chase' && dist < 24 && (e.sobT = (e.sobT || 0) - dt) <= 0) { g.audio.sob(dist); e.sobT = 3 + Math.random() * 3; }
+        if (!seen && e.state === 'chase' && dist < 24 && (e.sobT = (e.sobT || 0) - dt) <= 0) { g.audio.sob(e.pos); e.sobT = 3 + Math.random() * 3; }
       }
       e.wasSeen = seen;
       e.frozen = seen && (e.state === 'chase' || e.state === 'idle' || e.state === 'return');
@@ -443,7 +443,7 @@ export class Combat {
           }
           if (active && playerOk && dist < def.aggro) {
             e.state = 'chase';
-            g.audio.enemyCue(e.type, 'aggro');
+            g.audio.enemyCue(e.type, 'aggro', e.pos);
             if (!this.hintShown) {
               this.hintShown = true;
               g.ui.toast(g.input.touch ? '⚔ แตะ = ฟันเบา · กดค้าง = ฟันหนัก · 🛡 ป้องกัน (จังหวะพอดี = ปัด) · ↯ หลบ'
@@ -463,7 +463,7 @@ export class Combat {
           if (dist < def.range) {
             e.state = 'windup';
             e.t = def.windup;
-            g.audio.enemyCue(e.type, 'windup');
+            g.audio.enemyCue(e.type, 'windup', e.pos);
           }
           break;
         case 'return': {
@@ -493,7 +493,10 @@ export class Combat {
           if (e.t <= 0) e.state = playerOk && active ? 'chase' : 'return';
           break;
       }
-      if (def.boss && (e.state === 'chase' || e.state === 'windup' || e.state === 'strike' || e.state === 'recover' || e.state === 'stagger')) bossEngaged = true;
+      const fighting = e.state === 'chase' || e.state === 'windup' || e.state === 'strike' || e.state === 'recover' || e.state === 'stagger';
+      if (fighting && def.boss) bossEngaged = true;
+      // a weeper creeping up unseen must not give herself away by starting the battle music
+      if (fighting && dist < 35 && !(def.stalker && e.state === 'chase' && dist > 5)) engaged += def.weight > 2 ? 2 : 1;
 
       // facing (a watched stalker doesn't even turn)
       const goal = turn ? toPlayer : moveAngle;
@@ -509,6 +512,9 @@ export class Combat {
       this.animate(e, dt, t, active);
     }
     g.ui.setBoss(bossEngaged && this.boss.alive ? this.boss : null);
+    // the score follows the fight: how many things are on you, and whether it is the knight
+    this.engaged = engaged;
+    this.bossEngaged = bossEngaged && this.boss.alive;
     const tgt = this.target;
     g.ui.setTarget(tgt && this.targetT > 0 && tgt.alive && tgt.state !== 'dying' && !tgt.def.boss ? tgt : null);
   }
