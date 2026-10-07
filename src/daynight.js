@@ -1,6 +1,6 @@
 // Day/night cycle. t: 0 = midnight, 0.25 = dawn, 0.5 = noon, 0.75 = dusk.
-// Night is cold moonlight; dawn/dusk bleed rose-violet; day is a drained, overcast, sickly grey-green
-// gloom where the sun never quite breaks through.
+// Night is cold moonlight; dawn/dusk bleed rose-violet; day is an overcast, washed-out grey-green
+// under a veiled sun: still gloomy, but clearly brighter than the night.
 import * as THREE from 'three';
 
 const NIGHT = {
@@ -11,17 +11,17 @@ const NIGHT = {
   stars: 1, aurora: 1, vortex: 1, day: 0, lantern: 1, cloud: 0, bloom: 1, sun: 0,
 };
 const DAWN = {
-  fog: [0.17, 0.11, 0.2], density: 0.013, zenith: [0.06, 0.05, 0.14],
+  fog: [0.22, 0.15, 0.24], density: 0.012, zenith: [0.08, 0.07, 0.17],
   cloudDark: [0.16, 0.08, 0.18], cloudLit: [0.85, 0.45, 0.55],
-  hemiSky: [0.5, 0.38, 0.55], hemiGround: [0.1, 0.1, 0.09], hemiI: 2.2,
-  light: [1.0, 0.62, 0.6], lightI: 1.6,
+  hemiSky: [0.55, 0.43, 0.58], hemiGround: [0.12, 0.12, 0.1], hemiI: 2.5,
+  light: [1.0, 0.62, 0.6], lightI: 1.8,
   stars: 0.15, aurora: 0, vortex: 0.8, day: 0.45, lantern: 0.6, cloud: 0.2, bloom: 0.9, sun: 0.7,
 };
 const DAY = {
-  fog: [0.26, 0.29, 0.29], density: 0.0135, zenith: [0.2, 0.23, 0.24],
-  cloudDark: [0.22, 0.24, 0.25], cloudLit: [0.48, 0.5, 0.5],
-  hemiSky: [0.62, 0.66, 0.66], hemiGround: [0.13, 0.15, 0.11], hemiI: 2.3,
-  light: [0.86, 0.88, 0.82], lightI: 1.3,
+  fog: [0.4, 0.43, 0.42], density: 0.0098, zenith: [0.34, 0.39, 0.42],
+  cloudDark: [0.34, 0.36, 0.37], cloudLit: [0.7, 0.72, 0.7],
+  hemiSky: [0.74, 0.78, 0.76], hemiGround: [0.2, 0.22, 0.16], hemiI: 3.3,
+  light: [1.0, 0.97, 0.88], lightI: 2.3,
   stars: 0, aurora: 0, vortex: 0.3, day: 1, lantern: 0.25, cloud: 0.55, bloom: 0.55, sun: 1,
 };
 const DUSK = {

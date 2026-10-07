@@ -52,8 +52,8 @@ class Game {
     this.input = new Input(this.canvas);
     const touch = this.input.touch;
     this.quality = touch
-      ? { height: 360, grass: 7000, trees: 480, ferns: 900, rocks: 160, mushrooms: 220, rain: 2500 }
-      : { height: 448, grass: 16000, trees: 760, ferns: 1600, rocks: 260, mushrooms: 340, rain: 5000 };
+      ? { height: 360, grass: 7000, trees: 480, ferns: 900, rocks: 160, mushrooms: 220, rain: 1600 }
+      : { height: 448, grass: 16000, trees: 760, ferns: 1600, rocks: 260, mushrooms: 340, rain: 3200 };
     this.settings = Object.assign({ height: this.quality.height, snap: 1, sens: 1, volume: 0.8, music: 0.7, sfx: 0.9 }, store.get(SETTINGS_KEY) || {});
     this.state = 'loading';
     this.time = 0;
@@ -722,7 +722,7 @@ class Game {
     if (fog > 0) this.scene.fog.color.lerp(TMP_COLOR.setRGB(...(P.day > 0.5 ? [0.36, 0.38, 0.37] : [0.12, 0.14, 0.18])), fog * 0.7);
     this.scene.background.copy(this.scene.fog.color);
     const sight = this.buffs.sight > 0 ? 1 - P.day : 0;   // cat's-eye potion: see through the night
-    this.scene.fog.density = (P.density - 0.001 + rainI * 0.004) * (1 - sight * 0.45) * (1 + fog * 3.2);
+    this.scene.fog.density = (P.density - 0.001 + rainI * 0.0025) * (1 - sight * 0.45) * (1 + fog * 3.2);
     sky.uHorizon.value.copy(this.scene.fog.color);
     sky.uZenith.value.setRGB(...P.zenith);
     sky.uCloudDark.value.setRGB(...P.cloudDark);

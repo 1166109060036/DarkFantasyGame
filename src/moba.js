@@ -69,14 +69,15 @@ export function baseSpawn(slot) {
   return [bx - bx / d * 8, bz - bz / d * 8, Math.atan2(bx, bz)];
 }
 
-// the buildings every base starts with: a tower at each road mouth, a healing fire, a mine
+// the buildings every base starts with: two towers, a healing fire, a mine. Each tower stands
+// between the road to the plaza and one ring road, so the pair covers all three ways in.
 function startingBuildings(slot) {
   const [bx, bz] = SEATS[slot].base, list = [];
+  const [cx, cz] = roadOut(slot, 'c');
   for (const [a, b] of ARENA_ROADS) {
-    if (a !== slot && b !== slot) continue;
-    const [ux, uz] = roadOut(slot, a === slot ? b : a);
-    // beside the road, so the creeps march past rather than into it
-    list.push(['tower', bx + ux * 22 - uz * 6, bz + uz * 22 + ux * 6, Math.atan2(ux, uz)]);
+    if ((a !== slot && b !== slot) || a === 'c' || b === 'c') continue;
+    const [rx, rz] = roadOut(slot, a === slot ? b : a), l = Math.hypot(rx + cx, rz + cz), ux = (rx + cx) / l, uz = (rz + cz) / l;
+    list.push(['tower', bx + ux * 19, bz + uz * 19, Math.atan2(ux, uz)]);
   }
   const d = Math.hypot(bx, bz), ix = -bx / d, iz = -bz / d;
   list.push(['camp', bx + ix * 12 + iz * 7, bz + iz * 12 - ix * 7, 0]);

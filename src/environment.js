@@ -226,7 +226,7 @@ export class Rain {
           vec3 p = position + vel * uTime;
           p = uCam + mod(p - uCam, BOX) - vec3(BOX.x * 0.5, 10.0, BOX.z * 0.5);
           p -= normalize(vel) * aEnd * 0.8;
-          vA = step(aRnd, uIntensity) * (0.35 + 0.4 * fract(aRnd * 13.7));
+          vA = step(aRnd, uIntensity) * (0.22 + 0.26 * fract(aRnd * 13.7));
           vec4 mvPosition = viewMatrix * vec4(p, 1.0);
           gl_Position = projectionMatrix * mvPosition;
           #include <fog_vertex>
@@ -256,7 +256,7 @@ export class Rain {
 export class Weather {
   constructor() {
     this.t = 0;
-    this.intensity = 0.6;
+    this.intensity = 0.3;
     this.flash = 0;
     this.nextBolt = 8;
     this.onThunder = null;
@@ -265,11 +265,12 @@ export class Weather {
   update(dt) {
     this.t += dt;
     const cycle = 0.5 + 0.5 * Math.sin(this.t * 0.035) * Math.sin(this.t * 0.013 + 1.3);
-    this.intensity = 0.15 + cycle * 0.85;
+    // mostly a light drizzle that keeps the view clear; now and then a real downpour
+    this.intensity = 0.05 + cycle * cycle * 0.55;
     this.flash = Math.max(0, this.flash - dt * 3.5);
     this.nextBolt -= dt;
     if (this.nextBolt <= 0) {
-      if (this.intensity > 0.65) {
+      if (this.intensity > 0.4) {
         this.flash = 1;
         setTimeout(() => { this.flash = Math.max(this.flash, 0.6); }, 120);
         if (this.onThunder) this.onThunder(0.6 + Math.random() * 2.5);

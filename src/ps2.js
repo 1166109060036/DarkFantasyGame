@@ -103,7 +103,7 @@ void main(){
   float l = dot(c, vec3(0.299, 0.587, 0.114));
   c = mix(vec3(l), c, mix(1.22, 0.62, uDay));
   c *= mix(vec3(0.9, 1.0, 1.14), vec3(0.94, 1.0, 0.95), uDay);
-  c = mix(c, c * c * 1.35, uDay * 0.35);
+  c = mix(c, c * c * 1.35, uDay * 0.12);
   c = pow(max(c, 0.0), vec3(0.92));
   vec2 q = vUv - 0.5;
   c *= 1.0 - dot(q, q) * 1.15;
