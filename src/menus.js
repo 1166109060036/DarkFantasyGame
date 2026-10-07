@@ -106,11 +106,12 @@ export class Menus {
     const g = this.g, k = this.kind;
     this.list.innerHTML = '';
     $('svc-coins').textContent = `● ${g.coins} เหรียญ`;
-    $('svc-tabs').classList.toggle('hidden', k !== 'shop');
+    $('svc-tabs').classList.toggle('hidden', k !== 'shop' && k !== 'merchant');
     this.el.querySelectorAll('[data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === this.tab));
     if (k === 'alchemy') this.renderAlchemy();
     if (k === 'smith') this.renderSmith();
     if (k === 'shop') (this.tab === 'buy' ? this.renderBuy() : this.renderSell());
+    if (k === 'merchant') (this.tab === 'buy' ? this.renderMerchant() : this.renderSell(1.3));
   }
 
   renderAlchemy() {
@@ -192,14 +193,42 @@ export class Menus {
     }
   }
 
-  renderSell() {
+  // the wandering pedlar: a few rare wares, a treasure map, and he pays more for treasure
+  renderMerchant() {
+    const g = this.g, m = g.events.merchant;
+    $('svc-title').textContent = 'แผงของพ่อค้าเร่';
+    $('svc-hint').textContent = 'ของหายากจากแดนไกล มีจำกัด หมดแล้วหมดเลย!';
+    if (!m) return;
+    for (const w of m.stock) {
+      if (w.id === 'map') {
+        this.row({
+          title: 'แผนที่ขุมทรัพย์', sub: 'ชี้ทางไปหีบสมบัติที่ยังไม่มีใครเปิด (แสดงบนเข็มทิศ)',
+          cost: `<span class="cost ${g.coins >= w.price ? 'ok' : 'no'}">● ${w.price}</span>`,
+          button: w.left > 0 ? 'ซื้อ' : 'ขายหมดแล้ว', enabled: w.left > 0 && g.coins >= w.price,
+          onClick: () => { if (g.events.buyMap()) { g.coins -= w.price; w.left--; g.audio.coin(); } else g.ui.toast('ไม่มีหีบที่ยังไม่ได้เปิดเหลือแล้ว'); },
+        });
+        continue;
+      }
+      const def = ITEMS[w.id];
+      const fits = g.bag.canAdd(w.id, 1);
+      this.row({
+        icon: itemIconURL(w.id), title: `${def.name} <span class="pips">เหลือ ${w.left}</span>`, sub: def.desc,
+        cost: `<span class="cost ${g.coins >= w.price ? 'ok' : 'no'}">● ${w.price}</span>`,
+        button: w.left <= 0 ? 'ขายหมดแล้ว' : fits ? 'ซื้อ' : 'กระเป๋าเต็ม', enabled: w.left > 0 && fits && g.coins >= w.price,
+        onClick: () => { g.coins -= w.price; w.left--; g.bag.add(w.id, 1); g.audio.coin(); },
+      });
+    }
+  }
+
+  renderSell(mult = 1) {
     const g = this.g;
-    $('svc-title').textContent = 'ขายของ';
-    $('svc-hint').textContent = 'สมบัติขายได้ราคาดี วัตถุดิบข้ารับซื้อถูก ๆ';
+    const price = (id) => Math.round(ITEMS[id].value * (ITEMS[id].kind === 'treasure' ? mult : 1));
+    $('svc-title').textContent = mult > 1 ? 'ขายของให้พ่อค้าเร่' : 'ขายของ';
+    $('svc-hint').textContent = mult > 1 ? 'สมบัติข้าให้ราคาดีกว่าเจ้าเทียนหลอมนั่นอีก! (×1.3)' : 'สมบัติขายได้ราคาดี วัตถุดิบข้ารับซื้อถูก ๆ';
     const ids = [...new Set(g.bag.items.map((it) => it.id))].sort((a, b) => (ITEMS[a].kind === 'treasure' ? -1 : 1) - (ITEMS[b].kind === 'treasure' ? -1 : 1) || ITEMS[b].value - ITEMS[a].value);
     const treasures = ids.filter((id) => ITEMS[id].kind === 'treasure');
     if (treasures.length) {
-      const total = treasures.reduce((s, id) => s + ITEMS[id].value * g.bag.count(id), 0);
+      const total = treasures.reduce((s, id) => s + price(id) * g.bag.count(id), 0);
       this.row({
         title: 'ขายสมบัติทั้งหมด', sub: treasures.map((id) => `${ITEMS[id].name} ×${g.bag.count(id)}`).join(' · '),
         cost: `<span class="cost ok">+● ${total}</span>`, button: 'ขายหมด', enabled: true,
@@ -211,8 +240,8 @@ export class Menus {
       const def = ITEMS[id], have = g.bag.count(id);
       this.row({
         icon: itemIconURL(id), title: `${def.name} ×${have}`, sub: def.kind === 'treasure' ? 'สมบัติ' : def.kind === 'use' ? 'ยา' : 'วัตถุดิบ',
-        cost: `<span class="cost ok">+● ${def.value}</span>`, button: 'ขาย 1', enabled: def.value > 0,
-        onClick: () => { g.bag.remove(id, 1); g.coins += def.value; g.audio.coin(); },
+        cost: `<span class="cost ok">+● ${price(id)}</span>`, button: 'ขาย 1', enabled: def.value > 0,
+        onClick: () => { g.bag.remove(id, 1); g.coins += price(id); g.audio.coin(); },
       });
     }
   }

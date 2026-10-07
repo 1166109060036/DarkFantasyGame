@@ -123,7 +123,13 @@ export class Loot {
   dropFrom(enemy) {
     const table = DROPS[enemy.type] || [];
     const got = new Map();
-    for (const [id, n, chance] of table) if (Math.random() < chance) got.set(id, (got.get(id) || 0) + n);
+    // under a blood moon everything drops twice as often, and the Pale Ones bleed amber
+    const mul = this.g.events?.dropMul ?? 1;
+    for (const [id, n, chance] of table) {
+      const pr = chance * mul, k = Math.floor(pr) + (Math.random() < pr % 1 ? 1 : 0);
+      if (k) got.set(id, (got.get(id) || 0) + n * k);
+    }
+    for (const [id, n] of this.g.events?.extraDrops(enemy) || []) got.set(id, (got.get(id) || 0) + n);
     let i = 0;
     for (const [id, n] of got) {
       const a = i++ * 2.1 + Math.random();

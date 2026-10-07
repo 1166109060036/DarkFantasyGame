@@ -25,6 +25,7 @@ export const ENEMY_TYPES = {
 };
 
 const COST = { light: 10, heavy: 26, dodge: 22 };
+const PALE_ONES = new Set(['gaunt', 'crawler', 'weeper', 'brute']);
 const PARRY_WINDOW = 0.3;
 const CULL = 115;
 const V = new THREE.Vector3();
@@ -114,6 +115,7 @@ export class Combat {
   isActive(e) {
     const when = e.activeOverride || e.def.active;
     if (when === 'always') return true;
+    if (when === 'bloodmoon') return !!this.g.events?.bloodMoon && this.g.dayNight.isNight;
     return (when === 'night') === this.g.dayNight.isNight;
   }
 
@@ -335,7 +337,7 @@ export class Combat {
     if (this.iframes > 0) { this.say('หลบ!'); return; }
     const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
     const facingEnemy = (-dx * fx - dz * fz) / Math.max(d, 1e-3) > 0.3;
-    let dmg = def.damage * (slam ? 1.3 : 1);
+    let dmg = def.damage * (slam ? 1.3 : 1) * (PALE_ONES.has(e.type) ? g.events?.enemyDamageMul ?? 1 : 1);
     // the coffin is a wall: it stops anything from the front, even a ground slam, but cannot parry
     if (this.blocking && facingEnemy && g.kit.blockMode === 'wall') {
       this.spend(dmg * 0.6);
@@ -388,7 +390,7 @@ export class Combat {
     for (const e of this.enemies) {
       const def = e.def;
       if (!e.alive) {
-        e.respawn -= dt;
+        e.respawn -= dt * (g.events?.respawnMul ?? 1);
         if (!def.boss && e.respawn <= 0 && e.home.distanceTo(p.pos) > 45) {
           Object.assign(e, { alive: true, hp: def.hp, state: 'idle', t: 2, dots: null, corpseHold: 0 });
           e.pos.copy(e.home);
@@ -479,7 +481,7 @@ export class Combat {
             const wd = Math.hypot(e.wander.x - e.pos.x, e.wander.z - e.pos.z);
             if (wd > 0.6) { moveSpeed = def.speed * 0.3; moveAngle = Math.atan2(e.wander.x - e.pos.x, e.wander.z - e.pos.z); }
           }
-          if (active && playerOk && dist < def.aggro && !g.kit.hidden) {
+          if (active && playerOk && dist < def.aggro * (g.events?.aggroMul ?? 1) && !g.kit.hidden) {
             e.state = 'chase';
             g.audio.enemyCue(e.type, 'aggro', e.pos);
             if (!this.hintShown) {
@@ -540,6 +542,7 @@ export class Combat {
       const goal = turn ? toPlayer : moveAngle;
       const rate = turn || 6;
       if (!e.frozen) e.ry += clamp(wrapAngle(goal - e.ry), -rate * dt, rate * dt);
+      if (PALE_ONES.has(e.type)) moveSpeed *= g.events?.enemySpeedMul ?? 1;
       e.curSpeed = moveSpeed;
       // movement (aim may differ from facing for a frame or two; that's fine)
       if (moveSpeed > 0) this.moveEnemy(e, Math.sin(moveAngle) * moveSpeed * dt, Math.cos(moveAngle) * moveSpeed * dt);

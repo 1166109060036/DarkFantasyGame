@@ -289,3 +289,8 @@ button.ghost { background: transparent; font-size: 15px; color: var(--dim); }
   .tbtns.right { grid-template-columns: repeat(2, 52px); grid-auto-rows: 52px; gap: 8px; }
   .tbtns.right button, .tbtns.right button.big { width: 52px; height: 52px; font-size: 21px; }
 }
+
+/* world events */
+.cmp-marker.evt { color: var(--gold); }
+.cmp-marker.evt .gem { filter: drop-shadow(0 0 4px #e8a040); }
+.buff.evt { border-color: rgba(220, 90, 70, 0.55); color: #ffd8c8; }

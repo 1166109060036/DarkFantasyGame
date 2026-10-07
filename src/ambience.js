@@ -126,14 +126,15 @@ export class Ambience {
     });
 
     const outdoors = inside < 0.3, calm = rain < 0.6;
+    const blood = g.events?.bloodMoon && night > 0.5;   // under a blood moon the small things fall silent
 
     // --- night creatures
-    this.every('cricket', dt, night > 0.5 && outdoors && calm, 0.3, 1.6, () => {
+    this.every('cricket', dt, night > 0.5 && outdoors && calm && !blood, 0.3, 1.6, () => {
       const at = this.around(p, 5, 22), f = 4200 + rnd() * 600, n = 2 + Math.floor(rnd() * 3);
       for (let i = 0; i < n; i++) a.tone({ freq: f, dur: 0.035, type: 'triangle', gain: 0.03, delay: i * 0.05, attack: 0.005, pos: at, verb: 0.05, bus: a.ambBus });
     });
     const inSwamp = dist(SWAMP) < SWAMP.r + 30 || r.d < 25;
-    this.every('frog', dt, night > 0.4 && outdoors && inSwamp, 0.4, 2.2, () => {
+    this.every('frog', dt, night > 0.4 && outdoors && inSwamp && !blood, 0.4, 2.2, () => {
       const at = this.around(p, 6, 30), f = 70 + rnd() * 90;
       for (let i = 0; i < 1 + Math.floor(rnd() * 3); i++) a.voice({ freq: f, dur: 0.18 + rnd() * 0.15, gain: 0.07, slide: 0.85, vibrato: 30 + rnd() * 20, formant: 350 + rnd() * 300, q: 3, type: 'square', delay: i * 0.3, pos: at, verb: 0.15 });
     });
@@ -151,7 +152,7 @@ export class Ambience {
       a.voice({ freq: 445, dur: 1.6, gain: 0.16, slide: 0.6, formant: 900, q: 3, vibrato: 5, type: 'triangle', delay: 3.0, pos: at, verb: 0.8 });
     });
     // the Pale Ones are out there; sometimes you hear one
-    this.every('scream', dt, night > 0.7 && outdoors, 70, 160, () => {
+    this.every(blood ? 'bloodscream' : 'scream', dt, night > 0.7 && outdoors, blood ? 12 : 70, blood ? 35 : 160, () => {
       const at = this.around(p, 60, 100);
       a.voice({ freq: 820 + rnd() * 200, dur: 1.4, gain: 0.2, slide: 0.55, formant: 2300, q: 5, vibrato: 11, pos: at, verb: 0.9 });
     });

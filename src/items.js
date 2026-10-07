@@ -27,6 +27,8 @@ export const ITEMS = {
   candlestick: { name: 'เชิงเทียนเงิน', desc: 'สมบัติ · เทียนหลอมจะชอบมันมาก', w: 1, h: 2, stack: 1, kind: 'treasure', value: 40 },
   locket: { name: 'จี้รูปถ่ายเก่า', desc: 'สมบัติ · ในจี้มีรูปผู้หญิงยิ้มอยู่ เธอเคยเป็นคนของหมู่บ้านนี้', w: 1, h: 1, stack: 1, kind: 'treasure', value: 45 },
   pale_heart: { name: 'หัวใจซีด', desc: 'สมบัติ · หัวใจของร่างซูบยักษ์ ยังอุ่นอยู่เลย ใครบางคนในโรงเตี๊ยมยอมจ่ายแพง', w: 1, h: 2, stack: 1, kind: 'treasure', value: 60 },
+  star_shard: { name: 'เศษดาวตก', desc: 'สมบัติ · หินร้อนที่ยังเรืองแสงอยู่ พ่อค้าเร่ให้ราคาดีมาก', w: 1, h: 1, stack: 3, kind: 'treasure', value: 45 },
+  blood_amber: { name: 'อำพันเลือด', desc: 'สมบัติ · เลือดของร่างซีดที่แข็งตัวใต้จันทร์เลือด อุ่นเหมือนยังเต้นอยู่', w: 1, h: 1, stack: 5, kind: 'treasure', value: 20 },
   idol: { name: 'รูปเคารพราชาหิน', desc: 'สมบัติ · รูปปั้นทองคำขนาดฝ่ามือ', w: 2, h: 2, stack: 1, kind: 'treasure', value: 85 },
 };
 
@@ -90,6 +92,17 @@ const DRAW = {
     d.r(3, 3, 10, 12, '#3a4a56'); d.r(4, 2, 8, 2, '#8a6040'); d.r(4, 4, 1, 10, '#8aa0b4');
     d.r(5, 6, 6, 3, '#4a1a30'); d.r(6, 9, 5, 3, '#5a2238'); d.r(5, 12, 4, 2, '#4a1a30');
     d.p(9, 7, '#c86a88'); d.p(7, 10, '#c86a88');
+  },
+  star_shard: (d) => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      const r = Math.abs(x - 7.5) + Math.abs(y - 7.5) * 0.8;
+      if (r < 7) d.p(x, y, r < 2 ? '#ffffff' : r < 4 ? '#e0d8ff' : r < 5.5 ? '#9a8ae0' : '#4a3a8a');
+    }
+    d.p(5, 4, '#ffffff'); d.p(11, 10, '#ffffff');
+  },
+  blood_amber: (d) => {
+    d.r(4, 4, 8, 9, '#8a1a10'); d.r(3, 6, 10, 5, '#a8241a'); d.r(5, 3, 6, 1, '#c84a2a');
+    d.r(5, 5, 2, 3, '#ff9a5a'); d.p(9, 9, '#ff6a3a'); d.r(6, 12, 4, 1, '#5a0a06');
   },
   essence: (d) => {
     for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {

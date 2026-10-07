@@ -22,6 +22,7 @@ import { AudioSys } from './audio.js';
 import { MusicDirector } from './music.js';
 import { Ambience } from './ambience.js';
 import { CLASSES, createKit, STARTING_GEAR } from './classes.js';
+import { WorldEvents } from './events.js';
 import { UI } from './ui.js';
 import { Quests } from './quests.js';
 import { PASTURE, FENCE_R, TOAD, TEMPLE, SPAWN, LOST_SHEEP, LOCATIONS, TAVERN, CASTLE, HEAD, RIBCAGE } from './layout.js';
@@ -195,6 +196,7 @@ class Game {
     this.menus = new Menus(this);
     this.classGear = new Set();     // paths whose starting gear was already handed out
     this.setClass('wanderer');
+    this.events = new WorldEvents(this);
     // a private copy of the blade material so oil / the king's sword can make it glow
     const blade = this.view.userData.sword.children[0];
     blade.material = blade.material.clone();
@@ -290,6 +292,7 @@ class Game {
       this.music.loadOverrides();
     }
     if (continueGame) this.load();
+    if (params.get('event')) this.events.force(params.get('event'));
     document.getElementById('title').classList.add('hidden');
     this.ui.show('hud');
     document.body.classList.add('in-game');
@@ -340,7 +343,7 @@ class Game {
       bag: this.bag.serialize(), gear: this.gear, loot: this.loot.serialize(),
       pos: { x: this.player.pos.x, z: this.player.pos.z }, yaw: this.player.yaw, checkpoint: this.checkpoint,
       time: this.dayNight.t, discovered: [...this.discovered],
-      cls: this.kit.id, kit: this.kit.serialize(), classGear: [...this.classGear],
+      cls: this.kit.id, kit: this.kit.serialize(), classGear: [...this.classGear], events: this.events.serialize(),
     });
   }
 
@@ -361,6 +364,7 @@ class Game {
     this.classGear = new Set(d.classGear || []);
     this.setClass(d.cls || 'wanderer', { gear: false });
     this.kit.load(d.kit || {});
+    this.events.load(d.events || {});
     if (d.pos) this.player.place(d.pos.x, d.pos.z, d.yaw ?? 0);
     this.player.hp = Math.max(30, d.hp ?? 100);
     this.quests.sheepFound.forEach((f, i) => {
@@ -545,6 +549,7 @@ class Game {
       this.buffs[k] = Math.max(0, this.buffs[k] - dt);
       if (this.buffs[k] > 0) html += `<span class="buff">${names[k]} ${Math.ceil(this.buffs[k])}s</span>`;
     }
+    for (const chip of this.events.chips()) html += `<span class="buff evt">${chip}</span>`;
     for (const chip of this.kit.chips()) html += `<span class="buff cls">${chip}</span>`;
     if (html !== this._buffHTML) { this._buffHTML = html; document.getElementById('buffs').innerHTML = html; }
     // blade glow: amber while oiled, cold blue for the stone king's sword
@@ -554,8 +559,12 @@ class Game {
     else mat.emissive.setRGB(0, 0, 0);
   }
 
+  // quest targets first, then whatever the world is up to (the pedlar, a fallen star, a chest)
+  allMarkers() { return [...this.quests.markers(), ...this.events.markers()].slice(0, 6); }
+
   interact(id) {
     const it = this.interactables.find((i) => i.id === id);
+    if (id === 'merchant') { this.ui.openDialogue(this.events.talk(), () => this.updateHud()); return; }
     this.checkpoint = it.checkpoint || { x: this.npcs[id].pos.x + 2, z: this.npcs[id].pos.z + 2 };
     if (id === 'crow') this.audio.caw(this.npcs.crow.obj.position);
     if (id === 'toad') this.audio.croak(this.npcs.toad.obj.position);
@@ -585,17 +594,22 @@ class Game {
     if (this.state !== 'sleeping') dn.update(dt);
     const P = dn.p;
     const sky = this.sky.material.uniforms;
+    // world events: a blood moon stains everything red; a fog bank swallows the distance
+    const ev = this.events, blood = ev?.blood ?? 0, fog = ev?.fog ?? 0;
     this.scene.fog.color.setRGB(...P.fog);
+    if (blood > 0) this.scene.fog.color.lerp(TMP_COLOR.setRGB(0.24, 0.03, 0.04), blood * 0.75);
+    if (fog > 0) this.scene.fog.color.lerp(TMP_COLOR.setRGB(...(P.day > 0.5 ? [0.36, 0.38, 0.37] : [0.12, 0.14, 0.18])), fog * 0.7);
     this.scene.background.copy(this.scene.fog.color);
     const sight = this.buffs.sight > 0 ? 1 - P.day : 0;   // cat's-eye potion: see through the night
-    this.scene.fog.density = (P.density - 0.001 + rainI * 0.004) * (1 - sight * 0.45);
+    this.scene.fog.density = (P.density - 0.001 + rainI * 0.004) * (1 - sight * 0.45) * (1 + fog * 3.2);
     sky.uHorizon.value.copy(this.scene.fog.color);
     sky.uZenith.value.setRGB(...P.zenith);
     sky.uCloudDark.value.setRGB(...P.cloudDark);
     sky.uCloudLit.value.setRGB(...P.cloudLit);
     sky.uSunDir.value.copy(dn.sunDir);
     sky.uDay.value = P.day;
-    sky.uStars.value = P.stars * (1 - rainI * 0.6);
+    sky.uStars.value = P.stars * (1 - rainI * 0.6) * (1 - fog * 0.8);
+    sky.uBlood.value = blood;
     sky.uAurora.value = P.aurora * (1 - rainI * 0.5);
     sky.uVortex.value = P.vortex;
     sky.uCloud.value = 0.35 + rainI * 0.6 + P.cloud;
@@ -605,11 +619,13 @@ class Game {
     this.hemi.color.setRGB(...P.hemiSky);
     this.hemi.groundColor.setRGB(...P.hemiGround);
     this.hemi.intensity = (P.hemiI + flash * 4) * dim * (1 + sight * 1.3);
-    this.moon.color.setRGB(...P.light);
+    this.moon.color.setRGB(P.light[0], P.light[1] * (1 - blood * 0.55), P.light[2] * (1 - blood * 0.6));
+    if (blood > 0) this.hemi.color.multiply(TMP_COLOR.setRGB(1, 1 - blood * 0.45, 1 - blood * 0.5));
     this.moon.intensity = P.lightI * dim;
     this.moon.position.copy(dn.lightDirection(MOON_DIR)).multiplyScalar(100);
     this.water.material.uniforms.uFlash.value = flash;
     this.water.material.uniforms.uDay.value = P.day;
+    this.water.material.uniforms.uBlood.value = blood;
     const pu = this.pipeline.uniforms;
     pu.uFlash.value = flash;
     pu.uDay.value = P.day;
@@ -641,8 +657,9 @@ class Game {
     for (const [o, r] of [[CASTLE, 150], [HEAD, 110], [RIBCAGE, 70]]) awe = Math.max(awe, clamp((1 - Math.hypot(p.x - o.x, p.z - o.z) / r) * 1.8, 0, 1));
     const explore = fight || boss ? 0 : 1 - tav;
     const q = (v) => Math.round(v * 20) / 20;
+    const blood = this.events.blood;
     m.mix({
-      night: q(explore * (1 - P.day)), day: q(explore * P.day), awe: q(explore * awe * 0.9),
+      night: q(explore * (1 - P.day) * (1 - blood)), blood: q(explore * (1 - P.day) * blood), day: q(explore * P.day), awe: q(explore * awe * 0.9),
       tavern: q(tav * (fight || boss ? 0.3 : 1)), combat: fight ? 1 : 0, boss: boss ? 1 : 0,
     }, {
       intensity: clamp(c.engaged / 4 + (this.player.hp < this.player.maxHp * 0.35 ? 0.35 : 0), 0, 1),
@@ -710,6 +727,7 @@ class Game {
     }
 
     c.updateEnemies(dt, true);
+    this.events.update(dt);
     this.updateBuffs(dt);
     this.checkDiscoveries();
     const v = this.village.indoor;
@@ -717,7 +735,7 @@ class Game {
     this.indoor += ((inside ? 1 : 0) - this.indoor) * Math.min(1, dt * 4);
     if (p.hp <= 0) this.die();
 
-    if (mapOpen) ui.drawMap(p, this.quests.markers(), this.discovered, LOCATIONS);
+    if (mapOpen) ui.drawMap(p, this.allMarkers(), this.discovered, LOCATIONS);
     this.updateHud();
     this.saveTimer = (this.saveTimer || 0) + dt;
     if (this.saveTimer > 20) { this.saveTimer = 0; this.save(); }
@@ -838,7 +856,7 @@ class Game {
       this.ui.setQuest(this.quests.objective());
     }
     if (this.state === 'play' || halted) {
-      this.ui.updateCompass(wrapHeading(-p.yaw), p.pos.x, p.pos.z, this.quests.markers());
+      this.ui.updateCompass(wrapHeading(-p.yaw), p.pos.x, p.pos.z, this.allMarkers());
     }
 
     // sound follows the camera; the score follows the situation
@@ -855,6 +873,7 @@ class Game {
 }
 
 const wrapHeading = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+const TMP_COLOR = new THREE.Color();
 
 const game = new Game();
 // let the loading screen paint before the (synchronous) world generation

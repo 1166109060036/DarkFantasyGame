@@ -86,7 +86,12 @@ export class UI {
     el.classList.add('show');
   }
 
+  // the big centre banner and the place-discovered card share the middle of the screen: whichever
+  // comes second waits for the first to fade
   banner(title, sub) {
+    const wait = 4600 - (performance.now() - (this._discoverAt ?? -1e9));
+    if (wait > 0) { setTimeout(() => this.banner(title, sub), wait); return; }
+    this._bannerAt = performance.now();
     const el = document.getElementById('banner');
     el.querySelector('.title').textContent = title;
     el.querySelector('.sub').textContent = sub;
@@ -101,6 +106,9 @@ export class UI {
 
   // Skyrim-style "location discovered" title card
   discover(name, n, total) {
+    const wait = 4600 - (performance.now() - (this._bannerAt ?? -1e9));
+    if (wait > 0) { setTimeout(() => this.discover(name, n, total), wait); return; }
+    this._discoverAt = performance.now();
     const el = document.getElementById('discover');
     el.querySelector('.name').textContent = name;
     el.querySelector('.count').textContent = `สถานที่ที่ค้นพบ ${n}/${total}`;
@@ -137,6 +145,7 @@ export class UI {
       d.style.display = '';
       d.style.left = `${50 + (rel / half) * 50}%`;
       d.classList.toggle('edge', edge);
+      d.classList.toggle('evt', m.kind === 'event');
       d.querySelector('.dist').textContent = `${Math.round(Math.hypot(m.x - px, m.z - pz))}m`;
     });
   }

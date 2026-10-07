@@ -26,6 +26,7 @@ export function createSky() {
       uCloud: { value: 0.6 },
       uDay: { value: 0 },
       uStars: { value: 1 },
+      uBlood: { value: 0 },
       uAurora: { value: 1 },
       uVortex: { value: 1 },
     },
@@ -37,7 +38,7 @@ export function createSky() {
         gl_Position = p.xyww;
       }`,
     fragmentShader: /* glsl */`
-      uniform float uTime, uFlash, uCloud, uDay, uStars, uAurora, uVortex;
+      uniform float uTime, uFlash, uCloud, uDay, uStars, uAurora, uVortex, uBlood;
       uniform vec3 uMoonDir, uSunDir, uVortexDir, uBigMoonDir, uHorizon, uZenith, uCloudDark, uCloudLit;
       varying vec3 vDir;
       ${GLSL_NOISE}
@@ -96,7 +97,7 @@ export function createSky() {
           vec3 bmLocal = d - uBigMoonDir * bm;
           float crater = fbm(bmLocal.xy * 40.0 + bmLocal.z * 25.0);
           float shade = 0.55 + crater * 0.6;
-          vec3 mc = mix(vec3(0.62, 0.7, 0.95), vec3(0.58, 0.6, 0.58), uDay) * shade;
+          vec3 mc = mix(mix(vec3(0.62, 0.7, 0.95), vec3(0.95, 0.16, 0.1), uBlood), vec3(0.58, 0.6, 0.58), uDay) * shade;
           col = mix(col, mc, bdisc * mix(0.95, 0.35, uDay) * smoothstep(-0.02, 0.03, d.y));
         }
         col += vec3(0.2, 0.3, 0.6) * pow(max(bm, 0.0), 40.0) * 0.4 * night;
@@ -115,12 +116,13 @@ export function createSky() {
 
         // moon and a sun that never quite breaks through
         float disc = smoothstep(0.99935, 0.99955, m) * night;
-        col += vec3(0.9, 0.95, 1.1) * disc * (1.0 - cover * 0.6);
-        col += vec3(0.25, 0.4, 1.0) * glow * (1.0 - cover * 0.3);
+        col += mix(vec3(0.9, 0.95, 1.1), vec3(1.3, 0.2, 0.12), uBlood) * disc * (1.0 - cover * 0.6);
+        col += mix(vec3(0.25, 0.4, 1.0), vec3(0.9, 0.12, 0.08), uBlood) * glow * (1.0 - cover * 0.3);
         float sdisc = smoothstep(0.9988, 0.9993, s) * uDay;
         col += vec3(0.75, 0.78, 0.7) * sdisc * (1.0 - cover * 0.85);
         col += vec3(0.45, 0.47, 0.42) * sglow * (1.0 - cover * 0.4);
 
+        col = mix(col, col * vec3(1.5, 0.45, 0.4), uBlood * night);       // a blood moon stains the whole sky
         col += uFlash * vec3(0.5, 0.6, 1.0) * (0.25 + cover * 1.2);
         gl_FragColor = vec4(col, 1.0);
       }`,
@@ -135,7 +137,7 @@ export function createSky() {
 }
 
 export function createWater(size = 720, y = 0) {
-  const uniforms = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uFlash: { value: 0 }, uDay: { value: 0 } }]);
+  const uniforms = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uFlash: { value: 0 }, uDay: { value: 0 }, uBlood: { value: 0 } }]);
   uniforms.uTime = ps2Uniforms.uTime;
   uniforms.uSnapRes = ps2Uniforms.uSnapRes;
   const mat = new THREE.ShaderMaterial({
@@ -155,7 +157,7 @@ export function createWater(size = 720, y = 0) {
         #include <fog_vertex>
       }`,
     fragmentShader: /* glsl */`
-      uniform float uTime, uFlash, uDay;
+      uniform float uTime, uFlash, uDay, uBlood;
       varying vec3 vWorld;
       #include <fog_pars_fragment>
       ${GLSL_NOISE}
@@ -173,6 +175,7 @@ export function createWater(size = 720, y = 0) {
         col = mix(col, hi, smoothstep(0.74, 0.95, v));
         float lum = dot(col, vec3(0.3, 0.55, 0.15));
         col = mix(col, vec3(0.1, 0.16, 0.17) + lum * vec3(0.5, 0.7, 0.72), uDay * 0.75);
+        col = mix(col, col.bgr * vec3(1.6, 0.25, 0.2) + vec3(0.04, 0.0, 0.0), uBlood * (1.0 - uDay));   // the moon's blood in the water
         col += uFlash * vec3(0.2, 0.3, 0.5);
         gl_FragColor = vec4(col, 1.0);
         #include <fog_fragment>

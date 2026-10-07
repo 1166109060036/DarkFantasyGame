@@ -519,6 +519,23 @@ class TavernPiece extends Piece {
   }
 }
 
+// --- blood moon: the night piece's dark twin. A dissonant choir (a minor second grinding against
+// the root), a heartbeat on the drums, a low bell striking the tritone.
+class BloodPiece extends Piece {
+  constructor(dir) { super(dir, { bpm: 56, verb: 0.8, level: 0.65 }); }
+  play(t, bar) {
+    const I = this.ins, d = this.dest, B = this.barDur, b = this.beat;
+    if (bar % 4 === 0) I.drone(d, t, 26, B * 4, 0.14, 260);
+    const chords = [[50, 51, 57], [49, 50, 56], [50, 53, 56], [48, 49, 55]];
+    I.choir(d, t, chords[bar % 4], B * 1.05, 0.12, bar % 2 ? 'a' : 'o', 1.8);
+    // heartbeat: lub-dub
+    I.taiko(d, t, 0.42, 0.7); I.taiko(d, t + b * 0.4, 0.3, 0.8);
+    if (bar % 2 === 1) { I.taiko(d, t + b * 2, 0.36, 0.7); I.taiko(d, t + b * 2.4, 0.26, 0.8); }
+    if (bar % 4 === 2) I.bell(d, t + b * 3, 44, 0.08, 7);           // G#: the devil's interval against D
+    if (rnd() < 0.5) I.cello(d, t + b * 1, pick([62, 63, 68]), b * 2.5, 0.07);
+  }
+}
+
 // --- awe: near the giants, a deep male choir and sub-bass, very slow. Layers over the rest.
 class AwePiece extends Piece {
   constructor(dir) { super(dir, { bpm: 40, verb: 0.9, level: 0.7 }); }
@@ -563,7 +580,7 @@ export class MusicDirector {
     this.ins = new Instruments(ctx, audio.noise);
     this.pieces = {
       night: new NightPiece(this), day: new DayPiece(this), combat: new CombatPiece(this),
-      boss: new BossPiece(this), tavern: new TavernPiece(this), awe: new AwePiece(this),
+      boss: new BossPiece(this), tavern: new TavernPiece(this), awe: new AwePiece(this), blood: new BloodPiece(this),
     };
   }
 
