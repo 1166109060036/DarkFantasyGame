@@ -237,7 +237,7 @@ export class Combat {
     this.targetT = Math.max(0, this.targetT - dt);
 
     if (p.sprinting && g.kit.sprintCost) this.spend(13 * dt * g.kit.sprintCost);
-    if (t - this.lastUse > 0.9) this.stamina = Math.min(this.maxStamina, this.stamina + (this.blocking ? 12 : 32) * (g.buffs.tonic > 0 ? 2 : 1) * dt);
+    if (t - this.lastUse > 0.9) this.stamina = Math.min(this.maxStamina, this.stamina + (this.blocking ? g.kit.blockRegen ?? 12 : 32) * (g.buffs.tonic > 0 ? 2 : 1) * dt);
     if (this.exhausted && this.stamina > 35) this.exhausted = false;
 
     if (frozen) { this.blocking = false; this.charging = false; return; }
@@ -265,7 +265,7 @@ export class Combat {
         this.iframes = 0.3;
         this.blocking = false;
         this.charging = false;
-        this.spend(COST.dodge);
+        this.spend(COST.dodge * (g.kit.dodgeCostMul ?? 1));
         p.roll = -s * 0.12;
         g.audio.dodge();
       }
@@ -369,8 +369,9 @@ export class Combat {
       }
       if (front && heavy) { e.state = 'stagger'; e.t = 1.0; e.guarding = false; e.comboN = 0; g.ui.combatText('ทำลายการ์ด!', 'parry'); }
     }
-    // a big thing caught with its arms in the ground
+    // a big thing caught with its arms in the ground; anything laid open by a path's skill
     if (e.weakT > 0) dmg *= 1.5;
+    if (e.exposeT > 0) dmg *= e.exposeK;
     // plate: light blows glance off (a third gets through), unless it has just been parried open
     if (def.armour) {
       if (e.exposedT > 0) { dmg *= 2; g.ui.combatText('ช่องโหว่! ×2', 'parry'); }
@@ -460,8 +461,8 @@ export class Combat {
     if (p.hp <= 0) return;
     if (this.iframes > 0) { this.say('หลบ!'); return; }
     const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
-    const facingEnemy = (-dx * fx - dz * fz) / Math.max(d, 1e-3) > 0.3;
-    let dmg = def.damage * (slam ? 1.3 : 1) * (PALE_ONES.has(e.type) ? g.events?.enemyDamageMul ?? 1 : 1) * (e.dmgMul ?? 1);
+    const facingEnemy = (-dx * fx - dz * fz) / Math.max(d, 1e-3) > 0.3 || !!g.kit.allRound;
+    let dmg = def.damage * (slam ? 1.3 : 1) * (PALE_ONES.has(e.type) ? g.events?.enemyDamageMul ?? 1 : 1) * (e.dmgMul ?? 1) * (e.sapT > 0 ? e.sapK : 1);
     // the coffin is a wall: it stops anything from the front, even a ground slam, but cannot parry
     if (this.blocking && facingEnemy && g.kit.blockMode === 'wall') {
       this.spend(dmg * 0.6 * (g.kit.wallCostMul ?? 1));
@@ -493,7 +494,7 @@ export class Combat {
       g.audio.block();
       p.shake = Math.max(p.shake, 0.12);
       p.vel.x += dx / d * 3; p.vel.z += dz / d * 3;
-      if (this.stamina > 0) dmg *= 0.12;
+      if (this.stamina > 0) dmg *= 0.12 * (g.kit.blockLeak ?? 1);
       else { dmg *= 0.6; this.staggerT = 0.7; this.blocking = false; g.ui.combatText('การ์ดแตก!', 'bad'); }
     }
     dmg = g.kit.onHurt(dmg * g.armorMul * g.kit.armorMul, e);
@@ -515,7 +516,7 @@ export class Combat {
     if (p.hp <= 0 || g.state !== 'play') return;
     if (this.iframes > 0) { this.say('หลบ!'); return; }
     const dx = p.pos.x - from.x, dz = p.pos.z - from.z, d = Math.max(Math.hypot(dx, dz), 1e-3);
-    const facing = (-dx * -Math.sin(p.yaw) - dz * -Math.cos(p.yaw)) / d > 0.3;
+    const facing = (-dx * -Math.sin(p.yaw) - dz * -Math.cos(p.yaw)) / d > 0.3 || !!g.kit.allRound;
     if (this.blocking && facing && !unblockable) {
       if (g.kit.blockMode === 'wall') {
         this.spend(dmg * 0.6 * (g.kit.wallCostMul ?? 1)); g.audio.block();
@@ -529,7 +530,7 @@ export class Combat {
         return;
       } else {
         this.spend(dmg * 1.2); g.audio.block();
-        if (this.stamina > 0) dmg *= 0.12;
+        if (this.stamina > 0) dmg *= 0.12 * (g.kit.blockLeak ?? 1);
         else { dmg *= 0.6; this.staggerT = 0.7; this.blocking = false; g.ui.combatText('การ์ดแตก!', 'bad'); }
       }
     }
@@ -546,6 +547,15 @@ export class Combat {
   }
 
   say(text) { this.g.ui.combatText(text, 'info'); }
+
+  // a weakness for a while: 'slow' (moves at k), 'sap' (hits at k), 'expose' (takes k);
+  // the strongest one in force wins
+  debuff(e, kind, t, k) {
+    if (!e || e.moba) return;
+    const T = `${kind}T`, K = `${kind}K`, live = e[T] > 0;
+    e[K] = !live ? k : kind === 'expose' ? Math.max(e[K], k) : Math.min(e[K], k);
+    e[T] = Math.max(e[T] || 0, t);
+  }
 
   // ---------------------------------------------------------------- enemy AI
   updateEnemies(dt, inPlay) {
@@ -633,6 +643,10 @@ export class Combat {
         if (e.hp <= 0) { this.kill(e); continue; }
       }
 
+      // timed weaknesses a path's skills leave on it (slowed, sapped, laid open)
+      if (e.slowT > 0) e.slowT -= dt;
+      if (e.sapT > 0) e.sapT -= dt;
+      if (e.exposeT > 0) e.exposeT -= dt;
       // knockback
       e.pos.addScaledVector(e.vel, dt);
       e.vel.multiplyScalar(Math.max(0, 1 - dt * 6));
@@ -746,7 +760,7 @@ export class Combat {
       const rate = turn || 6;
       if (!e.frozen && !def.custom) e.ry += clamp(wrapAngle(goal - e.ry), -rate * dt, rate * dt);
       if (PALE_ONES.has(e.type)) moveSpeed *= g.events?.enemySpeedMul ?? 1;
-      moveSpeed *= e.spdMul ?? 1;
+      moveSpeed *= (e.spdMul ?? 1) * (e.slowT > 0 ? e.slowK : 1);
       if (!def.custom) e.curSpeed = moveSpeed;          // a boss with its own brain sets its own
       // movement (aim may differ from facing for a frame or two; that's fine)
       if (moveSpeed > 0) this.moveEnemy(e, Math.sin(moveAngle) * moveSpeed * dt, Math.cos(moveAngle) * moveSpeed * dt);

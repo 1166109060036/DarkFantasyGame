@@ -161,46 +161,121 @@ class Wanderer extends Kit {
     this.weapon = g.view.userData.sword;
     this.weapon.visible = true;
     this.cool = 0;
+    this.lightHits = 0;
+    this.dance = [];
+    this.apply();
   }
+
+  // the tree's standing effects
+  apply() {
+    this.sprintCost = this.perk('w_breath') ? 0.7 : 1;
+    this.armorMul = this.perk('w_iron') ? 0.9 : 1;
+    this.regenMul = this.perk('w_regen') ? 1.6 : 1;
+    this.blockLeak = this.perk('w_guard') ? 0.5 : 1;
+    this.blockRegen = this.perk('w_stance') ? 32 : 12;
+    this.dodgeCostMul = this.perk('w_light') ? 0.6 : 1;
+    this.allRound = this.perk('w_bulwark');
+    this.g.player.regenMul = this.regenMul;
+  }
+  refresh() { this.apply(); }
+
+  // hot blood: low on life, or fresh from a kill
+  rage() {
+    const p = this.g.player;
+    return (this.perk('w_frenzy') && p.hp < p.maxHp * 0.35 ? 1.3 : 1) * (this.perk('w_momentum') && this.g.time < (this.momentumUntil || 0) ? 1.2 : 1);
+  }
+
   swing(kind) {
     const s = super.swing(kind);
-    if (kind === 'heavy') { if (this.perk('cleave')) { s.dmg *= 1.35; s.range += 0.5; } }
-    else {
+    if (kind === 'heavy') {
+      if (this.perk('cleave')) { s.dmg *= 1.35; s.range += 0.5; }
+      if (this.perk('w_whirl')) { s.radial = true; s.range = 3.8 + (this.perk('cleave') ? 0.5 : 0); s.dmg *= 1.1; }
+    } else {
+      if (this.perk('w_grip')) s.dmg *= 1.08;
       if (this.perk('keen')) s.dmg *= 1.2;
       if (this.perk('flurry')) { s.dur *= 0.85; s.cost *= 0.8; }
     }
+    s.dmg *= this.rage();
+    this.lastDmg = s.dmg;
     return s;
   }
-  get hpBonus() { return this.perk('tough') ? 20 : 0; }
+  get hpBonus() { return (this.perk('tough') ? 20 : 0) + (this.perk('w_hide') ? 10 : 0); }
   get parryBonus() { return this.perk('deflect') ? 0.12 : 0; }
+  // the finishing blow
+  targetMul(e) { return this.perk('w_execute') && this.combat.swing?.kind === 'heavy' && e.hp < e.def.hp * 0.3 ? 2 : 1; }
 
   // the crescent: a heavy blow throws a wave of moonlight along the ground
   onStrike(kind) {
     if (kind !== 'heavy' || !this.perk('crescent')) return;
     const g = this.g, p = g.player, f = p.forwardVec;
-    areaStrike(g, { range: 8, arc: 0.86, dmg: 2, heavy: true });
+    areaStrike(g, { range: 8, arc: 0.86, dmg: 2 * this.rage(), heavy: true });
     for (let i = 1; i <= 6; i++) g.particles.burst(new THREE.Vector3(p.pos.x + f.x * i * 1.3, p.pos.y + 0.9, p.pos.z + f.z * i * 1.3), 4, 2.5, 0.5);
     g.audio.burst({ dur: 0.5, freq: 2400, q: 1.5, gain: 0.16, sweep: 0.4 });
   }
 
-  onKill() { if (this.combat.swing?.kind === 'heavy') this.feat(1); }
+  onHit(e, kind) {
+    const g = this.g, c = this.combat;
+    if (kind === 'heavy') {
+      if (this.perk('w_sunder')) c.debuff(e, 'expose', 5, 1.2);
+      if (this.perk('w_heavyhand') && e.alive && !e.def.boss && !e.moba) { e.state = 'stagger'; e.t = Math.max(e.t, 1); }
+      return;
+    }
+    if (this.perk('w_edge')) c.stamina = Math.min(c.maxStamina, c.stamina + 3);
+    const again = (mul, text) => {
+      if (!e.alive || e.state === 'dying') return;
+      V.set(e.pos.x - g.player.pos.x, 0, e.pos.z - g.player.pos.z).normalize();
+      c.damageEnemy(e, false, V, this.lastDmg * mul);
+      g.ui.combatText(text, 'parry');
+    };
+    // the dance: the third light blow landed within two seconds cuts deeper
+    if (this.perk('w_dance')) {
+      this.dance = this.dance.filter((t) => g.time - t < 2);
+      this.dance.push(g.time);
+      if (this.dance.length >= 3) { this.dance = []; again(0.6, 'ระบำดาบ!'); }
+    }
+    // the shadow blade: every fourth light blow is struck twice
+    if (this.perk('w_twin') && ++this.lightHits % 4 === 0) again(1, 'ดาบเงา!');
+  }
+
+  onKill(e) {
+    if (this.combat.swing?.kind === 'heavy') this.feat(1);
+    const p = this.g.player;
+    if (this.perk('w_thirst')) p.hp = Math.min(p.maxHp, p.hp + 5);
+    if (this.perk('w_momentum')) this.momentumUntil = this.g.time + 6;
+  }
 
   // riposte: a parried blow is answered at once
   onParry(e, by) {
     this.feat(1);
-    if (this.perk('deflect')) this.combat.stamina = Math.min(this.combat.maxStamina, this.combat.stamina + 10);
+    const g = this.g, c = this.combat, p = g.player;
+    if (this.perk('deflect')) c.stamina = Math.min(c.maxStamina, c.stamina + 10);
+    if (this.perk('w_rally')) p.hp = Math.min(p.maxHp, p.hp + 6);
+    if (e) {
+      if (this.perk('w_perfect') && e.state === 'stagger') e.t += 1;
+      if (this.perk('w_disarm')) c.debuff(e, 'expose', 3, 1.5);
+    }
     if (!this.perk('riposte')) return;
-    const g = this.g;
-    if (e && e.alive && e.state !== 'dying') { V.set(e.pos.x - g.player.pos.x, 0, e.pos.z - g.player.pos.z).normalize(); this.combat.damageEnemy(e, true, V, 3); }
+    if (e && e.alive && e.state !== 'dying') { V.set(e.pos.x - p.pos.x, 0, e.pos.z - p.pos.z).normalize(); c.damageEnemy(e, true, V, 3 * this.rage()); }
     else if (by != null) g.moba?.riposte(by, 3);
     g.audio.swing(true);
     g.ui.combatText('สวนกลับ!', 'parry');
   }
 
+  // the last stand: once every two minutes, a killing blow leaves you standing
+  onHurt(dmg) {
+    const p = this.g.player;
+    if (this.perk('w_last') && p.hp - dmg <= 0 && p.hp > 1 && this.g.time >= (this.lastStandAt || 0)) {
+      this.lastStandAt = this.g.time + 120;
+      this.g.ui.combatText('ไม่ยอมตาย!', 'parry');
+      return p.hp - 1;
+    }
+    return dmg;
+  }
+
   skill() {
     if (this.cool > 0) { this.combat.say(`ยังตั้งหลักไม่ได้ (${Math.ceil(this.cool)})`); return; }
     const sw = this.perk('secondwind');
-    this.cool = sw ? 18 : 30;
+    this.cool = 30 - (this.perk('w_focus') ? 6 : 0) - (sw ? 6 : 0);
     this.combat.stamina = this.combat.maxStamina;
     this.combat.exhausted = false;
     if (sw) { const p = this.g.player; p.hp = Math.min(p.maxHp, p.hp + 25); }
@@ -208,9 +283,9 @@ class Wanderer extends Kit {
     this.g.ui.combatText(sw ? 'ตั้งหลัก! +25 เลือด' : 'ตั้งหลัก!', 'parry');
   }
   update(dt) { this.cool = Math.max(0, this.cool - dt); }
-  chips() { return [this.cool > 0 ? `ตั้งหลัก ${Math.ceil(this.cool)}s` : 'ตั้งหลัก [G] ✓']; }
+  chips() { return [this.cool > 0 ? `ตั้งหลัก ${Math.ceil(this.cool)}s` : 'ตั้งหลัก [G] ✓', ...(this.rage() > 1 ? [`เลือดร้อน ×${this.rage().toFixed(2)}`] : [])]; }
   drawIcon() {}   // the HUD keeps drawing the sword for the wanderer
-  dispose() { this.weapon.visible = false; this.weapon = null; super.dispose(); }
+  dispose() { this.weapon.visible = false; this.weapon = null; this.g.player.regenMul = 1; super.dispose(); }
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -225,6 +300,7 @@ class Bellwright extends Kit {
     this.streak = 0;
     this.pingCool = 0;
     this.marks = [];
+    this.armorMul = this.perk('r_bronze') ? 0.88 : 1;
     // a long-handled bell hammer
     const w = new THREE.Group();
     w.add(new THREE.Mesh(mergeGeometries([
@@ -259,13 +335,18 @@ class Bellwright extends Kit {
   onBeat() {
     const b = this.beat();
     const off = Math.min(b.phase, 1 - b.phase) * b.period;
-    const k = this.perk('ear') ? 1.4 : 1;
+    const k = (this.perk('ear') ? 1.4 : 1) * (this.perk('r_metronome') ? 1.2 : 1);
     return off <= Math.min(0.13 * k, b.period * 0.22 * k);
   }
 
-  get need() { return this.perk('tolling') ? 70 : 100; }
+  get need() { return this.perk('tolling') ? 70 : this.perk('r_bigring') ? 80 : 100; }
   get cap() { return this.perk('scale') ? 9 : 6; }
-  targetMul(e) { return this.perk('echo') && this.marks.some((m) => m.e === e && m.t > 0) ? 1.25 : 1; }
+  get hpBonus() { return this.perk('r_toughen') ? 10 : 0; }
+  refresh() { this.armorMul = this.perk('r_bronze') ? 0.88 : 1; }
+  targetMul(e) {
+    if (!this.perk('echo') || !this.marks.some((m) => m.e === e && m.t > 0)) return 1;
+    return this.perk('r_expose') ? 1.5 : 1.25;
+  }
 
   // a light blow is judged when the button goes down (a click's release comes ~0.1 s later);
   // a heavy blow is judged when it is let go
@@ -274,15 +355,22 @@ class Bellwright extends Kit {
   swing(kind) {
     const heavy = kind === 'heavy';
     const on = !heavy && this.g.time - this.pressAt < 0.5 ? this.pressOnBeat : this.onBeat();
-    if (on) this.streak = Math.min(this.cap, this.streak + 1);
+    const before = this.streak;
+    if (on) { if (!this.streak) this.graced = false; this.streak = Math.min(this.cap, this.streak + 1); }
+    else if (this.perk('r_grace') && this.streak && !this.graced) { this.graced = true; this.g.ui.combatText('จังหวะผ่อน', 'info'); }
     else if (this.perk('sustain')) this.streak = Math.max(0, this.streak - 2);
     else { this.streak = 0; this.resonance = Math.max(0, this.resonance - 8); }
     this.hitOnBeat = on;
-    const mul = on ? 1.3 + 0.18 * Math.min(this.streak, this.cap) : 0.75;
-    this.g.ui.combatText(on ? `♪ ตรงจังหวะ ×${mul.toFixed(1)}` : 'หลุดจังหวะ', on ? 'parry' : 'info');
-    return heavy
-      ? { dur: 0.6, cost: 24, hitAt: 0.42, range: 3.3, arc: 0.3, dmg: 2.6 * mul * (this.perk('weight') ? 1.3 : 1), heavy: true }
-      : { dur: 0.38, cost: 10, hitAt: 0.35, range: 2.9, arc: 0.45, dmg: 1 * mul, heavy: false };
+    this.reachedTop = on && before < this.cap && this.streak === this.cap;
+    const mul = on ? (this.perk('r_pulse') ? 1.45 : 1.3) + 0.18 * Math.min(this.streak, this.cap) : 0.75;
+    if (!this.graced || on) this.g.ui.combatText(on ? `♪ ตรงจังหวะ ×${mul.toFixed(1)}` : 'หลุดจังหวะ', on ? 'parry' : 'info');
+    const s = heavy
+      ? { dur: 0.6, cost: 24 * (this.perk('r_arm') ? 0.8 : 1), hitAt: 0.42, range: 3.3, arc: 0.3, dmg: 2.6 * mul * (this.perk('weight') ? 1.3 : 1), heavy: true }
+      : { dur: 0.38 * (this.perk('r_tempo') ? 0.85 : 1), cost: 10, hitAt: 0.35, range: 2.9 + (this.perk('r_crescendo') && this.streak >= 6 ? 0.6 : 0), arc: 0.45, dmg: 1 * mul, heavy: false };
+    // the shattering note: deep in a streak, a light blow lands like a heavy one
+    if (!heavy && on && this.perk('r_shatter') && this.streak >= 4) s.heavy = true;
+    this.lastDmg = s.dmg;
+    return s;
   }
 
   onHit(e, kind) {
@@ -290,9 +378,31 @@ class Bellwright extends Kit {
     // every blow rings; on the beat, the notes climb the scale with the streak
     const m = this.hitOnBeat ? BELL_NOTES[Math.min(this.streak, BELL_NOTES.length) - 1] : 57;
     a.metal({ freq: mtof(m), dur: 1.6, gain: 0.07, partials: [1, 2.0, 2.76, 4.1, 5.4], pos: e.pos, verb: 0.6 });
-    if (!this.hitOnBeat) return;
-    this.resonance = Math.min(100, this.resonance + (kind === 'heavy' ? 30 : 18) * (this.perk('sustain') ? 1.5 : 1));
+    const g = this.g, c = this.combat, p = g.player, plain = e.alive && !e.def.boss && !e.moba;
+    if (kind === 'heavy' && this.perk('r_stagger') && plain) { e.state = 'stagger'; e.t = Math.max(e.t, 1); }
+    if (!this.hitOnBeat) {
+      if (kind === 'heavy' && this.perk('r_anvil')) this.resonance = Math.min(100, this.resonance + 15);
+      return;
+    }
+    this.resonance = Math.min(100, this.resonance + (kind === 'heavy' ? 30 : 18) * (this.perk('sustain') ? 1.5 : 1) * (this.perk('r_tune') ? 1.15 : 1));
     this.feat(1);
+    if (this.perk('r_ring') && plain) { e.state = 'stagger'; e.t = Math.max(e.t, 0.4); }
+    if (this.perk('r_drum')) p.hp = Math.min(p.maxHp, p.hp + 1);
+    if (this.perk('r_virtuoso') && this.streak >= 8) c.stamina = Math.min(c.maxStamina, c.stamina + 4);
+    // the duet: the note comes back off the walls and strikes again
+    if (this.perk('r_duet') && this.streak >= 3 && e.alive && e.state !== 'dying') {
+      V.set(e.pos.x - p.pos.x, 0, e.pos.z - p.pos.z).normalize();
+      c.damageEnemy(e, false, V, this.lastDmg * 0.4);
+    }
+    // the finale: the top of the scale rings out as a small great bell, and the run begins again
+    if (this.perk('r_finale') && this.reachedTop && this.finaleSwing !== c.swingN) {
+      this.finaleSwing = c.swingN;
+      this.reachedTop = false;
+      this.greatBell(0.6);
+      this.streak = 0;
+      a.metal({ freq: 110, dur: 4, gain: 0.25, partials: [1, 2.02, 2.76, 4.1, 5.4], verb: 0.9 });
+      g.ui.combatText('ฟินาเล่!', 'parry');
+    }
     // the symphony: deep in a streak, every on-beat blow rings out around you (once per swing)
     const n = this.combat.swingN;
     if (this.perk('symphony') && this.streak >= 5 && this.ringSwing !== n) {
@@ -307,6 +417,7 @@ class Bellwright extends Kit {
   // the great bell (and, with tolling, its echoes): everything in reach is thrown back and reeling
   greatBell(power = 1) {
     const g = this.g, c = this.combat, p = g.player, R = this.perk('wave') ? 14 : 10;
+    power *= this.perk('r_quake') ? 1.5 : 1;
     for (const e of c.enemies) {
       if (!e.alive || e.state === 'dying' || !e.obj.visible) continue;
       const d = Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z);
@@ -314,6 +425,8 @@ class Bellwright extends Kit {
       V.set(e.pos.x - p.pos.x, 0, e.pos.z - p.pos.z).normalize();
       c.damageEnemy(e, true, V, 2 * power);
       if (e.alive && e.state !== 'dying') { e.state = 'stagger'; e.t = (e.def.boss ? 1.0 : this.perk('wave') ? 3.5 : 2.6) * Math.max(0.5, power); e.vel.addScaledVector(V, 10 * power / e.def.weight); }
+      // the death knell: whatever is already broken does not get up again
+      if (this.perk('r_doom') && e.alive && e.state !== 'dying' && !e.def.boss && !e.def.named && !e.moba && e.hp < e.def.hp * 0.35) { c.kill(e); g.ui.combatText('ระฆังมรณะ', 'parry'); }
     }
     g.moba?.strike({ radial: true, range: R, dmg: 2 * power, heavy: true }, g.camera.position, p.forwardVec);
   }
@@ -325,6 +438,8 @@ class Bellwright extends Kit {
       this.streak = 0;
       this.greatBell(1);
       if (this.perk('tolling')) this.tolls = [1, 2, 3];
+      if (this.perk('r_resound')) this.resonance = 30;
+      if (this.perk('r_shield')) c.iframes = Math.max(c.iframes, 2.5);
       g.audio.metal({ freq: 73.4, dur: 6, gain: 0.35, partials: [1, 2.02, 2.76, 4.1, 5.4, 6.8], verb: 0.9 });
       g.audio.thump({ freq: 55, dur: 2.5, gain: 0.5, drop: 0.8 });
       p.shake = Math.max(p.shake, 0.5);
@@ -337,9 +452,10 @@ class Bellwright extends Kit {
       return;
     }
     if (this.pingCool > 0) { c.say('ระฆังยังสั่นอยู่...'); return; }
-    if (c.stamina < 12) { c.say('เหนื่อยเกินไป'); return; }
-    c.spend(12);
-    this.pingCool = 3;
+    const hunt = this.perk('r_hunt');
+    if (c.stamina < (hunt ? 6 : 12)) { c.say('เหนื่อยเกินไป'); return; }
+    c.spend(hunt ? 6 : 12);
+    this.pingCool = hunt ? 1.5 : 3;
     // a soft chime that comes back from everything alive in the dark
     g.audio.metal({ freq: mtof(86), dur: 3.5, gain: 0.08, partials: [1, 2.0, 3.01], verb: 1 });
     g.audio.metal({ freq: mtof(81), dur: 3.5, gain: 0.05, delay: 0.25, partials: [1, 2.0, 3.01], verb: 1 });
@@ -438,16 +554,33 @@ class LeechDoctor extends Kit {
   }
 
   get frenzy() { const p = this.g.player; return 1 + (1 - p.hp / p.maxHp) * (this.perk('bloodlust') ? 2.0 : 1.4); }
-  get maxOut() { return this.perk('swarm') ? 5 : LEECH_MAX_OUT; }
+  get maxOut() { return (this.perk('swarm') ? 5 : LEECH_MAX_OUT) - (this.perk('l_queen') ? 1 : 0); }
+  get hpBonus() { return this.perk('l_tough') ? 10 : 0; }
+  get attached() { return this.leeches.filter((L) => L.state === 'drink').length; }
+  // the mark of blood: whatever is bleeding is easier to cut
+  targetMul(e) { return this.perk('l_mark') && e.dots?.bleed ? 1.15 : 1; }
+  onHurt(dmg) { const p = this.g.player; return this.perk('l_clot') && p.hp < p.maxHp * 0.2 ? dmg * 0.8 : dmg; }
 
   swing(kind) {
     if (kind === 'heavy') { this.throwLeech(); return null; }
-    return { dur: 0.26, cost: 7, hitAt: 0.45, range: 2.5, arc: 0.6, dmg: 0.75 * this.frenzy * (this.perk('scalpel') ? 1.25 : 1), heavy: false };
+    const p = this.g.player;
+    const dur = 0.26 * (this.perk('l_adrenaline') && p.hp < p.maxHp * 0.4 ? 0.75 : 1) * (this.perk('l_flurry') ? 0.8 : 1);
+    const dmg = 0.75 * this.frenzy * (this.perk('scalpel') ? 1.25 : 1) * (this.perk('l_feast') ? 1 + 0.1 * this.attached : 1)
+      * (this.perk('l_precise') ? 1 + 0.1 * Math.min(5, this.chain || 0) : 1);
+    return { dur, cost: 7 * (this.perk('l_steady') ? 0.7 : 1), hitAt: 0.45, range: 2.5 + (this.perk('l_edge') ? 0.6 : 0), arc: 0.6, dmg, heavy: false };
   }
 
   onHit(e) {
+    const c = this.combat, p = this.g.player;
     e.dots = e.dots || {};
-    e.dots.bleed = this.perk('deepcut') ? { dps: 0.5, t: 5 } : { dps: 0.3, t: 3 };
+    // the same body cut again and again: the bleeding worsens, the hand grows surer
+    this.chain = this.chainOn === e ? (this.chain || 0) + 1 : 0;
+    this.chainOn = e;
+    e.bleedStack = this.perk('l_hemo') ? Math.min(3, (e.dots.bleed ? e.bleedStack || 1 : 1) + 0.25) : 1;
+    const base = this.perk('deepcut') ? { dps: 0.5, t: 5 } : { dps: 0.3, t: 3 };
+    e.dots.bleed = { dps: base.dps * e.bleedStack, t: base.t };
+    if (this.perk('l_artery')) c.debuff(e, 'slow', base.t, 0.75);
+    if (this.perk('l_sip')) p.hp = Math.min(p.maxHp, p.hp + 0.5);
     this.g.particles.burst(e.pos.clone().setY(e.pos.y + e.def.height * 0.6), 5, 2.5, 0.4);
     // dissection: the fourth cut in a row on the same body opens it up
     if (!this.perk('dissect')) return;
@@ -464,18 +597,41 @@ class LeechDoctor extends Kit {
     }
   }
 
+  onKill(e) {
+    if (!e.dots?.bleed) return;
+    const g = this.g, p = g.player;
+    if (this.perk('l_transfuse')) p.hp = Math.min(p.maxHp, p.hp + 8);
+    // exsanguination: it bursts, and everything near it starts to bleed
+    if (this.perk('l_exsang')) {
+      for (const o of this.combat.enemies) {
+        if (o === e || !o.alive || o.state === 'dying' || o.pos.distanceTo(e.pos) > 4) continue;
+        o.dots = o.dots || {}; o.dots.bleed = { dps: 0.8, t: 5 };
+      }
+      p.hp = Math.min(p.maxHp, p.hp + 10);
+      g.particles.burst(e.pos.clone().setY(e.pos.y + e.def.height * 0.6), 26, 5, 0.8);
+      g.audio.burst({ dur: 0.5, freq: 300, q: 1, gain: 0.25 });
+      g.ui.combatText('สูบเลือด! +10', 'parry');
+    }
+  }
+
   throwLeech() {
     const g = this.g, p = g.player, c = this.combat;
     if (this.leeches.length >= this.maxOut) { c.say('ปลิงออกไปหมดแล้ว'); return; }
     if (g.bag.count('leech_live') <= 0) { c.say('ไม่มีปลิงในกระเป๋า'); return; }
     if (p.hp <= 6) { c.say('เลือดไม่พอจะเลี้ยงปลิง'); return; }
-    g.bag.remove('leech_live', 1);
-    p.hp -= this.perk('homing') ? 2 : 4;
+    // the tide: three at once, fanned out (one blood price for the lot)
+    const n = this.perk('l_tide') ? Math.min(3, g.bag.count('leech_live'), Math.max(1, this.maxOut - this.leeches.length)) : 1;
+    p.hp -= Math.max(1, (this.perk('homing') ? 2 : 4) - (this.perk('l_jar') ? 1 : 0));
     c.spend(8);
-    const m = this.addWorld(new THREE.Mesh(this.leechGeo, this.leechMat));
-    const dir = p.forwardVec;
-    const pos = g.camera.position.clone().addScaledVector(dir, 0.6).add(new THREE.Vector3(0, -0.15, 0));
-    this.leeches.push({ m, state: 'fly', pos, vel: dir.clone().multiplyScalar(21).add(new THREE.Vector3(0, 2.5, 0)), t: 0, blood: 0, e: null, off: null });
+    const speed = 21 * (this.perk('l_quick') ? 1.4 : 1);
+    for (let i = 0; i < n; i++) {
+      g.bag.remove('leech_live', 1);
+      const m = this.addWorld(new THREE.Mesh(this.leechGeo, this.leechMat));
+      const dir = p.forwardVec.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), (i - (n - 1) / 2) * 0.22);
+      const pos = g.camera.position.clone().addScaledVector(dir, 0.6).add(new THREE.Vector3(0, -0.15, 0));
+      this.leeches.push({ m, state: 'fly', pos, vel: dir.multiplyScalar(speed).add(new THREE.Vector3(0, 2.5, 0)), t: 0, blood: 0, e: null, off: null, big: this.perk('l_queen') });
+      if (this.perk('l_queen')) m.scale.setScalar(1.6);
+    }
     g.audio.swing(false);
     g.audio.burst({ dur: 0.25, freq: 500, q: 3, gain: 0.1, sweep: 1.8 });
     g.hud.grin();
@@ -527,10 +683,18 @@ class LeechDoctor extends Kit {
         }
         if (L.state === 'fly' && (L.pos.y < T.getHeight(L.pos.x, L.pos.z) || L.t > 2)) { L.state = 'home'; L.t = 0; }
       } else if (L.state === 'drink') {
-        const e = L.e;
-        if (!e.alive || e.state === 'dying' || !e.obj.visible || L.t > 8) { L.state = 'home'; continue; }
+        let e = L.e;
+        if (!e.alive || e.state === 'dying' || !e.obj.visible) {
+          // the plague: a leech whose host has died jumps to the next one near
+          const next = this.perk('l_plague') && L.t < 14 && c.enemies.find((o) => o !== e && o.alive && o.state !== 'dying' && o.obj.visible && o.pos.distanceTo(e.pos) < 8);
+          if (!next) { L.state = 'home'; continue; }
+          L.e = e = next;
+        }
+        if (L.t > (this.perk('l_cling') ? 14 : 8)) { L.state = 'home'; continue; }
         L.pos.copy(e.pos).add(L.off);
-        const d = Math.min(e.hp, LEECH_DRAIN * (this.perk('fat') ? 1.5 : 1) * dt);
+        if (this.perk('l_venom')) c.debuff(e, 'slow', 0.3, 0.6);
+        if (this.perk('l_numb')) c.debuff(e, 'sap', 0.3, 0.7);
+        const d = Math.min(e.hp, LEECH_DRAIN * (this.perk('fat') ? 1.5 : 1) * (L.big ? 2 : 1) * dt);
         e.hp -= d;
         L.blood += d;
         if (e.hp <= 0.001) c.kill(e);
@@ -558,8 +722,11 @@ class LeechDoctor extends Kit {
       p.hp = Math.min(p.maxHp, p.hp + heal);
       g.ui.combatText(`+${Math.round(heal)} เลือด`, 'parry');
       g.audio.drink();
+      if (this.perk('l_rich')) this.combat.stamina = Math.min(this.combat.maxStamina, this.combat.stamina + 10);
     }
-    if (g.bag.add('leech_live', 1) > 0) g.ui.toast('กระเป๋าเต็ม — ปลิงตัวนั้นคลานหนีไปแล้ว');
+    const back = 1 + (this.perk('l_breed') && heal > 0.5 && Math.random() < 0.35 ? 1 : 0);
+    if (back > 1) g.ui.combatText('ปลิงแพร่พันธุ์! +1', 'parry');
+    if (g.bag.add('leech_live', back) > 0) g.ui.toast('กระเป๋าเต็ม — ปลิงตัวนั้นคลานหนีไปแล้ว');
   }
 
   chips() {
@@ -948,20 +1115,48 @@ class WickBearer extends Kit {
 
   get maxCandles() { return this.perk('longwick') ? 4 : MAX_CANDLES; }
   get candleR() { return this.perk('ward') ? 7.5 : CANDLE_R; }
+  get hpBonus() { return this.perk('k_wax') ? 10 : 0; }
+  nearCandle() { const p = this.g.player; return this.candles.some((cd) => Math.hypot(cd.x - p.pos.x, cd.z - p.pos.z) < this.candleR); }
+  // the knife in the back
+  targetMul(e) {
+    if (!this.perk('k_knife')) return 1;
+    const p = this.g.player, dx = p.pos.x - e.pos.x, dz = p.pos.z - e.pos.z, d = Math.hypot(dx, dz) || 1;
+    return (Math.sin(e.ry) * dx + Math.cos(e.ry) * dz) / d < -0.3 ? 1.4 : 1;
+  }
+  onHurt(dmg) { return this.phoenix(this.g.player.hp - dmg) ? this.g.player.hp - 1 : dmg; }
+  // the phoenix: the wax that would have run out rises again
+  phoenix(left) {
+    if (!this.perk('k_phoenix') || left > 0.5 || this.g.time < (this.phoenixAt || 0)) return false;
+    this.phoenixAt = this.g.time + 180;
+    const g = this.g;
+    setTimeout(() => { g.player.hp = Math.max(g.player.hp, 40); }, 0);
+    g.particles.burst(g.player.pos.clone().setY(g.player.pos.y + 1), 30, 5, 1.0);
+    g.ui.combatText('ฟีนิกซ์! ไขกลับคืน', 'parry');
+    return true;
+  }
 
   swing(kind) {
-    const h = this.heat * (this.perk('stoke') ? 1.3 : 1);
+    const g = this.g, h = this.heat * (this.perk('stoke') ? 1.3 : 1);
     // ambush: the first blow out of the dark burns three times as hot
-    const amb = this.perk('ambush') && this.g.time - (this.unsnuffAt ?? -9) < 2 && !this.ambushUsed;
-    if (amb) { this.ambushUsed = true; this.ambushing = true; this.feat(1); this.g.ui.combatText('ลอบเผา! ×3', 'parry'); }
-    else this.ambushing = false;
-    const m = amb ? 3 : 1;
+    const amb = this.perk('ambush') && g.time - (this.unsnuffAt ?? -9) < 2 && !this.ambushUsed;
+    if (amb) {
+      this.ambushUsed = true; this.ambushing = true; this.feat(1); g.ui.combatText('ลอบเผา! ×3', 'parry');
+      // dread: everything near reels from the sudden fire
+      if (this.perk('k_dread')) for (const e of this.combat.enemies) {
+        if (!e.alive || e.state === 'dying' || e.def.boss || e.moba || e.pos.distanceTo(g.player.pos) > 5) continue;
+        e.state = 'stagger'; e.t = Math.max(e.t, 1.2);
+      }
+    } else this.ambushing = false;
+    // eclipse: for three seconds out of the dark, every blow doubles
+    const ecl = this.perk('k_eclipse') && g.time - (this.unsnuffAt ?? -9) < 3;
+    const m = (amb ? 3 : 1) * (ecl ? 2 : 1) * (this.perk('k_inferno') && this.heat >= 0.9 ? 1.25 : 1) * (this.perk('k_beacon') && this.nearCandle() ? 1.2 : 1);
+    const cost = this.perk('k_overheat') && this.heat > 0.5 ? 0.4 : 1, reach = this.perk('k_chain') ? 0.5 : 0;
     if (kind === 'heavy') {
-      const p = this.g.player;
+      const p = g.player;
       if (p.hp > 8) p.hp -= 3;        // a spin flares the flame and costs wax
-      return { dur: 0.85, cost: 20, hitAt: 0.5, radial: true, range: 4.4 + h, dmg: 2.2 * (1 + h * 0.8) * m, heavy: true };
+      return { dur: 0.85, cost: 20 * cost, hitAt: 0.5, radial: true, range: 4.4 + h + reach + (this.perk('k_censer') ? 1.2 : 0), dmg: 2.2 * (1 + h * 0.8) * m, heavy: true };
     }
-    return { dur: 0.5, cost: 12, hitAt: 0.45, range: 4.0 + h * 1.2, arc: 0.0, dmg: 1 * (1 + h * 0.8) * m, heavy: false };
+    return { dur: 0.5, cost: 12 * cost, hitAt: 0.45, range: 4.0 + h * 1.2 + reach + (this.perk('k_flare') ? 1.5 : 0), arc: 0.0, dmg: 1 * (1 + h * 0.8) * m, heavy: false };
   }
 
   // firestorm: the spin leaves a ring of fire burning on the ground
@@ -990,19 +1185,57 @@ class WickBearer extends Kit {
   onHit(e) {
     e.dots = e.dots || {};
     e.dots.burn = this.ambushing ? { dps: 1.0, t: 5 } : { dps: this.perk('blaze') ? 0.65 : 0.4, t: 3 };
+    if (this.perk('k_ash')) this.combat.debuff(e, 'sap', e.dots.burn.t, 0.8);
+    if (this.perk('k_drip')) { const p = this.g.player; p.hp = Math.min(p.maxHp, p.hp + 0.5); }
     if (this.heat >= 0.5) this.feat(1);
     this.heat = Math.min(1, this.heat + (this.perk('stoke') ? 0.18 : 0.12));
     this.g.audio.burst({ dur: 0.35, freq: 1200, q: 0.6, gain: 0.18, sweep: 0.5, pos: e.pos });
     this.g.particles.burst(e.pos.clone().setY(e.pos.y + e.def.height * 0.5), 8, 3, 0.6);
   }
 
+  onKill(e) {
+    if (!e.dots?.burn) return;
+    const g = this.g;
+    if (this.perk('k_vanish')) this.vanishT = 2;
+    // the fire spreads to the next one
+    if (this.perk('k_spread')) {
+      const next = this.combat.enemies.find((o) => o !== e && o.alive && o.state !== 'dying' && o.pos.distanceTo(e.pos) < 5);
+      if (next) { next.dots = next.dots || {}; next.dots.burn = { dps: this.perk('blaze') ? 0.65 : 0.4, t: 3 }; }
+    }
+    // a pyre where it fell: a fire to re-form your wax by
+    if (this.perk('k_pyre')) {
+      const s = this.addWorld(new THREE.Sprite(this.M.fireSprite));
+      s.position.set(e.pos.x, e.pos.y + 0.6, e.pos.z);
+      s.scale.setScalar(1.8);
+      const f = { s, base: 1.8, ph: Math.random() * 6 };
+      g.fx.fires.push(f);
+      (this.pyres = this.pyres || []).push({ f, t: 20 });
+    }
+  }
+
+  // the dying sun: all the heat let out at once
+  sunburst() {
+    const g = this.g, p = g.player;
+    areaStrike(g, { range: 7, dmg: 4, heavy: true, stagger: 1 });
+    for (const e of this.combat.enemies) {
+      if (!e.alive || e.state === 'dying' || e.pos.distanceTo(p.pos) > 7) continue;
+      e.dots = e.dots || {}; e.dots.burn = { dps: 1.0, t: 5 };
+    }
+    this.heat = 0;
+    for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2; g.particles.burst(new THREE.Vector3(p.pos.x + Math.cos(a) * 4, p.pos.y + 1, p.pos.z + Math.sin(a) * 4), 2, 8, 1); }
+    g.audio.burst({ dur: 1.4, freq: 400, q: 0.6, gain: 0.35, sweep: 0.5, attack: 0.05 });
+    p.shake = Math.max(p.shake, 0.4);
+    g.ui.combatText('ดวงอาทิตย์ดับ!', 'parry');
+  }
+
   skill() {
     const g = this.g, p = g.player;
     if (this.snuffed) return;
+    if (this.perk('k_sun') && this.heat >= 0.95) { this.sunburst(); return; }
     if (p.hp <= 12) { this.combat.say('ไขเทียนเหลือน้อยเกินไป'); return; }
     if (p.inWater > 0.15) { this.combat.say('ปักเทียนในน้ำไม่ได้'); return; }
     if (this.candles.length >= this.maxCandles) { const old = this.candles.shift(); this.removeWorld(old.obj); }
-    p.hp -= 6;
+    p.hp -= this.perk('k_twin') ? 3 : 6;
     const f = p.forwardVec, x = p.pos.x + f.x * 1.2, z = p.pos.z + f.z * 1.2;
     const y = Math.max(g.terrain.getHeight(x, z), g.collision.groundAt(x, z, p.pos.y + 1, 0.65));
     const grp = new THREE.Group();
@@ -1031,27 +1264,40 @@ class WickBearer extends Kit {
     const want = input.blockHeld && !c.swing && !g.mount?.ridden;
     if (want !== this.snuffed) {
       this.snuffed = want;
-      if (!want) { this.unsnuffAt = g.time; this.ambushUsed = false; }
+      if (!want) { this.unsnuffAt = g.time; this.ambushUsed = false; if (this.perk('k_eclipse')) this.heat = 1; }
+      // silence: whatever was hunting you loses the trail
+      if (want && this.perk('k_silent')) for (const e of c.enemies) if (e.state === 'chase' && !e.def.boss && !e.moba) e.state = 'return';
       g.audio.burst({ dur: want ? 0.3 : 0.5, freq: want ? 400 : 700, q: 0.8, gain: 0.15, sweep: want ? 0.4 : 1.8 });
       if (!want) g.audio.tone({ freq: 220, dur: 0.4, type: 'triangle', gain: 0.03, slide: 1.8 });
     }
-    this.hidden = this.snuffed;
+    this.vanishT = Math.max(0, (this.vanishT || 0) - dt);
+    this.hidden = this.snuffed || this.vanishT > 0;
     this.noAttack = this.snuffed;
-    this.darkness = this.snuffed ? 0.62 : 0;
+    this.darkness = this.snuffed ? (this.perk('k_cateye') ? 0.22 : 0.62) : 0;
     this.speedMul = this.snuffed && this.perk('stalk') ? 1.25 : 1;
     this.lightMul = this.snuffed ? 0 : 1.15 + this.heat * 0.9;
     this.flame.visible = !this.snuffed;
     this.flame.scale.setScalar((1 + this.heat * 0.8) * (1 + Math.sin(g.time * 17) * 0.12));
 
     // wax: melts while lit, re-forms by a fire or one of your candles
-    this.heat = Math.max(0, this.heat - dt * 0.12);
+    this.heat = Math.max(0, this.heat - dt * 0.12 * (this.perk('k_ember') ? 0.6 : 1));
     let regen = 0;
-    if (this.nearFire()) regen = 6;
+    if (this.nearFire()) regen = 6 * (this.perk('k_hearth') ? 1.5 : 1);
     for (const cd of this.candles) if (Math.hypot(cd.x - p.pos.x, cd.z - p.pos.z) < 3.5) regen = Math.max(regen, this.perk('ward') ? 4 : 2.5);
     if (this.snuffed && this.perk('stalk')) regen = Math.max(regen, 0.6);
+    if (this.snuffed && this.perk('k_shade')) regen = Math.max(regen, 1.6);
     if (p.hp > 0) {
       if (regen) p.hp = Math.min(p.maxHp, p.hp + regen * dt);
-      else if (!this.snuffed && dt > 0) p.hp = Math.max(0, p.hp - 0.3 * (this.perk('tallow') ? 0.5 : 1) * (1 + this.heat * 3) * dt);
+      else if (!this.snuffed && dt > 0) {
+        const melt = 0.3 * (this.perk('tallow') ? 0.5 : 1) * (1 + this.heat * 3) * dt;
+        p.hp = this.phoenix(p.hp - melt) ? Math.max(p.hp, 40) : Math.max(0, p.hp - melt);
+      }
+    }
+    // pyres burn down
+    if (this.pyres?.length) {
+      for (const py of this.pyres) py.t -= dt;
+      for (const py of this.pyres.filter((q) => q.t <= 0)) { this.removeWorld(py.f.s); g.fx.fires.splice(g.fx.fires.indexOf(py.f), 1); }
+      this.pyres = this.pyres.filter((q) => q.t > 0);
     }
     // rings of fire left by the spin
     if (this.fires?.length) {
@@ -1100,6 +1346,8 @@ class WickBearer extends Kit {
       if (d >= R || d < 1e-3) continue;
       e.pos.x = cd.x + dx / d * R;
       e.pos.z = cd.z + dz / d * R;
+      // the branding light: what it throws back, it sets alight
+      if (this.perk('k_brand')) { e.dots = e.dots || {}; e.dots.burn = { dps: 0.4, t: 2 }; }
     }
   }
 
@@ -1123,7 +1371,11 @@ class WickBearer extends Kit {
     if (!this.snuffed) { px(31, 1, 2, 2, '#ff8a30'); px(32, 0, 1, 1, '#ffd070'); }
   }
 
-  dispose() { this.snuffed = false; this.candles = []; this.fires = []; super.dispose(); }
+  dispose() {
+    for (const py of this.pyres || []) { const i = this.g.fx.fires.indexOf(py.f); if (i >= 0) this.g.fx.fires.splice(i, 1); }
+    this.pyres = [];
+    this.snuffed = false; this.candles = []; this.fires = []; super.dispose();
+  }
 }
 
 const KITS = { wanderer: Wanderer, bell: Bellwright, leech: LeechDoctor, coffin: CoffinBearer, wick: WickBearer };
