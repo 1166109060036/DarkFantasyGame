@@ -369,6 +369,11 @@ export class Combat {
       }
       if (front && heavy) { e.state = 'stagger'; e.t = 1.0; e.guarding = false; e.comboN = 0; g.ui.combatText('ทำลายการ์ด!', 'parry'); }
     }
+    // the King of a Hundred Hands sleeps sealed in roots until the story comes for him
+    if (e.type === 'handking' && g.quests && !g.quests.bossReady()) {
+      g.ui.combatText('รากไม้นับร้อยพันร่างนั้นไว้ — ฟันไม่เข้า', 'bad');
+      return;
+    }
     // a big thing caught with its arms in the ground; anything laid open by a path's skill
     if (e.weakT > 0) dmg *= 1.5;
     if (e.exposeT > 0) dmg *= e.exposeK;
@@ -411,6 +416,7 @@ export class Combat {
     g.audio.enemyDie(e.type, e.pos);
     g.kit.onKill(e);
     g.contracts?.onKill(e);
+    g.quests?.onEnemyKilled?.(e);
     if (g.moba) g.moba.earn({ soul: e.soul ?? (def.elite || def.named ? 4 : 1), xp: 5 }, def.name);
     else {
       // the wild pays half again; the same kind of kill, over and over, pays less and less
@@ -429,8 +435,8 @@ export class Combat {
       e.respawn = 1e12;
       for (const f of e.ai?.fx || []) f.update(99);           // clear its marks and hands
       g.ui.banner('ชนะ', `${def.name} พ่ายแพ้`);
-      setTimeout(() => g.ui.toast('รังไหมบนต้นไม้แขวนคอเงียบลงแล้ว'), 1800);
       g.music?.sting('victory');
+      if (g.quests) setTimeout(() => g.quests.onBossDefeated(), 1600);
       g.save();
     } else if (def.boss) {
       this.bossDefeated = true;
@@ -751,7 +757,7 @@ export class Combat {
       }
       const fighting = e.state === 'chase' || e.state === 'windup' || e.state === 'strike' || e.state === 'recover' || e.state === 'stagger';
       if (fighting && def.boss) { bossEngaged = true; bossE = e; }
-      if (fighting && e.named && dist < 30) namedEngaged = e;
+      if (fighting && (e.named || e.storyBoss) && dist < 30) namedEngaged = e;
       // a weeper creeping up unseen must not give herself away by starting the battle music
       if (fighting && dist < 35 && !(def.stalker && e.state === 'chase' && dist > 5)) engaged += def.weight > 2 ? 2 : 1;
 

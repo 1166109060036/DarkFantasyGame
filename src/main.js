@@ -8,7 +8,8 @@ import { CollisionWorld } from './collision.js';
 import { buildStructures } from './structures.js';
 import { buildVegetation, buildArenaVegetation } from './vegetation.js';
 import { ArenaTerrain, buildArena, arenaKeepOut, ARENA_LOCATIONS, ARENA_BASES } from './arena.js';
-import { createToad, createCrow, createViewModel, blobShadow } from './characters.js';
+import { createToad, createCrow, createViewModel, blobShadow, createPatron } from './characters.js';
+import { storySpots } from './wilds.js';
 import { Flock, Particles } from './entities.js';
 import { Combat } from './combat.js';
 import { DoomHud } from './hud.js';
@@ -33,7 +34,7 @@ import { Mount } from './mount.js';
 import { Lobby } from './lobby.js';
 import { UI } from './ui.js';
 import { Quests } from './quests.js';
-import { PASTURE, FENCE_R, TOAD, TEMPLE, SPAWN, LOST_SHEEP, LOCATIONS, TAVERN, CASTLE, HEAD, RIBCAGE } from './layout.js';
+import { PASTURE, FENCE_R, TOAD, TEMPLE, SPAWN, LOST_SHEEP, LOCATIONS, TAVERN, CASTLE, HEAD, RIBCAGE, FARMS, PIER } from './layout.js';
 import { DayNight } from './daynight.js';
 import { clamp } from './util.js';
 
@@ -254,6 +255,26 @@ class Game {
       this.collision.addBox(s.position.x, 4, s.position.z, 1.1, 2.4, 1.1);
     }
 
+    // the chapter's people out in the wild: Min in the corn (by day), the ferryman on the pier
+    this.storySpots = storySpots(this.terrain);
+    const S = this.storySpots;
+    const min = createPatron(M, new THREE.Color(0.75, 0.82, 0.95), { hood: false, skin: new THREE.Color(0.8, 0.86, 0.95) });
+    min.scale.setScalar(0.62);
+    min.position.copy(S.min);
+    min.rotation.y = Math.atan2(-(S.min.x - FARMS.x), -(S.min.z - FARMS.z));
+    const glow = new THREE.Sprite(M.sprite);
+    glow.position.y = 1.2; glow.scale.setScalar(2.4);
+    min.add(glow);
+    const ferry = createPatron(M, new THREE.Color(0.12, 0.12, 0.14), { hood: true, skin: new THREE.Color(0.08, 0.08, 0.09) });
+    ferry.scale.setScalar(1.22);
+    ferry.position.copy(S.ferryman);
+    ferry.rotation.y = Math.atan2(PIER.x - S.ferryman.x, PIER.z - S.ferryman.z);
+    ferry.add(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 3.4, 5), M.wood).translateX(0.45).translateY(1.4));
+    scene.add(min, ferry);
+    this.collision.addCircle(S.ferryman.x, S.ferryman.z, 0.45, S.ferryman.y - 1, S.ferryman.y + 2);
+    this.npcs.min = { obj: min, pos: S.min, name: 'มิ้น' };
+    this.npcs.ferryman = { obj: ferry, pos: S.ferryman, name: 'คนแจวเรือไร้หน้า' };
+
     this.interactables = [
       { id: 'crow', pos: crowPos, r: 3.6, label: 'คุยกับโกวัก' },
       { id: 'toad', pos: toadPos, r: 3.8, label: 'คุยกับยายคางคก' },
@@ -441,7 +462,8 @@ class Game {
     });
     // lost sheep that were never searched for go home once the quest is past them
     if (this.quests.stage >= 2) this.lostSheep.forEach((s, i) => { if (s.mode === 'lost') { s.x = PASTURE.x + i * 3; s.z = PASTURE.z - 5; s.mode = 'graze'; } });
-    if (this.quests.stage >= 7) this.spawnBeam();
+    if (this.quests.done) this.chapterAftermath();
+    else this.quests.restore();
   }
 
   // ---------------------------------------------------------------- classes (src/classes.js)
@@ -585,6 +607,52 @@ class Game {
     this.endingBeam = m;
   }
 
+  // the King of a Hundred Hands has fallen: the cocoons open, the moon breathes, the stone king stirs
+  endChapter() {
+    const g = this, scene = this.scene, M = this.M;
+    this.audio.chime();
+    this.onQuestChanged();
+    // lights rise from every cocoon on the hanging tree
+    const lights = (this.fx.cocoons || []).map((c, i) => {
+      const s = new THREE.Sprite(M.sprite);
+      s.position.copy(c); s.scale.setScalar(1.4);
+      s.userData = { v: 2.5 + (i % 5) * 0.6, delay: i * 0.25 };
+      scene.add(s);
+      return s;
+    });
+    const t0 = this.time;
+    const rise = () => {
+      const t = this.time - t0;
+      for (const s of lights) if (t > s.userData.delay) s.position.y += s.userData.v * 0.016;
+      if (t < 14) requestAnimationFrame(rise); else lights.forEach((s) => scene.remove(s));
+    };
+    rise();
+    setTimeout(() => this.ui.banner('รังไหมแตกออกทีละใบ', 'แสงสีฟ้าลอยขึ้นสู่ฟ้า... ดวงจันทร์หายใจออก'), 2500);
+    setTimeout(() => this.ui.banner('', '"ลูกข้า... ในที่สุดเจ้าก็แบมือ"'), 7500);
+    setTimeout(() => { this.chapterAftermath(); this.audio.discover(); }, 9000);
+    setTimeout(() => {
+      this.state = 'paused';
+      if (document.pointerLockElement) document.exitPointerLock();
+      document.getElementById('ending').classList.remove('hidden');
+      g.save();
+    }, 12500);
+  }
+
+  // the world after the chapter: the stone king's eyes are lit
+  chapterAftermath() {
+    if (this.kingEyes) return;
+    const f = new THREE.Vector3(0.85, 0, -0.52), sd = new THREE.Vector3(-0.52, 0, -0.85);
+    this.kingEyes = [-1, 1].map((k) => {
+      const s = new THREE.Sprite(this.M.sprite.clone());
+      s.material.color = new THREE.Color(1.6, 1.2, 0.5);
+      s.material.fog = false;
+      s.position.set(HEAD.x, 19, HEAD.z).addScaledVector(f, 11).addScaledVector(sd, 4.5 * k);
+      s.scale.setScalar(5);
+      this.scene.add(s);
+      return s;
+    });
+  }
+
   finishChapter() {
     this.quests.stage = 7;
     this.spawnBeam();
@@ -634,6 +702,8 @@ class Game {
       if (p.hp >= p.maxHp) { this.ui.toast('เลือดเต็มอยู่แล้ว'); return false; }
       p.hp = Math.min(p.maxHp, p.hp + def.heal);
       this.ui.toast(`ดื่ม${def.name}`);
+    } else if (def.special) {
+      return this.quests.useSpecial(def.special);   // not used up
     } else if (def.buff) {
       const [name, secs] = def.buff;
       this.buffs[name] = secs;
@@ -652,7 +722,7 @@ class Game {
   }
 
   // damage multiplier for the player's blows, and the share of incoming damage that gets through
-  get damageMul() { return this.combat.swordMul * (1 + this.gear.sword * 0.2) * (this.buffs.oil > 0 ? 1.5 : 1); }
+  get damageMul() { return this.combat.swordMul * (1 + this.gear.sword * 0.2) * (this.buffs.oil > 0 ? 1.5 : 1) * (this.quests?.guardForged ? 1.25 : 1); }
 
   get armorMul() { return 1 - this.gear.cloak * 0.08; }
 
@@ -762,7 +832,8 @@ class Game {
     if (id === 'board') { this.audio.ui(); this.openMenu('board'); return; }
     if (id.startsWith('node:')) { this.moba?.gather(id); return; }
     if (id.startsWith('clue:')) { this.contracts.inspect(id); return; }
-    this.checkpoint = it.checkpoint || { x: this.npcs[id].pos.x + 2, z: this.npcs[id].pos.z + 2 };
+    if (id.startsWith('story:')) { this.quests.inspect(id); return; }
+    this.checkpoint = it?.checkpoint || { x: this.npcs[id].pos.x + 2, z: this.npcs[id].pos.z + 2 };
     if (id === 'crow') this.audio.caw(this.npcs.crow.obj.position);
     if (id === 'toad') this.audio.croak(this.npcs.toad.obj.position);
     this.ui.openDialogue(this.quests.talk(id), () => this.updateHud());
@@ -871,6 +942,11 @@ class Game {
 
   animateNpcs(dt) {
     const p = this.player, crow = this.npcs.crow.obj;
+    if (this.npcs.min) {
+      const m = this.npcs.min.obj;
+      m.visible = this.quests.stage >= 7 && !this.dayNight.isNight;
+      if (m.visible) m.position.y = this.npcs.min.pos.y + Math.sin(this.time * 1.3) * 0.05;
+    }
     const dCrow = crow.position.distanceTo(p.pos);
     crow.rotation.z = Math.sin(this.time * 0.9) * 0.015;
     const crowGoal = dCrow < 7 ? Math.atan2(p.pos.x - crow.position.x, p.pos.z - crow.position.z) : crow.userData.baseRy;
@@ -919,7 +995,7 @@ class Game {
       // nearest interactable in front of the player
       let best = null, bd = Infinity;
       const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
-      for (const it of this.interactables) {
+      for (const it of [...this.interactables, ...(ARENA ? [] : this.quests.spotsNow())]) {
         const dx = it.pos.x - p.pos.x, dz = it.pos.z - p.pos.z, d = Math.hypot(dx, dz);
         if (d < it.r && d < bd && (d < 1.5 || (dx * fx + dz * fz) / d > 0.2) && Math.abs(it.pos.y - p.pos.y) < 3) { bd = d; best = it; }
       }
@@ -1032,7 +1108,7 @@ class Game {
     // world animation runs in every state so the title screen is alive too
     this.weather.update(dt);
     const w = this.weather;
-    const calm = this.quests.stage >= 7 ? 0.35 : 1;
+    const calm = this.quests.done ? 0.35 : 1;
     const rainI = w.intensity * calm;
     this.rain.update(this.camera.position, rainI * (1 - this.indoor));
     this.audio.setRain(rainI * (1 - this.indoor * 0.75));

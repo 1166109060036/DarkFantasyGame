@@ -188,6 +188,14 @@ export function updateHandKing(e, dt, c, { dist, toPlayer, playerOk }) {
   switch (ai.mode) {
     case 'dormant':
       e.state = 'idle';
+      // sealed in roots until the story comes for him (src/quests.js)
+      if (g.quests && !g.quests.bossReady()) {
+        if (playerOk && dist < WAKE && g.time > (ai.warnAt || 0)) {
+          ai.warnAt = g.time + 25;
+          g.ui.toast(g.quests.huntOpen ? 'รากไม้หนาพันรอบร่างนั้นไว้... ต้องหาทางตัดรังไหมก่อน' : 'บางสิ่งหมอบอยู่ใต้รากไม้... ยังไม่ถึงเวลาของมัน');
+        }
+        break;
+      }
       if (playerOk && (dist < WAKE || e.hp < def.hp)) {
         ai.mode = 'roar'; ai.t = 2.6;
         g.audio.enemyCue('handking', 'aggro', e.pos);
@@ -220,7 +228,8 @@ export function updateHandKing(e, dt, c, { dist, toPlayer, playerOk }) {
         ai.phase = 2; ai.atk = null; ai.mode = 'roar'; ai.t = 2.4;
         g.audio.enemyCue('handking', 'aggro', e.pos);
         g.ui.combatText('รังไหมแตกออก!', 'bad');
-        for (let i = 0; i < 3; i++) {
+        // the finger of grain: the cocoons are mostly empty now
+        for (let i = 0; i < (g.quests?.has('grain') ? 1 : 3); i++) {
           const a = i * 2.1, x = e.home.x + Math.cos(a) * 9, z = e.home.z + Math.sin(a) * 9;
           const m = c.spawn('crawler', x, z);
           Object.assign(m, { summoned: true, activeOverride: 'always', state: 'chase' });
@@ -262,7 +271,8 @@ export function updateHandKing(e, dt, c, { dist, toPlayer, playerOk }) {
   }
 
   function startAttack(kind, e, c, fast) {
-    const base = ATK[kind], W = base.W * fast;
+    // the finger of wind: its grabbing hand is slower to come down
+    const base = ATK[kind], W = base.W * fast + (kind === 'grab' && g.quests?.has('wind') ? 0.4 : 0);
     const fwd = () => new THREE.Vector3(Math.sin(e.ry), 0, Math.cos(e.ry));
     const atk = { kind, t: 0, W, dur: base.dur * fast, side: Math.random() < 0.5 ? -1 : 1, done: {} };
     g.audio.enemyCue('handking', 'windup', e.pos);
@@ -340,7 +350,7 @@ export function updateHandKing(e, dt, c, { dist, toPlayer, playerOk }) {
     m.position.set(at.x, at.y + 0.15, at.z);
     scene.add(m);
     const f = { r: 1, done: false, hit: already, update(dt) {
-      f.r += dt * 13;
+      f.r += dt * (g.quests?.has('water') ? 9 : 13);      // the finger of water: the wave rolls slower
       m.scale.setScalar(f.r);
       waveMat.opacity = 0.8 * (1 - f.r / 20);
       const d = Math.hypot(p.pos.x - at.x, p.pos.z - at.z);

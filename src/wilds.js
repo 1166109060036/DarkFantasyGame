@@ -201,6 +201,15 @@ function windmill(B, Cw, T, scene, M, fx) {
   hub.add(rotor);
   scene.add(hub);
   (fx.spins ||= []).push({ o: rotor, v: 0.35 });
+  // the torn-off sail, put back when the story mends the mill (src/quests.js)
+  fx.windmill = {
+    addSail() {
+      if (this.done) return;
+      this.done = true;
+      const th = Math.PI, dx = -Math.sin(th), dy = Math.cos(th), sx = Math.cos(th), sy = Math.sin(th), at = 2.8 + 3.75;
+      rotor.add(new THREE.Mesh(part(boxGeom(1.9, 7.5, 0.04, 2), C(0.86, 0.8, 0.68), { pos: [dx * at + sx * 1.05, dy * at + sy * 1.05, 0.1], rot: [0, 0, th] }), M.plain));
+    },
+  };
   // sacks and a broken cart at its foot
   for (let i = 0; i < 5; i++) {
     const sx = x - 6 + (r() - 0.5) * 3, sz = z + 3 + (r() - 0.5) * 3;
@@ -423,8 +432,10 @@ function hangingTree(B, Cw, T, scene, M, fx) {
     new THREE.Vector2(0.001, -1.0), new THREE.Vector2(0.3, -0.75), new THREE.Vector2(0.45, -0.2),
     new THREE.Vector2(0.42, 0.4), new THREE.Vector2(0.25, 0.85), new THREE.Vector2(0.001, 1.0),
   ], 7);
+  fx.cocoons = [];
   for (const p of hangs) {
     const rope = 1.5 + r() * 2.5;
+    fx.cocoons.push(new THREE.Vector3(p.x, p.y - rope - 0.9, p.z));
     B.add('wood', part(boxGeom(0.05, rope, 0.05, 1), C(0.5, 0.45, 0.35), { pos: [p.x, p.y - rope / 2, p.z] }));
     B.add('plain', part(cocoon, C(0.74, 0.7, 0.6), { pos: [p.x, p.y - rope - 0.9, p.z], rot: [(r() - 0.5) * 0.2, r() * 3, (r() - 0.5) * 0.2] }));
   }
@@ -516,7 +527,67 @@ export function wildChests() {
   ];
 }
 
+// ---------------------------------------------------------------- the story's places (src/quests.js)
+// Where the chapter's things are: the bell-ringer's grave, the bell, the stones' altar, the sail in
+// the barn, the mill door, the fallen cocoon, Min's haystack, the ferryman, the three murals, the
+// cathedral dais, the hunter's journal, where Oren waits.
+export function storySpots(T) {
+  const at = (x, z, dy = 0) => new THREE.Vector3(x, T.getHeight(x, z) + dy, z);
+  const bt = frame(BELLTOWER.x, BELLTOWER.z, 0.18), gB = T.getHeight(BELLTOWER.x, BELLTOWER.z);
+  const pr = frame(PIER.x, PIER.z, Math.atan2(DROWNED.x - PIER.x, DROWNED.z - PIER.z));
+  const nave = frame(DROWNED.x + 34, DROWNED.z - 52, 0.15);
+  const v = (xz, y) => new THREE.Vector3(xz[0], y, xz[1]);
+  return {
+    grave: at(...bt(-3, -9)),
+    bell: new THREE.Vector3(BELLTOWER.x, gB + 0.25 + 18, BELLTOWER.z),
+    stones: at(STONES.x, STONES.z),
+    sail: at(FARMS.x + 18 + 3, FARMS.z - 24 - 2),
+    millDoor: at(WINDMILL.x - 4.4, WINDMILL.z),
+    cocoon: at(WINDMILL.x - 7, WINDMILL.z + 9),
+    min: at(FARMS.x - 1.5, FARMS.z - 4.5),
+    ferryman: v(pr(0.3, 32.5), 1.0),
+    murals: [v(nave(-7.5, -5.0), 0.5), v(nave(2.5, 5.0), 0.5), v(nave(14.4, 0), 0.5)],
+    dais: v(nave(11, 0), 0.45),
+    journal: at(HUNTER.x + 1.6, HUNTER.z + 1.8),
+    oren: at(-500, 19),
+    cocoons: [],
+  };
+}
+
+// things the story picks up or changes, kept out of the merged meshes so they can go
+function storyProps(B, Cw, T, scene, M, fx) {
+  const S = storySpots(T), props = {};
+  // the bell-ringer's grave: a taller stone, with a candle still burning
+  const gv = S.grave;
+  block(B, Cw, 'stone', { x: gv.x, y: gv.y + 0.6, z: gv.z, w: 0.9, h: 1.5, d: 0.25, color: C(0.82, 0.8, 0.76), collide: false });
+  lantern(B, scene, M, fx, gv.x + 0.6, gv.y + 0.3, gv.z + 0.4);
+  // the torn sail, leaning inside the barn
+  const sail = new THREE.Group();
+  sail.add(new THREE.Mesh(part(boxGeom(0.3, 4.2, 0.28, 2), C(0.5, 0.4, 0.33), { pos: [0, 2.1, 0] }), M.wood));
+  sail.add(new THREE.Mesh(part(boxGeom(1.6, 3.6, 0.04, 2), C(0.82, 0.76, 0.64), { pos: [0.9, 2.2, 0.05] }), M.plain));
+  sail.position.copy(S.sail); sail.rotation.set(0, 0.4, 0.25);
+  scene.add(sail); props.sail = sail;
+  // the cocoon that fell from the sky under the mill
+  const coc = new THREE.Mesh(part(new THREE.LatheGeometry([
+    new THREE.Vector2(0.001, -1.0), new THREE.Vector2(0.3, -0.75), new THREE.Vector2(0.45, -0.2),
+    new THREE.Vector2(0.42, 0.4), new THREE.Vector2(0.25, 0.85), new THREE.Vector2(0.001, 1.0),
+  ], 7), C(0.74, 0.7, 0.6)), M.plain);
+  coc.position.copy(S.cocoon).add(new THREE.Vector3(0, 0.4, 0)); coc.rotation.set(Math.PI / 2, 0.6, 0);
+  scene.add(coc); props.cocoon = coc;
+  // three murals in the nave
+  const muralCol = [C(0.8, 0.72, 0.55), C(0.72, 0.62, 0.58), C(0.66, 0.6, 0.66)];
+  S.murals.forEach((m, i) => {
+    const ry = 0.15 + (i === 2 ? Math.PI / 2 : 0);
+    block(B, Cw, 'stone', { x: m.x, y: 2.6, z: m.z, w: 3.2, h: 2.2, d: 0.12, ry, color: muralCol[i], collide: false });
+    B.add('glow', part(new THREE.BoxGeometry(2.6, 0.06, 0.13), C(0.3, 0.7, 0.5), { pos: [m.x, 3.75, m.z], rot: [0, ry, 0] }));
+  });
+  // the hunter's journal on a log by the fire
+  B.add('plain', part(new THREE.BoxGeometry(0.32, 0.06, 0.24), C(0.42, 0.28, 0.18), { pos: [S.journal.x, S.journal.y + 0.5, S.journal.z] }));
+  fx.story = props;
+}
+
 export function buildWilds(B, Cw, terrain, scene, M, fx) {
+  storyProps(B, Cw, terrain, scene, M, fx);
   bellTower(B, Cw, terrain, scene, M, fx);
   standingStones(B, Cw, terrain, scene, M, fx);
   windmill(B, Cw, terrain, scene, M, fx);
