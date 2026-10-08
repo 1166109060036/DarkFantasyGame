@@ -47,67 +47,71 @@ export function createHollow() {
       }
     }
     obj.add(body);
-    Object.assign(ud, { body, bones, mat });
+    Object.assign(ud, { body, bones, mats: [mat] });
   };
   whenLoaded(RIG, attach);
 
-  // st: { windup, striking, stagger, moving, running, speed, dying }
-  ud.animate = (e, dt, t, st) => {
-    const bn = ud.bones;
-    if (!bn) return;
-    ud.mat.emissive.setRGB(e.flash * 0.6, e.flash * 0.25, e.flash * 0.1);
-    const run = st.running ? 1 : 0;
-    const spd = e.curSpeed || 0;
-    ud.ph = (ud.ph || e.phase) + dt * spd * 2.4;
-    const ph = ud.ph, a = Math.min(1, spd / 2.2);
-    const sw = Math.sin(ph), cw = Math.cos(ph);
-    const guard = e.guardT > 0 ? 1 : 0;
-    ud.guard = lerp(ud.guard || 0, guard || e.guarding ? 1 : 0, Math.min(1, dt * 10));
-    const gk = ud.guard;
-    const wk = st.windup || 0, sk = st.striking || 0, stg = st.stagger || 0;
-    const left = (e.comboN || 0) % 2 === 1;          // the second blow of a combination comes from the left
-    const breathe = Math.sin(t * 1.6 + e.phase) * 0.03;
-
-    // legs
-    const stride = a * (0.55 + run * 0.25);
-    rot(bn.thighL, -sw * stride - gk * 0.15, 0, 0);
-    rot(bn.thighR, sw * stride - gk * 0.15, 0, 0);
-    rot(bn.shinL, (0.1 + Math.max(0, cw) * 0.6 * a) + gk * 0.25);
-    rot(bn.shinR, (0.1 + Math.max(0, -cw) * 0.6 * a) + gk * 0.25);
-    rot(bn.footL, -0.1 * a);
-    rot(bn.footR, -0.1 * a);
-    // body: hunched, swaying, leaning into a run, twisting into a punch
-    const twist = (left ? -1 : 1) * (wk * 0.5 - sk * 0.45);
-    rot(bn.hips, 0, sw * 0.08 * a, 0);
-    rot(bn.spine, 0.08 + run * 0.15 + gk * 0.1 + breathe - stg * 0.35 + sk * 0.12, twist * 0.5, 0);
-    rot(bn.chest, 0.06 + breathe, twist * 0.5, 0);
-    rot(bn.upper, 0.04, 0, 0);
-    rot(bn.neck, 0.18 - gk * 0.1, 0, Math.sin(t * 0.7 + e.phase) * 0.06 * (1 - a));
-    rot(bn.head, -0.12 - stg * 0.2, -twist * 0.5, 0);
-    // arms: swinging when walking, fists up in a guard, a hook thrown from the shoulder
-    const armSwing = sw * 0.45 * a;
-    let aL = [armSwing - 0.15, 0, -0.1], fL = [-0.35], aR = [-armSwing - 0.15, 0, 0.1], fR = [-0.35];
-    if (gk > 0.01) {
-      aL = aL.map((v, i) => lerp(v, [-1.15, 0, 0.35][i], gk)); fL = [lerp(fL[0], -2.0, gk)];
-      aR = aR.map((v, i) => lerp(v, [-1.15, 0, -0.35][i], gk)); fR = [lerp(fR[0], -2.0, gk)];
-    }
-    const hit = (w, s, side) => [lerp(lerp(-0.6, -1.9, w), -1.45, s), 0, side * 0.35 * s];   // cock back high, then drive through
-    const hitFore = (w, s) => lerp(lerp(-1.4, -2.2, w), -0.15, s);
-    if (wk || sk) {
-      if (left) { aL = hit(wk, sk, -1); fL = [hitFore(wk, sk)]; } else { aR = hit(wk, sk, 1); fR = [hitFore(wk, sk)]; }
-    }
-    if (stg) { aL = [0.3, 0, -0.6]; aR = [0.3, 0, 0.6]; fL = [-0.3]; fR = [-0.3]; }
-    rot(bn.armL, ...aL); rot(bn.foreL, fL[0]);
-    rot(bn.armR, ...aR); rot(bn.foreR, fR[0]);
-    // falling: over backwards from the feet, knees giving way
-    if (st.dying != null) {
-      const k = Math.min(1, Math.max(0, st.dying));
-      e.obj.rotation.x = -k * k * 1.45;
-      rot(bn.shinL, 0.9 * k); rot(bn.shinR, 0.7 * k);
-      rot(bn.armL, -0.4 * k, 0, -0.9 * k); rot(bn.armR, -0.2 * k, 0, 1.0 * k);
-    } else e.obj.rotation.x = 0;
-    // a little bounce in the step
-    e.obj.position.y += Math.abs(sw) * 0.04 * a;
-  };
+  ud.animate = (e, dt, t, st) => animateLost(ud, rot, e, dt, t, st);
   return obj;
+}
+
+// how one of the Lost moves: shared with every body that fights like them (src/oren.js).
+// ud: { bones (keys of B), mats }; rot(bone, x, y, z) poses a bone about the model's axes
+// st: { windup, striking, stagger, moving, running, speed, dying }
+export function animateLost(ud, rot, e, dt, t, st) {
+  const bn = ud.bones;
+  if (!bn) return;
+  for (const m of ud.mats) m.emissive.setRGB(e.flash * 0.6, e.flash * 0.25, e.flash * 0.1);
+  const run = st.running ? 1 : 0;
+  const spd = e.curSpeed || 0;
+  ud.ph = (ud.ph || e.phase) + dt * spd * 2.4;
+  const ph = ud.ph, a = Math.min(1, spd / 2.2);
+  const sw = Math.sin(ph), cw = Math.cos(ph);
+  const guard = e.guardT > 0 ? 1 : 0;
+  ud.guard = lerp(ud.guard || 0, guard || e.guarding ? 1 : 0, Math.min(1, dt * 10));
+  const gk = ud.guard;
+  const wk = st.windup || 0, sk = st.striking || 0, stg = st.stagger || 0;
+  const left = (e.comboN || 0) % 2 === 1;          // the second blow of a combination comes from the left
+  const breathe = Math.sin(t * 1.6 + e.phase) * 0.03;
+
+  // legs
+  const stride = a * (0.55 + run * 0.25);
+  rot(bn.thighL, -sw * stride - gk * 0.15, 0, 0);
+  rot(bn.thighR, sw * stride - gk * 0.15, 0, 0);
+  rot(bn.shinL, (0.1 + Math.max(0, cw) * 0.6 * a) + gk * 0.25);
+  rot(bn.shinR, (0.1 + Math.max(0, -cw) * 0.6 * a) + gk * 0.25);
+  rot(bn.footL, -0.1 * a);
+  rot(bn.footR, -0.1 * a);
+  // body: hunched, swaying, leaning into a run, twisting into a punch
+  const twist = (left ? -1 : 1) * (wk * 0.5 - sk * 0.45);
+  rot(bn.hips, 0, sw * 0.08 * a, 0);
+  rot(bn.spine, 0.08 + run * 0.15 + gk * 0.1 + breathe - stg * 0.35 + sk * 0.12, twist * 0.5, 0);
+  rot(bn.chest, 0.06 + breathe, twist * 0.5, 0);
+  rot(bn.upper, 0.04, 0, 0);
+  rot(bn.neck, 0.18 - gk * 0.1, 0, Math.sin(t * 0.7 + e.phase) * 0.06 * (1 - a));
+  rot(bn.head, -0.12 - stg * 0.2, -twist * 0.5, 0);
+  // arms: swinging when walking, fists up in a guard, a hook thrown from the shoulder
+  const armSwing = sw * 0.45 * a;
+  let aL = [armSwing - 0.15, 0, -0.1], fL = [-0.35], aR = [-armSwing - 0.15, 0, 0.1], fR = [-0.35];
+  if (gk > 0.01) {
+    aL = aL.map((v, i) => lerp(v, [-1.15, 0, 0.35][i], gk)); fL = [lerp(fL[0], -2.0, gk)];
+    aR = aR.map((v, i) => lerp(v, [-1.15, 0, -0.35][i], gk)); fR = [lerp(fR[0], -2.0, gk)];
+  }
+  const hit = (w, s, side) => [lerp(lerp(-0.6, -1.9, w), -1.45, s), 0, side * 0.35 * s];   // cock back high, then drive through
+  const hitFore = (w, s) => lerp(lerp(-1.4, -2.2, w), -0.15, s);
+  if (wk || sk) {
+    if (left) { aL = hit(wk, sk, -1); fL = [hitFore(wk, sk)]; } else { aR = hit(wk, sk, 1); fR = [hitFore(wk, sk)]; }
+  }
+  if (stg) { aL = [0.3, 0, -0.6]; aR = [0.3, 0, 0.6]; fL = [-0.3]; fR = [-0.3]; }
+  rot(bn.armL, ...aL); rot(bn.foreL, fL[0]);
+  rot(bn.armR, ...aR); rot(bn.foreR, fR[0]);
+  // falling: over backwards from the feet, knees giving way
+  if (st.dying != null) {
+    const k = Math.min(1, Math.max(0, st.dying));
+    e.obj.rotation.x = -k * k * 1.45;
+    rot(bn.shinL, 0.9 * k); rot(bn.shinR, 0.7 * k);
+    rot(bn.armL, -0.4 * k, 0, -0.9 * k); rot(bn.armR, -0.2 * k, 0, 1.0 * k);
+  } else e.obj.rotation.x = 0;
+  // a little bounce in the step
+  e.obj.position.y += Math.abs(sw) * 0.04 * a;
 }

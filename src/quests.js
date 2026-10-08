@@ -17,6 +17,7 @@
 import * as THREE from 'three';
 import { LOST_SHEEP, HANGTREE, HUNTER } from './layout.js';
 import { ENEMY_TYPES } from './combat.js';
+import { createOren } from './oren.js';
 
 export const POTION_PRICE = 8;
 export const ESSENCE_GOAL = 5;
@@ -267,7 +268,13 @@ export class Quests {
     };
     if (kind === 'stones') for (const dx of [-7, 7]) make('armour', { x: S.stones.x + dx, z: S.stones.z + 5 }, null, 'stones');
     if (kind === 'guard') make('armour', S.dais, { name: 'องครักษ์คนสุดท้าย', hp: 20, damage: 28, coins: [40, 60], scale: 1.15 }, 'guard');
-    if (kind === 'oren') make('hollow', S.oren, { name: 'นายพรานโอเรน', hp: 14, damage: 18, speed: 2.8, coins: [30, 45] }, 'oren');
+    if (kind === 'oren') {
+      // one of the Lost in all but looks: he still wears his hunting coat, hat and mask
+      const e = make('hollow', S.oren, { name: 'นายพรานโอเรน', hp: 14, damage: 18, speed: 2.8, coins: [30, 45] }, 'oren');
+      g.scene.remove(e.obj);
+      e.obj = createOren(g.M);
+      g.scene.add(e.obj);
+    }
   }
 
   // after a load, a fight the story had started is still waiting
