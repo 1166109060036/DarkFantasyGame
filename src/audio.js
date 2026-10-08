@@ -392,6 +392,11 @@ export class AudioSys {
       this.voice({ freq: w ? 62 : 48, dur: w ? 1.0 : 1.6, gain: 0.2, vibrato: 4, slide: w ? 1.4 : 0.8, formant: 260, q: 2, ...P });
       this.burst({ dur: 1.0, freq: 220, q: 1, type: 'lowpass', gain: 0.25, ...P });
     }
+    if (type === 'hollow') {
+      // a man's voice with nothing left in it: a long breath out, a grunt as it throws a blow
+      if (w) this.voice({ freq: 130, dur: 0.22, gain: 0.12, slide: 0.7, formant: 650, q: 2, vibrato: 20, ...P });
+      else { this.burst({ dur: 1.2, freq: 700, q: 0.8, gain: 0.12, sweep: 0.6, attack: 0.2, ...P }); this.voice({ freq: 95, dur: 1.1, gain: 0.06, slide: 0.85, formant: 420, q: 2, vibrato: 5, ...P }); }
+    }
     if (type === 'knight') {
       this.burst({ dur: w ? 0.9 : 1.5, freq: 160, q: 0.8, type: 'lowpass', gain: 0.35, ...P });
       this.metal({ freq: 180, dur: 1.2, gain: 0.06, partials: [1, 2.4, 3.9], ...P });

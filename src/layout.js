@@ -130,6 +130,13 @@ export const WILD_LOCATIONS = [
 ];
 LOCATIONS.push(...WILD_LOCATIONS);
 
+// the Lost (src/hollow.js): travellers who never left, still walking the roads and the ruins
+export const HOLLOW_SPAWNS = {
+  valley: [[-118, -8], [72, 136], [-148, -100], [236, 34]],
+  wild: [[150, -360], [128, -446], [-40, -470], [300, -6], [424, -26], [-360, 26], [-400, 146], [184, 350],
+    [-20, 432], [132, -548], [-575, 30], [480, 160], [-462, 292]],
+};
+
 // the wild's own inhabitants
 export const WILD_SPAWNS = {
   wolf: [[-420, -40, 3], [-520, 160, 3], [-620, -120, 2], [-380, 260, 2], [260, -420, 2], [-120, -620, 3], [380, -520, 2]],

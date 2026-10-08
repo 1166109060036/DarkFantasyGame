@@ -94,7 +94,7 @@ const PROC_PLACES = [
   { name: 'บึงใต้', scene: [-90, 230], lair: [-60, 250] }, { name: 'ทุ่งตะวันออก', scene: [220, 10], lair: [240, 40] },
   { name: 'เชิงหุบผา', scene: [20, -110], lair: [-20, -125] }, { name: 'ชายป่าใกล้เห็ดยักษ์', scene: [-170, 60], lair: [-195, 85] },
 ];
-const TYPE_NAMES = { gaunt: 'ร่างซูบ', crawler: 'ร่างคลาน', wolf: 'หมาป่า', straw: 'หุ่นฟาง', brute: 'ยักษ์ซูบ' };
+const TYPE_NAMES = { gaunt: 'ร่างซูบ', crawler: 'ร่างคลาน', wolf: 'หมาป่า', straw: 'หุ่นฟาง', brute: 'ยักษ์ซูบ', hollow: 'ผู้หลงทาง' };
 
 export const BOARD = { x: TAVERN.x + 5, z: TAVERN.z - 9 };
 

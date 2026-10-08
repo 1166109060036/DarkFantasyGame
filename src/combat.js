@@ -4,9 +4,10 @@ import * as THREE from 'three';
 import { createWisp, createStrawman, createWolf, createLeech, createStoneKnight, blobShadow } from './characters.js';
 import {
   WISP_SPAWNS, STRAW_SPAWNS, WOLF_PACKS, LEECH_SPAWNS, KNIGHT_POS, GAUNT_SPAWNS, GAUNT_DAY_SPAWNS, CRAWLER_SPAWNS,
-  WEEPER_SPAWNS, BRUTE_SPAWNS, EXTRA_WOLF_PACKS, EXTRA_STRAW_SPAWNS, EXTRA_LEECH_SPAWNS, WILD_SPAWNS,
+  WEEPER_SPAWNS, BRUTE_SPAWNS, EXTRA_WOLF_PACKS, EXTRA_STRAW_SPAWNS, EXTRA_LEECH_SPAWNS, WILD_SPAWNS, HOLLOW_SPAWNS,
 } from './layout.js';
 import { createGaunt, createCrawler, createWeeper, createBrute } from './gaunts.js';
+import { createHollow } from './hollow.js';
 import { clamp, lerp, wrapAngle } from './util.js';
 import { rng } from './noise.js';
 import { SWORD_POSE } from './classes.js';
@@ -22,6 +23,8 @@ export const ENEMY_TYPES = {
   crawler: { name: 'ร่างคลาน', hp: 3, speed: 5.2, range: 1.8, windup: 0.45, recover: 1.1, damage: 12, aggro: 15, leash: 45, radius: 0.5, height: 0.9, weight: 0.6, active: 'night', lunge: 7, coins: [2, 4], respawn: 120, cull: 85, freq: 2.7 },
   weeper: { name: 'หญิงร่ำไห้', hp: 7, speed: 7.5, range: 1.7, windup: 0.3, recover: 1.3, damage: 30, aggro: 26, leash: 80, radius: 0.4, height: 2.1, weight: 1.2, active: 'night', stalker: true, coins: [8, 12], respawn: 300, cull: 95 },
   brute: { name: 'ร่างซูบยักษ์', hp: 16, speed: 1.8, range: 3.0, windup: 1.1, recover: 1.5, damage: 26, aggro: 18, leash: 35, radius: 0.9, height: 3.2, weight: 4, active: 'always', slamEvery: 2, coins: [20, 30], respawn: 600, cull: 110, freq: 2, elite: true },
+  // the Lost (src/hollow.js): people still, of a kind; they guard, combine blows and sidestep
+  hollow: { name: 'ผู้หลงทาง', hp: 6, speed: 2.3, sprint: 7, range: 2.0, windup: 0.5, recover: 0.9, damage: 13, aggro: 18, leash: 50, radius: 0.4, height: 1.95, weight: 1, active: 'always', guard: true, combo: 2, coins: [4, 8], respawn: 180, cull: 95, freq: 1 },
   knight: { name: 'อัศวินหินผู้เฝ้าสะพาน', hp: 32, speed: 2.5, range: 3.8, windup: 1.05, recover: 1.4, damage: 28, aggro: 22, leash: 40, radius: 1.1, height: 4.2, weight: 6, active: 'always', boss: true, slamEvery: 3, coins: [60, 60] },
 };
 
@@ -85,6 +88,7 @@ export class Combat {
       }
       if (best) this.spawn('leech', best[0], best[1]);
     });
+    HOLLOW_SPAWNS.valley.forEach(([x, z]) => this.spawn('hollow', x, z));
     this.boss = this.spawn('knight', KNIGHT_POS.x, KNIGHT_POS.z);
     this.boss.ry = -Math.PI / 2;
     this.spawnWild(r);
@@ -98,6 +102,7 @@ export class Combat {
     W.gauntDay.forEach(([x, z]) => { this.spawn('gaunt', x, z).activeOverride = 'always'; });
     for (const type of ['crawler', 'weeper', 'straw', 'brute', 'wisp']) W[type].forEach(([x, z]) => this.spawn(type, x, z));
     W.leech.forEach(([x, z]) => { if (T.getHeight(x, z) < -0.3) this.spawn('leech', x, z); });
+    HOLLOW_SPAWNS.wild.forEach(([x, z]) => this.spawn('hollow', x, z));
   }
 
   // the online arena: packs at the four camps, and a few strays in the woods. They hunt day and
@@ -123,7 +128,7 @@ export class Combat {
 
   spawn(type, x, z) {
     const def = ENEMY_TYPES[type], M = this.g.M;
-    const obj = { wisp: createWisp, straw: createStrawman, wolf: createWolf, leech: createLeech, knight: createStoneKnight, gaunt: createGaunt, crawler: createCrawler, weeper: createWeeper, brute: createBrute }[type](M);
+    const obj = { wisp: createWisp, straw: createStrawman, wolf: createWolf, leech: createLeech, knight: createStoneKnight, gaunt: createGaunt, crawler: createCrawler, weeper: createWeeper, brute: createBrute, hollow: createHollow }[type](M);
     this.g.scene.add(obj);
     let shadow = null;
     if (!def.fly && !def.water) {
@@ -330,6 +335,23 @@ export class Combat {
       this.hitStop = Math.max(this.hitStop, heavy ? 0.06 : 0.025);
       this.target = e; this.targetT = 3;
       return;
+    }
+    // the Lost turn a light blow from the front with their guard, and answer it at once;
+    // a heavy blow breaks the guard and staggers them
+    if (def.guard && e.guarding) {
+      const front = (Math.sin(e.ry) * -dir.x + Math.cos(e.ry) * -dir.z) / (Math.hypot(dir.x, dir.z) || 1) > 0.35;
+      if (front && !heavy) {
+        e.guardT = 0.5;
+        e.state = 'windup'; e.t = def.windup * 0.6;
+        g.audio.block();
+        g.particles.burst(e.pos.clone().setY(e.pos.y + 1.4), 5, 2.5, 0.3);
+        g.player.vel.x += dir.x * 2.5; g.player.vel.z += dir.z * 2.5;
+        if ((this.guardHint = (this.guardHint || 0) + 1) <= 3) g.ui.combatText('มันปัดป้อง! ฟันหนักหรืออ้อมไปฟันด้านข้าง', 'bad');
+        else g.ui.combatText('ปัดป้อง', 'bad');
+        this.target = e; this.targetT = 3;
+        return;
+      }
+      if (front && heavy) { e.state = 'stagger'; e.t = 1.0; e.guarding = false; e.comboN = 0; g.ui.combatText('ทำลายการ์ด!', 'parry'); }
     }
     // a stone-skinned bounty shrugs off light blows
     if (e.named?.affix === 'stone' && !heavy) { dmg *= 0.25; g.ui.combatText('ฟันไม่เข้า! ต้องฟันหนัก', 'info'); }
@@ -643,13 +665,29 @@ export class Combat {
           if (e.t <= 0) {
             this.enemyStrike(e);
             // a parry has already put it into a long stagger; otherwise it recovers normally
-            if (e.state === 'strike') { e.state = 'recover'; e.t = def.recover; }
+            // (or, for those that fight in combinations, throws the next blow straight away)
+            if (e.state === 'strike' && def.combo && (e.comboN = (e.comboN || 0) + 1) % def.combo) { e.state = 'windup'; e.t = def.windup * 0.55; }
+            else if (e.state === 'strike') { e.state = 'recover'; e.t = def.recover; }
           }
           break;
         case 'recover':
         case 'stagger':
           if (e.t <= 0) e.state = playerOk && active ? 'chase' : 'return';
           break;
+      }
+      if (def.guard) {
+        // fists up once you are close; a sidestep, now and then, when you start a swing
+        e.guarding = e.state === 'chase' && dist < 4.5;
+        e.guardT = (e.guardT || 0) - dt;
+        e.sideT = (e.sideT || 0) - dt;
+        if (this.swing && e.lastSwing !== this.swing) {
+          e.lastSwing = this.swing;
+          if (e.guarding && dist < 3.4 && e.sideT <= 0 && Math.random() < 0.3) {
+            const side = Math.random() < 0.5 ? -1 : 1;
+            e.vel.set(Math.cos(e.ry) * side * 6, 0, -Math.sin(e.ry) * side * 6);
+            e.sideT = 2.5;
+          }
+        }
       }
       const fighting = e.state === 'chase' || e.state === 'windup' || e.state === 'strike' || e.state === 'recover' || e.state === 'stagger';
       if (fighting && def.boss) bossEngaged = true;
