@@ -370,3 +370,5 @@ body.moba .moba-only { display: inline-block; }
 .sk-step.own .sk-cost { color: #f2d48a; }
 .sk-link { width: 2px; height: 10px; margin: 0 auto; background: rgba(160, 180, 220, 0.3); }
 @media (max-width: 640px) { #skills-cols { grid-template-columns: 1fr; } }
+
+#title .credits { font-size: 10px; color: var(--dim); opacity: 0.6; margin-top: 18px; }

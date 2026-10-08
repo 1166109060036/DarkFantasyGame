@@ -28,6 +28,7 @@ import { Contracts } from './contracts.js';
 import { Moba, SEATS, BUILDINGS, baseSpawn } from './moba.js';
 import { Progress, SkillsUI, TREES } from './upgrades.js';
 import { loadHeroAssets } from './heroes.js';
+import { Mount } from './mount.js';
 import { Lobby } from './lobby.js';
 import { UI } from './ui.js';
 import { Quests } from './quests.js';
@@ -148,6 +149,7 @@ class Game {
     this.classGear = new Set();     // paths whose starting gear was already handed out
     this.useProgress(new Progress());
     this.skillsUI = new SkillsUI(this);
+    this.mount = new Mount(this);
     // imported hero models (assets/heroes/) load in the background; until then the built ones stand in
     loadHeroAssets().then((k) => { this.heroModels = k; });
     this.setClass('wanderer');
@@ -362,6 +364,7 @@ class Game {
     if (!continueGame) {
       setTimeout(() => this.ui.toast('ฝนเย็นเยียบตกลงบนบึง... เดินตามรางรถไฟขึ้นไปทางเหนือ'), 600);
       if (!this.input.touch) setTimeout(() => this.ui.toast('WASD เดิน · Shift วิ่ง · คลิก ฟัน · คลิกขวา ป้องกัน · C หลบ · E คุย · M แผนที่'), 3200);
+      setTimeout(() => this.ui.toast('กด H ผิวปากเรียกแมลงสาบยักษ์มาขี่'), 7000);
     }
   }
 
@@ -663,6 +666,7 @@ class Game {
     for (const chip of this.contracts.chips()) html += `<span class="buff bounty">${chip}</span>`;
     for (const chip of this.events.chips()) html += `<span class="buff evt">${chip}</span>`;
     for (const chip of this.kit.chips()) html += `<span class="buff cls">${chip}</span>`;
+    for (const chip of this.mount.chips()) html += `<span class="buff">${chip}</span>`;
     if (html !== this._buffHTML) { this._buffHTML = html; document.getElementById('buffs').innerHTML = html; }
     // blade glow: amber while oiled, cold blue for the stone king's sword
     const mat = this.view.userData.sword.children[0].material;
@@ -699,6 +703,7 @@ class Game {
     this.ui.banner('ศึกราชาจันทรา', `เจ้าคือฐาน${SEATS[me].name} — ปกป้องราชาของเจ้า`);
     setTimeout(() => this.ui.toast('ตัดไม้/ทุบหินด้วย [E] · ฆ่าสัตว์ป่าที่แคมป์ได้วิญญาณ · [B] สร้างและซัมม่อนครีป · [M] แผนที่ถนน'), 2500);
     setTimeout(() => this.ui.toast('ถนนทุกสายมีตะเกียงและป้ายบอกทาง — เดินตามถนนไปถึงทุกฐาน'), 6500);
+    setTimeout(() => this.ui.toast('กด H ผิวปากเรียกแมลงสาบยักษ์ ขี่ไปฐานอื่นได้เร็วขึ้นมาก'), 10500);
   }
 
   // building placement: a ghost of the building follows your gaze; click to build, right-click to cancel
@@ -869,6 +874,7 @@ class Game {
   }
 
   die() {
+    this.mount.dismount();
     this.state = 'dead';
     this.deadT = 0;
     if (this.moba) {
@@ -900,6 +906,7 @@ class Game {
       if (input.consume('bag')) { this.openBag(); return; }
       if (this.moba && input.consume('build') && !this.moba.over) { this.openMenu('moba'); return; }
       if (input.consume('skills')) { this.openSkills(); return; }
+      if (input.consume('mount')) this.mount.toggle();
       // nearest interactable in front of the player
       let best = null, bd = Infinity;
       const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
@@ -934,6 +941,7 @@ class Game {
     }
 
     c.updateEnemies(dt, true);
+    this.mount.update(dt, input);
     if (this.moba) this.moba.update(dt);
     else { this.events.update(dt); this.contracts.update(dt); }
     this.updateBuffs(dt);
@@ -1026,6 +1034,7 @@ class Game {
 
     this.flock.update(dt, this.time, p);
     if (this.state !== 'play' && !halted) this.combat.updateEnemies(dt, false);
+    if (this.state !== 'play') this.mount.update(dt, null);
     this.particles.update(dt);
     this.loot.update(dt, this.time);
 

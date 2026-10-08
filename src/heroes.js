@@ -440,6 +440,12 @@ export function animateHero(obj, dt, s) {
   // breathing at rest
   b.chest.rotation.x = Math.sin(u.t * 1.7) * 0.025 * (1 - mm);
   b.head.rotation.x = -0.05;
+  // astride a mount: thighs forward and apart, shins hanging down its flanks
+  if (s.ride) {
+    b.hiL.rotation.set(-1.35, 0, 0.6); b.hiR.rotation.set(-1.35, 0, -0.6);
+    b.knL.rotation.x = 1.25; b.knR.rotation.x = 1.25;
+    b.spine.rotation.x = 0.12;
+  }
   if (kind === 'coffin') { b.shR.rotation.z = -0.22; b.elR.rotation.x = -0.1; }
   if (kind === 'wick') { b.shR.rotation.x -= 0.15; b.elR.rotation.x = -0.9; }      // the censer held out in front
   if (kind === 'leech') { b.spine.rotation.x += 0.12; b.neck.rotation.x = 0.15; }   // the stoop

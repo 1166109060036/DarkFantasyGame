@@ -964,7 +964,7 @@ class WickBearer extends Kit {
   update(dt, input) {
     const g = this.g, p = g.player, c = this.combat;
     // cup the flame (hold right mouse): the dark swallows you
-    const want = input.blockHeld && !c.swing;
+    const want = input.blockHeld && !c.swing && !g.mount?.ridden;
     if (want !== this.snuffed) {
       this.snuffed = want;
       if (!want) { this.unsnuffAt = g.time; this.ambushUsed = false; }

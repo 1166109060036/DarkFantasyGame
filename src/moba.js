@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import { part, mergeGeometries, clamp } from './util.js';
 import { createPatron } from './characters.js';
 import { createHero, animateHero } from './heroes.js';
+import { createMountBody, animateMountBody, MOUNT } from './mount.js';
 import { ENEMY_TYPES } from './combat.js';
 import { CLASSES } from './classes.js';
 import { rng } from './noise.js';
@@ -909,7 +910,7 @@ export class Moba {
       const slot = this.slotOf(from);
       if (slot == null) return;
       const p = this.P[slot];
-      if (m.t === 'st') Object.assign(p, { x: m.x, y: m.y, z: m.z, yaw: m.yaw, hp: m.hp, dead: !!m.dead, sw: m.sw | 0, sn: m.sn | 0 });
+      if (m.t === 'st') Object.assign(p, { x: m.x, y: m.y, z: m.z, yaw: m.yaw, hp: m.hp, dead: !!m.dead, sw: m.sw | 0, sn: m.sn | 0, rd: m.rd | 0 });
       if (m.t === 'hit') this.applyHit(m, slot);
       if (m.t === 'build') {
         const why = this.canPlace(m.type, slot, m.x, m.z);
@@ -974,7 +975,7 @@ export class Moba {
     const r1 = (v) => Math.round(v * 10) / 10;
     return {
       t: 'snap',
-      p: this.P.filter(Boolean).map((p) => [p.slot, r1(p.x), r1(p.y), r1(p.z), r1(p.yaw), Math.round(p.hp), p.dead ? 1 : 0, p.sw | 0, p.bot ? 1 : 0, p.alive ? 1 : 0, p.sn | 0]),
+      p: this.P.filter(Boolean).map((p) => [p.slot, r1(p.x), r1(p.y), r1(p.z), r1(p.yaw), Math.round(p.hp), p.dead ? 1 : 0, p.sw | 0, p.bot ? 1 : 0, p.alive ? 1 : 0, p.sn | 0, p.rd | 0]),
       c: [...this.Cr.values()].map((e) => [e.moba.id, CTYPES.indexOf(e.type), e.moba.owner, r1(e.pos.x), r1(e.pos.z), r1(e.ry), r1(Math.max(0, e.hp)), Math.max(0, STATES.indexOf(e.state))]),
       s: [...this.S.values()].map((s) => [s.id, BTYPES.indexOf(s.type), s.owner, r1(s.x), r1(s.z), r1(s.ry), r1(s.hp), Math.round(s.built * 100) / 100]),
       k: this.K.map((k) => (k ? r1(k.hp) : 0)),
@@ -984,12 +985,12 @@ export class Moba {
 
   applySnapshot(m) {
     // heroes
-    for (const [slot, x, y, z, yaw, hp, dead, sw, bot, alive, sn] of m.p) {
+    for (const [slot, x, y, z, yaw, hp, dead, sw, bot, alive, sn, rd] of m.p) {
       const p = this.P[slot];
       if (!p) continue;
       p.alive = !!alive; p.bot = !!bot;
       if (slot === this.me) continue;
-      Object.assign(p, { x, y, z, yaw, hp, dead: !!dead, sw: sw | 0, sn: sn | 0 });
+      Object.assign(p, { x, y, z, yaw, hp, dead: !!dead, sw: sw | 0, sn: sn | 0, rd: rd | 0 });
     }
     // creeps
     const seen = new Set();
@@ -1056,7 +1057,7 @@ export class Moba {
 
   removeAvatar(slot) {
     const a = this.avatars.get(slot);
-    if (a) { this.g.scene.remove(a.obj); this.avatars.delete(slot); }
+    if (a) { this.g.scene.remove(a.obj); if (a.ride) this.g.scene.remove(a.ride.root); this.avatars.delete(slot); }
   }
 
   updateAvatars(dt) {
@@ -1070,11 +1071,29 @@ export class Moba {
       a.yaw += Math.atan2(Math.sin(p.yaw - a.yaw), Math.cos(p.yaw - a.yaw)) * k;
       a.obj.position.copy(a.pos);
       a.obj.rotation.y = a.yaw + Math.PI;
+      // riding: the cockroach under them, turned the way it is going, the hero astride its back
+      const riding = !!p.rd && a.obj.visible;
+      if (riding && !a.ride) a.ride = createMountBody(this.g.scene);
+      if (a.ride) {
+        a.ride.root.visible = riding;
+        if (riding) {
+          const mx = a.pos.x - (a.lastX ?? a.pos.x), mz = a.pos.z - (a.lastZ ?? a.pos.z);
+          const head = Math.hypot(mx, mz) > 0.01 ? Math.atan2(-mx, -mz) : a.rideYaw ?? a.yaw;
+          a.rideYaw = (a.rideYaw ?? head) + Math.atan2(Math.sin(head - (a.rideYaw ?? head)), Math.cos(head - (a.rideYaw ?? head))) * Math.min(1, dt * 6);
+          a.ride.root.position.copy(a.pos);
+          a.ride.root.rotation.y = a.rideYaw;
+          V.set(MOUNT.seat.x, 0, MOUNT.seat.z).applyAxisAngle(THREE.Object3D.DEFAULT_UP, a.rideYaw);
+          a.obj.position.set(a.pos.x + V.x, a.pos.y + MOUNT.seat.y - 0.95, a.pos.z + V.z);
+          a.obj.rotation.y = a.rideYaw + Math.PI;
+          animateMountBody(a.ride, dt, a.speed, p.y - this.g.terrain.getHeight(p.x, p.z) > 0.5);
+        }
+      }
+      a.lastX = a.pos.x; a.lastZ = a.pos.z;
       // walk/run from how fast they are really moving; a new blow when their count goes up
       a.speed += ((dt > 0 ? moved * k / dt : 0) - a.speed) * Math.min(1, dt * 6);
       const blow = p.sn !== a.sn;
       a.sn = p.sn;
-      if (a.obj.visible) animateHero(a.obj, dt, { speed: a.speed, action: blow ? (p.sw === 2 ? 2 : 1) : p.sw === 3 ? 3 : 0 });
+      if (a.obj.visible) animateHero(a.obj, dt, { speed: riding ? 0 : a.speed, action: blow ? (p.sw === 2 ? 2 : 1) : p.sw === 3 ? 3 : 0, ride: riding });
     }
   }
 
@@ -1134,11 +1153,11 @@ export class Moba {
     const me = this.P[this.me];
     // sw: what the hero is doing (1 light blow, 2 heavy, 3 guarding); sn counts blows so each one is seen once
     const c = g.combat, act = c.swing ? (c.swing.kind === 'heavy' ? 2 : 1) : c.blocking ? 3 : 0;
-    Object.assign(me, { x: p.pos.x, y: p.pos.y, z: p.pos.z, yaw: p.yaw, hp: p.hp, dead: g.state === 'dead', sw: act, sn: c.swingN || 0 });
+    Object.assign(me, { x: p.pos.x, y: p.pos.y, z: p.pos.z, yaw: p.yaw, hp: p.hp, dead: g.state === 'dead', sw: act, sn: c.swingN || 0, rd: g.mount?.ridden ? 1 : 0 });
     this.pushOut(p.pos, 0.4, this.me);
     if (!this.host) {
       this.sendT -= dt;
-      if (this.sendT <= 0) { this.sendT = 1 / 12; this.net.send({ t: 'st', x: +me.x.toFixed(2), y: +me.y.toFixed(2), z: +me.z.toFixed(2), yaw: +me.yaw.toFixed(3), hp: Math.round(me.hp), dead: me.dead ? 1 : 0, sw: me.sw, sn: me.sn }); }
+      if (this.sendT <= 0) { this.sendT = 1 / 12; this.net.send({ t: 'st', x: +me.x.toFixed(2), y: +me.y.toFixed(2), z: +me.z.toFixed(2), yaw: +me.yaw.toFixed(3), hp: Math.round(me.hp), dead: me.dead ? 1 : 0, sw: me.sw, sn: me.sn, rd: me.rd }); }
     }
     if (this.host && !this.over) {
       for (const e of this.Cr.values()) if (e.alive && e.state !== 'dying') this.updateCreepAI(e, dt);

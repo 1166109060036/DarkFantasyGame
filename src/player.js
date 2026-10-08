@@ -51,7 +51,8 @@ export class Player {
     return new THREE.Vector3(-Math.sin(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), -Math.cos(this.yaw) * Math.cos(this.pitch));
   }
 
-  // mods (from combat): speedMul, sprintOk, dodgeVel (overrides movement), locked (staggered)
+  // mods (from combat): speedMul, sprintOk, dodgeVel (overrides movement), locked (staggered),
+  // ride (on the giant cockroach: its speeds, climb, girth and eye height; src/mount.js)
   update(dt, input, time, frozen = false, mods = {}) {
     if (!frozen) {
       this.yaw -= input.lookDX;
@@ -66,9 +67,10 @@ export class Player {
 
     const ground = this.terrain.getHeight(this.pos.x, this.pos.z);
     this.inWater = Math.max(0, WATER_LEVEL - Math.max(ground, this.collision.groundAt(this.pos.x, this.pos.z, this.pos.y)));
-    const sprint = input.sprint && mods.sprintOk !== false && Math.hypot(f, s) > 0.1 && !still;
-    this.sprinting = sprint && this.onGround;
-    let speed = (sprint ? 8.2 : 4.4) * (mods.speedMul ?? 1);
+    const ride = mods.ride;
+    const sprint = input.sprint && (ride || mods.sprintOk !== false) && Math.hypot(f, s) > 0.1 && !still;
+    this.sprinting = sprint && this.onGround && !ride;      // the mount does the running, not your legs
+    let speed = ride ? (sprint ? ride.run : ride.speed) : (sprint ? 8.2 : 4.4) * (mods.speedMul ?? 1);
     if (this.inWater > 0.3) speed *= 0.62;
     const accel = this.onGround ? 12 : 2.5;
     const k = Math.min(1, accel * dt);
@@ -81,7 +83,7 @@ export class Player {
       const gOld = this.terrain.getHeight(this.pos.x, this.pos.z);
       const gNew = this.terrain.getHeight(nx, nz);
       const dist = Math.hypot(nx - this.pos.x, nz - this.pos.z);
-      if (dist > 1e-5 && gNew > this.pos.y + 0.5 && (gNew - gOld) / dist > this.climb) return false;
+      if (dist > 1e-5 && gNew > this.pos.y + 0.5 && (gNew - gOld) / dist > (ride ? ride.climb : this.climb)) return false;
       this.pos.x = nx; this.pos.z = nz;
       return true;
     };
@@ -90,12 +92,13 @@ export class Player {
       if (!tryMove(nx, this.pos.z)) this.vel.x = 0;
       if (!tryMove(this.pos.x, nz)) this.vel.z = 0;
     }
-    this.collision.resolve(this.pos, this.radius, this.height);
+    this.collision.resolve(this.pos, ride ? ride.radius : this.radius, this.height);
     this.pos.x = clamp(this.pos.x, -LIMIT, LIMIT);
     this.pos.z = clamp(this.pos.z, -LIMIT, LIMIT);
 
     // vertical
-    if (!still && input.consume('jump') && this.onGround) {
+    if (ride) ride.mount.flap(this, input, dt);
+    else if (!still && input.consume('jump') && this.onGround) {
       this.vel.y = 6.4;
       this.onGround = false;
     }
@@ -116,7 +119,7 @@ export class Player {
     this.moving = this.onGround ? Math.min(1, hs / 4) : 0;
     this.bobT += hs * dt * 1.25;
     this.bob = Math.sin(this.bobT * 2) * 0.045 * this.moving;
-    if (this.moving > 0.3) {
+    if (this.moving > 0.3 && !ride) {
       this.stepTimer -= hs * dt;
       if (this.stepTimer <= 0) { this.stepTimer = 2.1; this.onStep?.(this.inWater > 0.15); }
     }
@@ -124,7 +127,7 @@ export class Player {
     const sh = this.shake * this.shake * 0.6;
     this.camera.position.set(
       this.pos.x + (Math.random() - 0.5) * sh,
-      this.camY + this.eye + this.bob + (Math.random() - 0.5) * sh - (mods.dodgeVel ? 0.18 : 0),
+      this.camY + (ride ? ride.eye : this.eye) + this.bob * (ride ? 0.4 : 1) + (Math.random() - 0.5) * sh - (mods.dodgeVel ? 0.18 : 0),
       this.pos.z + (Math.random() - 0.5) * sh,
     );
     this.camera.rotation.set(this.pitch, this.yaw, this.roll, 'YXZ');

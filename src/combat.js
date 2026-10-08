@@ -193,6 +193,7 @@ export class Combat {
       sprintOk: !this.exhausted && !this.blocking,
       dodgeVel: this.dodgeT > 0 ? this.dodgeVel : null,
       locked: this.staggerT > 0,
+      ride: this.g.mount?.ridden ? this.g.mount.mods() : null,
     };
   }
 
@@ -213,12 +214,13 @@ export class Combat {
     if (input.consume('skill')) kit.skill();
 
     // block (hold right mouse); the first PARRY_WINDOW seconds of a block parry
-    const wantBlock = kit.blockMode !== 'none' && input.blockHeld && !this.swing && this.dodgeT <= 0 && this.staggerT <= 0 && this.stamina > 0;
+    const riding = !!g.mount?.ridden;     // in the saddle, right mouse is the cockroach's bite
+    const wantBlock = !riding && kit.blockMode !== 'none' && input.blockHeld && !this.swing && this.dodgeT <= 0 && this.staggerT <= 0 && this.stamina > 0;
     if (wantBlock && !this.blocking) this.blockStart = t;
     this.blocking = wantBlock;
 
     // dodge
-    if (input.consume('dodge') && this.dodgeT <= 0 && this.staggerT <= 0 && !this.swing) {
+    if (input.consume('dodge') && !riding && this.dodgeT <= 0 && this.staggerT <= 0 && !this.swing) {
       if (this.stamina < 8) this.say('เหนื่อยเกินกว่าจะหลบ...');
       else {
         let f = input.forward, s = input.strafe;
@@ -418,6 +420,7 @@ export class Combat {
     }
     dmg = g.kit.onHurt(dmg * g.armorMul * g.kit.armorMul, e);
     p.hurt(dmg, g.time);
+    g.mount?.onRiderHurt(dmg);
     // the status-bar face flinches toward whoever landed the blow
     const rightDot = (-dx * Math.cos(p.yaw) + dz * Math.sin(p.yaw)) / Math.max(d, 1e-3);
     g.hud.hurt(Math.abs(rightDot) < 0.35 ? 0 : Math.sign(rightDot), dmg);
@@ -454,6 +457,7 @@ export class Combat {
     }
     dmg = g.kit.onHurt(dmg * g.armorMul * g.kit.armorMul, null);
     p.hurt(dmg, g.time);
+    g.mount?.onRiderHurt(dmg);
     this.lastHitBy = by;
     const rightDot = (-dx * Math.cos(p.yaw) + dz * Math.sin(p.yaw)) / d;
     g.hud.hurt(Math.abs(rightDot) < 0.35 ? 0 : Math.sign(rightDot), dmg);
