@@ -253,7 +253,7 @@ export class WorldEvents {
     let x = 0, z = 0;
     for (let tries = 0; tries < 30; tries++) {
       const a = Math.random() * Math.PI * 2, r = 50 + Math.random() * 100;
-      x = clamp(p.x + Math.cos(a) * r, -280, 280); z = clamp(p.z + Math.sin(a) * r, -280, 280);
+      x = clamp(p.x + Math.cos(a) * r, -720, 720); z = clamp(p.z + Math.sin(a) * r, -720, 720);
       if (g.terrain.getHeight(x, z) > 0.4) break;
     }
     const y = g.terrain.getHeight(x, z);

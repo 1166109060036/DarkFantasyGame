@@ -1,4 +1,5 @@
-// Hand-placed world layout. North is -Z, east is +X. The map spans -320..320 on both axes.
+// Hand-placed world layout. North is -Z, east is +X. The map spans -800..800 on both axes: the
+// old valley of Moonmire in the middle (-300..300) and four wild regions around it.
 
 export const WATER_LEVEL = 0;
 
@@ -13,9 +14,10 @@ export const RIVER = [
   [-18, 50], [-35, 110], [-62, 150], [-85, 195], [-95, 240],
 ];
 
-// Abandoned railway: from the flooded swamp up to the old station by the pasture.
+// Abandoned railway: from the drowned city's lake shore, through the flooded swamp, up to the old
+// station by the pasture.
 export const RAIL = [
-  [-175, 284], [-120, 258], [-75, 232], [-35, 196], [0, 150], [35, 100], [75, 55], [105, 25], [120, 12],
+  [-128, 418], [-176, 392], [-212, 344], [-175, 284], [-120, 258], [-75, 232], [-35, 196], [0, 150], [35, 100], [75, 55], [105, 25], [120, 12],
 ];
 
 export const PATHS = [
@@ -87,3 +89,55 @@ export const BRUTE_SPAWNS = [[CASTLE.x - 78, CASTLE.z + 18], [236, 34], [-2, -13
 export const EXTRA_WOLF_PACKS = [[-230, -60, 3], [-170, 150, 2]];
 export const EXTRA_STRAW_SPAWNS = [[184, -110], [250, -20], [96, -100], [70, 80]];
 export const EXTRA_LEECH_SPAWNS = [[-110, 260], [60, 230], [-30, 270]];
+
+// ---- The wild beyond the valley (the world grew from 640 m to 1600 m) ----
+// north: the bell-tower highlands
+export const BELLTOWER = { x: 140, z: -560 };
+export const STONES = { x: -300, z: -470 };
+// east: abandoned farmland
+export const WINDMILL = { x: 560, z: -60 };
+export const FARMS = { x: 470, z: 190 };
+// south: the drowned city in its lake
+export const LAKE = { x: -60, z: 590, r: 175 };
+export const DROWNED = { x: -60, z: 600 };
+export const PIER = { x: 150, z: 470 };
+// west: the dark forest
+export const HANGTREE = { x: -560, z: 20 };
+export const HUNTER = { x: -470, z: 300 };
+
+// roads out of the valley (graded into the ground, drawn on the map)
+export const ROADS = [
+  [[110, -118], [128, -200], [118, -280], [150, -360], [128, -440], [140, -520]],          // north, up to the bell tower
+  [[118, -440], [-40, -470], [-180, -480], [-282, -470]],                                     // across the highland to the stones
+  [[120, 12], [200, 4], [300, -6], [420, -30], [540, -56]],                                   // east to the windmill
+  [[420, -30], [450, 60], [470, 168]],                                                       // and down to the farms
+  [[196, 262], [180, 350], [160, 450]],                                                      // south from the castle lake to the pier
+  [[-150, 32], [-250, 30], [-360, 22], [-460, 18], [-536, 20]],                              // west into the dark forest
+  [[-360, 22], [-400, 140], [-450, 280]],                                                    // and on to the hunters' camp
+  [[-128, 418], [-20, 430], [80, 452], [150, 470]],                                          // along the lake shore
+];
+
+export const WILD_LOCATIONS = [
+  { id: 'belltower', name: 'หอระฆังบนยอดเขา', x: BELLTOWER.x, z: BELLTOWER.z, r: 55 },
+  { id: 'stones', name: 'ลานหินตั้งแห่งลมหนาว', x: STONES.x, z: STONES.z, r: 45 },
+  { id: 'windmill', name: 'กังหันลมร้าง', x: WINDMILL.x, z: WINDMILL.z, r: 45 },
+  { id: 'farms', name: 'ไร่ข้าวโพดร้าง', x: FARMS.x, z: FARMS.z, r: 60 },
+  { id: 'drowned', name: 'เมืองจมใต้ทะเลสาบ', x: DROWNED.x, z: DROWNED.z, r: 130 },
+  { id: 'pier', name: 'ท่าเรือผุ', x: PIER.x, z: PIER.z, r: 35 },
+  { id: 'hangtree', name: 'ต้นไม้แขวนคอ', x: HANGTREE.x, z: HANGTREE.z, r: 50 },
+  { id: 'hunter', name: 'เพิงนายพรานที่หายไป', x: HUNTER.x, z: HUNTER.z, r: 35 },
+];
+LOCATIONS.push(...WILD_LOCATIONS);
+
+// the wild's own inhabitants
+export const WILD_SPAWNS = {
+  wolf: [[-420, -40, 3], [-520, 160, 3], [-620, -120, 2], [-380, 260, 2], [260, -420, 2], [-120, -620, 3], [380, -520, 2]],
+  gaunt: [[-480, -80], [-600, 100], [-430, 330], [-500, 260], [300, 120], [460, 240], [600, 40], [-200, 420], [40, 420]],
+  gauntDay: [[-560, -30], [-520, 60], [-640, 10]],
+  crawler: [[-540, 0], [-590, 50], [-30, 470], [-160, 470], [60, 500], [-460, 300]],
+  weeper: [[BELLTOWER.x - 8, BELLTOWER.z + 10], [-300, -460], [-90, 520], [-560, 34]],
+  straw: [[440, 150], [500, 210], [470, 240], [520, 120], [560, -20], [600, -100], [380, 60], [420, 220]],
+  brute: [[160, -500], [540, -80], [-560, -40], [-20, 520]],
+  wisp: [[-100, 470], [0, 480], [-200, 500], [120, 520], [-300, -440], [-280, -500], [-560, 40]],
+  leech: [[-60, 470], [40, 540], [-180, 560], [-120, 660], [60, 660]],
+};

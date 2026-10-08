@@ -4,6 +4,8 @@ import * as THREE from 'three';
 import { ITEMS, itemIcon } from './items.js';
 import { part, mergeGeometries, polylineXAtZ, distToPolyline } from './util.js';
 import { rng } from './noise.js';
+import { regionWeights } from './terrain.js';
+import { wildChests } from './wilds.js';
 import { RIVER, TEMPLE, TOAD, HEAD, CASTLE, RIBCAGE, PATHS, PASTURE, FENCE_R, TAVERN, HOUSES, CANYON_ARCH_Z } from './layout.js';
 
 const C = (r, g, b) => new THREE.Color(r, g, b);
@@ -208,6 +210,19 @@ export class Loot {
     for (const [x, z] of [[-60, -128], [60, -130], [110, -126], [-120, -124], [-205, -120]]) {
       this.addNode('ore', this.freeSpot(x, z, 0.8));
     }
+
+    // the wild beyond the valley: herbs on the highland and the farmland, mushrooms in the dark
+    // forest and round the lake, ore veins among the northern tors
+    const w = rng(4712);
+    const wild = (pick) => () => {
+      for (;;) {
+        const x = (w() - 0.5) * 1440, z = (w() - 0.5) * 1440;
+        if (Math.max(Math.abs(x), Math.abs(z)) > 300 && w() < pick(regionWeights(x, z))) return [x, z];
+      }
+    };
+    tryPlace('herb', 26, wild((k) => k.north + k.east));
+    tryPlace('mushroom', 24, wild((k) => k.west + k.south * 0.8));
+    tryPlace('ore', 12, wild((k) => (k.north > 0.6 ? k.north : 0)));
   }
 
   addNode(type, pos) {
@@ -284,6 +299,7 @@ export class Loot {
       ['ruin-north', -144, -106, [['moonstone', 1], ['oil', 1]]],
       ['ruin-south', 66, -70, [['token', 2], ['potion', 1]]],
       ['ruin-far-east', 244, 46, [['watch', 1]]],
+      ...wildChests(),
     ];
     const geo = chestGeometry();
     for (const [id, x, z, contents, reach = 1.2] of list) {

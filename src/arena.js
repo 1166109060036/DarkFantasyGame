@@ -5,7 +5,8 @@
 import * as THREE from 'three';
 import { fbm } from './noise.js';
 import { clamp, lerp, smoothstep, part, mergeGeometries } from './util.js';
-import { HALF, SEG, STEP } from './terrain.js';
+// the arena keeps the old 640 m world's grid
+const HALF = 320, SEG = 256, STEP = (HALF * 2) / SEG;
 
 const N = SEG + 1;
 const C = (r, g, b) => new THREE.Color(r, g, b);

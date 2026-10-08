@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { clamp } from './util.js';
 import { WATER_LEVEL } from './layout.js';
 
-const LIMIT = 296;
+const LIMIT = 785;
 
 export class Player {
   constructor(camera, terrain, collision) {

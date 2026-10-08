@@ -4,6 +4,7 @@ import { part, boxGeom, polylineXAtZ, wrapAngle, distToPolyline } from './util.j
 import { StaticBuilder, r, block, slab, hangingMoss } from './builder.js';
 import { buildGiants } from './giants.js';
 import { buildVillage } from './village.js';
+import { buildWilds } from './wilds.js';
 import { PASTURE, FENCE_R, TOAD, TEMPLE, RIVER, PATHS, CANYON_ARCH_Z, CANYON_STEPS_Z } from './layout.js';
 
 
@@ -263,6 +264,7 @@ export function buildStructures(scene, terrain, M, C) {
 
   const fx = buildGiants(B, C, terrain, scene, M);
   const village = buildVillage(B, C, terrain, scene, M, fx);
+  buildWilds(B, C, terrain, scene, M, fx);
 
   B.build(scene, M);
   return { altar, braziers, fx, village, lantern: new THREE.Vector3(lx + 0.65, lg + 2.05, lz) };

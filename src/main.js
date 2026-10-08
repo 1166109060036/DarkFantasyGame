@@ -96,7 +96,7 @@ class Game {
     const M = (this.M = createMaterials(T));
     this.terrain = ARENA ? new ArenaTerrain() : new Terrain();
     scene.add(this.terrain.buildMesh(M.terrain));
-    this.water = createWater();
+    this.water = createWater(ARENA ? 720 : 1700);
     scene.add(this.water);
     this.sky = createSky();
     scene.add(this.sky);
@@ -137,7 +137,7 @@ class Game {
     this.player.onStep = (wet) => this.audio.step(this.stepSurface(wet));
     this.ui = new UI();
     if (ARENA) document.querySelector('#map h2').textContent = 'แผนที่สนามศึก';
-    this.ui.buildMap(this.terrain, this.terrain.rail.pts, ARENA ? this.terrain.roads : null, ARENA ? 215 : undefined);
+    this.ui.buildMap(this.terrain, this.terrain.rail.pts, this.terrain.roads, ARENA ? 215 : undefined);
     this.quests = new Quests(this);
     this.combat = new Combat(this);
     this.hud = new DoomHud();
@@ -1031,6 +1031,8 @@ class Game {
     this.hurtFlash = Math.max(0, (this.hurtFlash || 0) - dt * 2);
     this.pipeline.uniforms.uHurt.value = Math.max(this.hurtFlash * 0.8, p.hp < 30 && this.state === 'play' ? 0.25 + Math.sin(this.time * 4) * 0.1 : 0);
     this.sky.position.copy(this.camera.position);
+    this.terrain.updateVisibility?.(this.camera.position);
+    this.veg?.updateVisibility?.(this.camera.position);
 
     this.flock.update(dt, this.time, p);
     if (this.state !== 'play' && !halted) this.combat.updateEnemies(dt, false);
@@ -1042,6 +1044,7 @@ class Game {
     if (!ARENA) this.animateNpcs(dt);
     for (const f of this.fx.fires) f.s.scale.setScalar(f.base * (1 + Math.sin(this.time * 9 + f.ph) * 0.1 + Math.sin(this.time * 23 + f.ph * 2) * 0.06));
     for (const m of this.fx.mists) m.s.scale.setScalar(m.base * (1 + Math.sin(this.time * 0.6 + m.ph) * 0.12));
+    for (const w of this.fx.spins ?? []) w.o.rotation.z += w.v * dt;
     for (const l of this.fx.lights) l.l.intensity = l.base * (1 + Math.sin(this.time * 8 + l.base) * 0.08 + Math.sin(this.time * 17) * 0.05);
     if (this.endingBeam) this.endingBeam.material.opacity = 0.45 + Math.sin(this.time * 2) * 0.1;
 

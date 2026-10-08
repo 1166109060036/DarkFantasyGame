@@ -264,14 +264,15 @@ export class UI {
     ctx.putImageData(img, 0, 0);
     const toMap = (wx, wz) => [(wx + ext) / (ext * 2) * S, (wz + ext) / (ext * 2) * S];
     const line = (pts) => { ctx.beginPath(); pts.forEach((p, i) => { const [mx, my] = toMap(p.x, p.z); i ? ctx.lineTo(mx, my) : ctx.moveTo(mx, my); }); ctx.stroke(); };
-    if (roads) {
-      // the arena's dirt roads: a dark edge, then a pale track down the middle
+    if (roads?.length) {
+      // dirt roads: a dark edge, then a pale track down the middle
       ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      ctx.strokeStyle = 'rgba(30,22,14,0.85)'; ctx.lineWidth = 5;
+      ctx.strokeStyle = 'rgba(30,22,14,0.85)'; ctx.lineWidth = 4;
       roads.forEach(line);
-      ctx.strokeStyle = '#c8b48a'; ctx.lineWidth = 2.5;
+      ctx.strokeStyle = '#c8b48a'; ctx.lineWidth = 2;
       roads.forEach(line);
-    } else {
+    }
+    if (railPts?.length) {
       ctx.strokeStyle = 'rgba(40,30,25,0.9)'; ctx.lineWidth = 2; ctx.setLineDash([3, 2]);
       line(railPts);
       ctx.setLineDash([]);

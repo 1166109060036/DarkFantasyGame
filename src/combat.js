@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { createWisp, createStrawman, createWolf, createLeech, createStoneKnight, blobShadow } from './characters.js';
 import {
   WISP_SPAWNS, STRAW_SPAWNS, WOLF_PACKS, LEECH_SPAWNS, KNIGHT_POS, GAUNT_SPAWNS, GAUNT_DAY_SPAWNS, CRAWLER_SPAWNS,
-  WEEPER_SPAWNS, BRUTE_SPAWNS, EXTRA_WOLF_PACKS, EXTRA_STRAW_SPAWNS, EXTRA_LEECH_SPAWNS,
+  WEEPER_SPAWNS, BRUTE_SPAWNS, EXTRA_WOLF_PACKS, EXTRA_STRAW_SPAWNS, EXTRA_LEECH_SPAWNS, WILD_SPAWNS,
 } from './layout.js';
 import { createGaunt, createCrawler, createWeeper, createBrute } from './gaunts.js';
 import { clamp, lerp, wrapAngle } from './util.js';
@@ -87,6 +87,17 @@ export class Combat {
     });
     this.boss = this.spawn('knight', KNIGHT_POS.x, KNIGHT_POS.z);
     this.boss.ry = -Math.PI / 2;
+    this.spawnWild(r);
+  }
+
+  // the wild beyond the valley (layout.js WILD_SPAWNS): same creatures, farther from home
+  spawnWild(r) {
+    const W = WILD_SPAWNS, T = this.g.terrain;
+    W.wolf.forEach(([x, z, n]) => { for (let i = 0; i < n; i++) this.spawn('wolf', x + (r() - 0.5) * 10, z + (r() - 0.5) * 10); });
+    W.gaunt.forEach(([x, z]) => this.spawn('gaunt', x, z));
+    W.gauntDay.forEach(([x, z]) => { this.spawn('gaunt', x, z).activeOverride = 'always'; });
+    for (const type of ['crawler', 'weeper', 'straw', 'brute', 'wisp']) W[type].forEach(([x, z]) => this.spawn(type, x, z));
+    W.leech.forEach(([x, z]) => { if (T.getHeight(x, z) < -0.3) this.spawn('leech', x, z); });
   }
 
   // the online arena: packs at the four camps, and a few strays in the woods. They hunt day and

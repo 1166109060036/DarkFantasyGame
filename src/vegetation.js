@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { rng, fbm } from './noise.js';
 import { part, mergeGeometries, cylinderBetween, distToPolyline, colorize } from './util.js';
-import { PASTURE, FENCE_R, TOAD, TEMPLE, RIVER, PATHS, TAVERN, HOUSES, HEAD, SMITH } from './layout.js';
+import { PASTURE, FENCE_R, TOAD, TEMPLE, RIVER, PATHS, TAVERN, HOUSES, HEAD, SMITH, BELLTOWER, STONES, WINDMILL, FARMS, PIER, HANGTREE, HUNTER, DROWNED } from './layout.js';
+import { regionWeights } from './terrain.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
@@ -87,6 +88,25 @@ function swampTree(seed) {
     trunk.push(cylinderBetween(V(0, 1.0, 0), V(Math.cos(a) * 1.6, -0.4, Math.sin(a) * 1.6), 0.15, 0.05, 4));
   }
   return { trunk: mergeGeometries(trunk.map((g) => colorize(g, 0xb0b8b0))), crown: mergeGeometries(moss) };
+}
+
+// a highland pine: a tall straight trunk and drooping skirts of needles, narrowing to the top
+function pineTree(seed) {
+  const r = rng(seed);
+  const height = 9 + r() * 4;
+  const trunk = [cylinderBetween(V(0, -0.3, 0), V((r() - 0.5) * 0.4, height, (r() - 0.5) * 0.4), 0.34, 0.08, 6)];
+  const leaves = [];
+  const layers = 6;
+  for (let k = 0; k < layers; k++) {
+    const t = k / (layers - 1), y = height * (0.32 + t * 0.62), rad = 3.1 * (1 - t * 0.8) + 0.5;
+    const c = V(0, y, 0), tint = new THREE.Color().setRGB(0.55 + r() * 0.15, 0.72 + r() * 0.15, 0.7 + r() * 0.1);
+    for (let q = 0; q < 6; q++) {
+      const a = q / 6 * Math.PI * 2 + r() * 0.4;
+      leaves.push(card(rad * 1.25, rad * 0.9, c, c.clone().add(V(Math.cos(a) * rad * 0.45, -rad * 0.18, Math.sin(a) * rad * 0.45)), -a + Math.PI / 2, 0.75, tint));
+    }
+  }
+  leaves.push(card(1.4, 2.2, V(0, height, 0), V(0, height + 0.6, 0), r() * Math.PI, 0, new THREE.Color(0.6, 0.78, 0.72)));
+  return { trunk: mergeGeometries(trunk.map((g) => colorize(g, 0xd8d0c8))), crown: mergeGeometries(leaves) };
 }
 
 function crossedPlanes(w, h, n = 2, color = 0xffffff) {
@@ -202,9 +222,23 @@ export function buildVegetation(scene, terrain, M, collision, quality) {
   }
 
   const meshes = [];
-  const addInstanced = (geom, mat, list, shadowY = 0) => {
-    if (!list.length) return null;
+  // plants are instanced per 200 m cell so the cells out in the fog can be skipped (see updateVisibility)
+  const CELL = 200;
+  const addInstanced = (geom, mat, all, shadowY = 0) => {
+    if (!all.length) return null;
+    const small = mat === M.grass || mat === M.fern || mat === M.glow;
+    const cells = new Map();
+    for (const p of all) {
+      const key = `${Math.floor(p.x / CELL)},${Math.floor(p.z / CELL)}`;
+      (cells.get(key) || cells.set(key, []).get(key)).push(p);
+    }
+    for (const [key, list] of cells) addCell(geom, mat, list, shadowY, small, key);
+    return null;
+  };
+  const addCell = (geom, mat, list, shadowY, small, key) => {
     const m = new THREE.InstancedMesh(geom, mat, list.length);
+    const [ci, cj] = key.split(',').map(Number);
+    m.userData.cx = (ci + 0.5) * CELL; m.userData.cz = (cj + 0.5) * CELL; m.userData.far = small ? 170 : 360;
     list.forEach((p, i) => {
       tmp.position.set(p.x, p.y + shadowY, p.z);
       tmp.rotation.set(p.rx || 0, p.ry, 0);
@@ -223,8 +257,41 @@ export function buildVegetation(scene, terrain, M, collision, quality) {
     return m;
   };
 
+  // ---------- the wild beyond the valley ----------
+  const rw = (x, z) => regionWeights(x, z);
+  const CAUSEWAY = [[PIER.x, PIER.z], [DROWNED.x, DROWNED.z]];          // pier and causeway out to the drowned city (src/wilds.js)
+  const KEEP = [[BELLTOWER, 40], [STONES, 30], [WINDMILL, 26], [FARMS, 75], [PIER, 26], [HANGTREE, 30], [HUNTER, 18], [DROWNED, 60]];
+  const wildClear = (x, z, pad = 0) => terrain.roadAt(x, z) > (pad > 1 ? 0.01 : 0.3) || nearRail(x, z, 4 + pad) || KEEP.some(([o, rr]) => Math.hypot(x - o.x, z - o.z) < rr + pad);
+  const wildXZ = (rr) => { for (;;) { const x = (rr() - 0.5) * 1500, z = (rr() - 0.5) * 1500; if (Math.max(Math.abs(x), Math.abs(z)) > 285) return [x, z]; } };
+  const pines = [pineTree(21), pineTree(22)], pinePlacements = pines.map(() => []);
+  {
+    const r2 = rng(9001);
+    const want = quality.trees * 4;
+    for (let t = 0, n = 0; n < want && t < want * 14; t++) {
+      const [x, z] = wildXZ(r2), h = H(x, z);
+      if (h < 0.15 || h > 70 || terrain.slope(x, z) > 0.8 || wildClear(x, z, 6)) continue;
+      const w = rw(x, z), f = fbm(x * 0.01, z * 0.01, 3, 57);
+      const density = (w.north * 0.4 + w.east * 0.06 + w.south * 0.3 + w.west * 1.1) * (0.4 + f * 1.2);
+      if (r2() > density) continue;
+      const s = 0.75 + r2() * 0.6, ry = r2() * 6.28;
+      if (w.north > 0.5 && r2() < 0.85) pinePlacements[n % 2].push({ x, y: h - 0.2, z, s, ry, tint: 0.7 + r2() * 0.35 });
+      else if (w.south > 0.45 || (w.west > 0.5 && r2() < 0.25)) swampPlacements[n % 2].push({ x, y: h - 0.2, z, s, ry, tint: (w.west > 0.5 ? 0.55 : 0.7) + r2() * 0.3 });
+      else placements[n % 3].push({ x, y: h - 0.2, z, s, ry, tint: (w.west > 0.5 ? 0.5 : 0.75) + r2() * 0.35 });
+      collision.addCircle(x, z, 0.4 * s + 0.1);
+      n++;
+    }
+    // drowned trees standing in the lake shallows
+    for (let i = 0; i < 90; i++) {
+      const x = DROWNED.x + (r2() - 0.5) * 380, z = DROWNED.z + (r2() - 0.5) * 340, h = H(x, z);
+      if (h > 0.1 || h < -2.5 || Math.hypot(x - DROWNED.x, z - DROWNED.z) < 70 || distToPolyline(x, z, CAUSEWAY) < 6) continue;
+      const s = 0.8 + r2() * 0.5;
+      swampPlacements[i % 2].push({ x, y: h - 0.2, z, s, ry: r2() * 6.28, tint: 0.6 + r2() * 0.3 });
+      collision.addCircle(x, z, 0.3 * s + 0.1);
+    }
+  }
   variants.forEach((v, i) => { addInstanced(v.trunk, M.bark, placements[i]); addInstanced(v.crown, M.leaves, placements[i]); });
   swampVariants.forEach((v, i) => { addInstanced(v.trunk, M.bark, swampPlacements[i]); addInstanced(v.crown, M.hangingMoss, swampPlacements[i]); });
+  pines.forEach((v, i) => { addInstanced(v.trunk, M.bark, pinePlacements[i]); addInstanced(v.crown, M.leaves, pinePlacements[i]); });
 
   // ---------- ferns ----------
   const ferns = [];
@@ -258,6 +325,17 @@ export function buildVegetation(scene, terrain, M, collision, quality) {
     if (h < 0.2) continue;
     ferns.push({ x, y: h - 0.1, z, s: 0.7 + r() * 1.0, ry: r() * 6.28, rx: side * 0.5, tint: 0.75 + r() * 0.45 });
   }
+  {
+    const r2 = rng(9002);
+    for (let i = 0, n = 0; i < quality.ferns * 12 && n < quality.ferns * 3; i++) {
+      const [x, z] = wildXZ(r2), h = H(x, z);
+      if (h < 0.1 || terrain.slope(x, z) > 0.9 || wildClear(x, z, 1)) continue;
+      const w = rw(x, z);
+      if (r2() > w.west * 0.9 + w.south * 0.35 + w.north * 0.15) continue;
+      ferns.push({ x, y: h - 0.05, z, s: 0.6 + r2() * 0.9, ry: r2() * 6.28, tint: (w.west > 0.5 ? 0.55 : 0.7) + r2() * 0.4 });
+      n++;
+    }
+  }
   addInstanced(fernGeom(), M.fern, ferns);
 
   // ---------- grass & reeds ----------
@@ -278,6 +356,21 @@ export function buildVegetation(scene, terrain, M, collision, quality) {
       ry: r() * 6.28, tint: 0.95 + r() * 0.6, tb: dp < 75 ? 1.2 : 1.05,
     });
   }
+  {
+    const r2 = rng(9003);
+    for (let i = 0, n = 0; i < quality.grass * 14 && n < quality.grass * 2.6; i++) {
+      const [x, z] = wildXZ(r2), h = H(x, z);
+      if (h < -0.4 || h > 60 || wildClear(x, z, -1)) continue;
+      const w = rw(x, z);
+      if (r2() > 0.25 + w.east * 0.55 + w.south * 0.25 + w.north * 0.1) continue;
+      const reed = h < 0.5, dry = w.east > 0.5;
+      grass.push({
+        x, y: h - 0.05, z, s: reed ? 1.1 + r2() * 0.6 : dry ? 0.9 + r2() * 0.7 : 0.6 + r2() * 0.6, sy: reed ? 1.8 + r2() * 1.2 : dry ? 1.4 + r2() * 0.8 : undefined,
+        ry: r2() * 6.28, tint: 0.95 + r2() * 0.6, tr: dry ? 1.5 : w.north > 0.5 ? 1.15 : 1, tb: dry ? 0.6 : 1.05,
+      });
+      n++;
+    }
+  }
   addInstanced(crossedPlanes(1.0, 0.62, 2), M.grass, grass);
 
   // ---------- rocks ----------
@@ -295,6 +388,19 @@ export function buildVegetation(scene, terrain, M, collision, quality) {
   const ruv = rockGeom.attributes.uv;
   const rpos = rockGeom.attributes.position;
   for (let i = 0; i < ruv.count; i++) ruv.setXY(i, rpos.getX(i) * 0.6 + rpos.getZ(i) * 0.4, rpos.getY(i) * 0.6);
+  {
+    const r2 = rng(9004);
+    for (let i = 0, n = 0; i < quality.rocks * 16 && n < quality.rocks * 3; i++) {
+      const [x, z] = wildXZ(r2), h = H(x, z);
+      if (h < -0.6 || wildClear(x, z, 2)) continue;
+      const w = rw(x, z);
+      if (r2() > 0.1 + w.north * 0.6 + terrain.slope(x, z) * 0.6) continue;
+      const s = 0.5 + Math.pow(r2(), 2) * (w.north > 0.5 ? 3.2 : 1.8);
+      rocks.push({ x, y: h - s * 0.25, z, s, sy: s * (0.5 + r2() * 0.4), ry: r2() * 6.28, rx: (r2() - 0.5) * 0.3, tint: 0.7 + r2() * 0.4 });
+      if (s > 1) collision.addCircle(x, z, s * 0.8, h - 1, h + s * 0.6);
+      n++;
+    }
+  }
   addInstanced(rockGeom, M.stone, rocks);
 
   // ---------- glowing mushrooms ----------
@@ -314,9 +420,28 @@ export function buildVegetation(scene, terrain, M, collision, quality) {
       glow.push({ x, y: h - 0.02, z, s: 0.6 + r() * 1.4, ry: r() * 6.28, tint: 0.6 + r() * 0.6 });
     }
   }
+  {
+    const r2 = rng(9005);
+    for (let i = 0, n = 0; i < quality.mushrooms * 10 && n < quality.mushrooms * 2; i++) {
+      const [cx, cz] = wildXZ(r2), w = rw(cx, cz);
+      if (r2() > w.west * 0.7 + w.south * 0.2) continue;
+      for (let k = 0, m = 3 + Math.floor(r2() * 6); k < m; k++) {
+        const x = cx + (r2() - 0.5) * 2.5, z = cz + (r2() - 0.5) * 2.5, h = H(x, z);
+        if (h < 0.05 || wildClear(x, z, 1)) continue;
+        glow.push({ x, y: h - 0.02, z, s: 0.6 + r2() * 1.4, ry: r2() * 6.28, tint: 0.6 + r2() * 0.6 });
+        n++;
+      }
+    }
+  }
   addInstanced(glowMushroomGeom(), M.glow, glow);
 
-  return { treeCount: placed, meshes };
+  return {
+    treeCount: placed, meshes,
+    // hide the cells out in the fog (grass and ferns sooner than trees and rocks)
+    updateVisibility(cam) {
+      for (const m of meshes) m.visible = Math.hypot(m.userData.cx - cam.x, m.userData.cz - cam.z) - 141 < m.userData.far;
+    },
+  };
 }
 
 
