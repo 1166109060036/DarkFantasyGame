@@ -295,6 +295,7 @@ export class Combat {
     const g = this.g, cam = g.camera.position, p = g.player, dir = p.forwardVec;
     g.kit.onStrike(kind, spec);
     g.moba?.strike(spec, cam, dir);
+    g.critters?.strike(spec, cam, dir);
     // a ground slam lands on a circle in front of you
     const ax = spec.aoe ? p.pos.x - Math.sin(p.yaw) * spec.aoe.dist : 0, az = spec.aoe ? p.pos.z - Math.cos(p.yaw) * spec.aoe.dist : 0;
     for (const e of this.enemies) {

@@ -427,6 +427,18 @@ export class AudioSys {
   // ---------------------------------------------------------------- world & UI
   coin() { this.metal({ freq: 2100, dur: 0.25, gain: 0.05, partials: [1, 2.4] }); this.metal({ freq: 2650, dur: 0.4, gain: 0.05, partials: [1, 2.4], delay: 0.08 }); }
   bleat(pos = null) { this.voice({ freq: 380 + Math.random() * 80, dur: 0.6, gain: 0.08, vibrato: 11, slide: 0.85, formant: 1300, q: 3, pos }); }
+  // a pig: a couple of low, rough grunts, and the squeal when something runs at it
+  oink(pos = null) {
+    const n = 1 + Math.floor(Math.random() * 3), f = 95 + Math.random() * 30;
+    for (let i = 0; i < n; i++) {
+      this.voice({ freq: f * (1 - i * 0.06), dur: 0.16, gain: 0.1, slide: 0.8, formant: 520, q: 2.5, vibrato: 45, delay: i * 0.22, pos });
+      this.burst({ dur: 0.1, freq: 380, q: 1.5, gain: 0.04, delay: i * 0.22, pos });
+    }
+  }
+  squeal(pos = null) {
+    this.voice({ freq: 780 + Math.random() * 160, dur: 0.75, gain: 0.11, slide: 1.25, formant: 1700, q: 3, vibrato: 9, pos });
+    this.voice({ freq: 900, dur: 0.45, gain: 0.08, slide: 0.7, formant: 1900, q: 3, vibrato: 12, delay: 0.7, pos });
+  }
   caw(pos = null) {
     this.voice({ freq: 520, dur: 0.28, gain: 0.12, slide: 0.75, formant: 1500, q: 3, vibrato: 30, pos });
     this.voice({ freq: 480, dur: 0.3, gain: 0.1, slide: 0.7, formant: 1400, q: 3, vibrato: 30, delay: 0.35, pos });

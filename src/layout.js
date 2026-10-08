@@ -72,6 +72,7 @@ export const KNIGHT_POS = { x: HEAD.x + 52, z: HEAD.z };
 
 // The blacksmith's open-air forge on the west side of the village.
 export const SMITH = { x: 52, z: 14 };
+export const PIGPEN = { x: 80, z: -15 };               // the village pig pen (src/critters.js)
 
 // ---- The Pale Ones ----
 // gaunts roam at night around the village fringe, the forest, ruins, the railway and the north

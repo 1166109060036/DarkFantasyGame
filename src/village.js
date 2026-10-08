@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { part } from './util.js';
 import { block, slab, r } from './builder.js';
 import { gable, cyl } from './giants.js';
-import { TAVERN, HOUSES, SMITH } from './layout.js';
+import { TAVERN, HOUSES, SMITH, PIGPEN } from './layout.js';
 import { createCandleHead, createPatron, createSmith } from './characters.js';
 
 const C = (r_, g, b) => new THREE.Color(r_, g, b);
@@ -41,6 +41,34 @@ function lampPost(B, Cw, terrain, scene, M, x, z, fx) {
   s.scale.setScalar(1.6);
   scene.add(s);
   fx.fires.push({ s, base: 1.6, ph: r() * 6 });
+}
+
+// a fenced pen of trampled mud with a trough and a lean-to; the gate opens onto the village road
+function pigPen(B, Cw, terrain) {
+  const { x, z } = PIGPEN, H = 8;
+  const G = (px, pz) => terrain.getHeight(px, pz);
+  const sides = [[[-H, -H], [H, -H]], [[H, -H], [H, H]], [[H, H], [-H, H]], [[-H, H], [-H, -H]]];
+  sides.forEach(([[ax, az], [bx, bz]], si) => {
+    const len = 2 * H, n = 6;
+    for (let k = 0; k <= n; k++) {
+      const t = k / n, px = x + ax + (bx - ax) * t, pz = z + az + (bz - az) * t;
+      block(B, Cw, 'wood', { x: px, y: G(px, pz) + 0.55, z: pz, w: 0.16, h: 1.3, d: 0.16, rz: (r() - 0.5) * 0.12 });
+    }
+    // the side facing the road has a gate gap in the middle
+    const gate = si === 2;
+    const ry = Math.atan2(-(bz - az), bx - ax);
+    for (const [t0, t1] of gate ? [[0, 0.42], [0.58, 1]] : [[0, 1]]) {
+      const mx = x + ax + (bx - ax) * (t0 + t1) / 2, mz = z + az + (bz - az) * (t0 + t1) / 2, g = G(mx, mz);
+      for (const h of [0.45, 0.95]) block(B, Cw, 'wood', { x: mx, y: g + h, z: mz, w: len * (t1 - t0), h: 0.1, d: 0.08, ry, color: C(0.55, 0.45, 0.36), collide: false });
+      Cw.addBox(mx, g + 0.6, mz, len * (t1 - t0) / 2, 0.6, 0.12, ry);
+    }
+  });
+  const g = G(x, z);
+  B.add('plain', part(new THREE.CircleGeometry(H - 1.2, 14), C(0.16, 0.11, 0.07), { pos: [x, g + 0.03, z], rot: [-Math.PI / 2, 0, 0] }));
+  block(B, Cw, 'wood', { x: x - 4, y: g + 0.25, z: z - 5.5, w: 2.6, h: 0.5, d: 0.7, color: C(0.45, 0.36, 0.3) });
+  B.add('plain', part(new THREE.BoxGeometry(2.3, 0.05, 0.5), C(0.3, 0.28, 0.18), { pos: [x - 4, g + 0.48, z - 5.5] }));
+  for (const [px, pz] of [[-H + 0.3, -H + 0.3], [-H + 0.3, -H + 4], [-H + 4, -H + 0.3]]) block(B, Cw, 'wood', { x: x + px, y: g + 0.8, z: z + pz, w: 0.14, h: 1.6, d: 0.14, collide: false });
+  block(B, Cw, 'wood', { x: x - H + 2, y: g + 1.55, z: z - H + 2, w: 4.4, h: 0.1, d: 4.4, rx: 0.15, color: C(0.36, 0.3, 0.27), collide: false });
 }
 
 export function buildVillage(B, Cw, terrain, scene, M, fx) {
@@ -197,6 +225,8 @@ export function buildVillage(B, Cw, terrain, scene, M, fx) {
   smith.rotation.y = Math.PI / 2;
   scene.add(smith);
   Cw.addCircle(sx, sz, 0.55);
+
+  pigPen(B, Cw, terrain);
 
   return {
     smith: { obj: smith, pos: new THREE.Vector3(sx, sg, sz) },

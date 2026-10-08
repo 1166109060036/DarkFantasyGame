@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { rng, fbm } from './noise.js';
 import { part, mergeGeometries, cylinderBetween, distToPolyline, colorize } from './util.js';
-import { PASTURE, FENCE_R, TOAD, TEMPLE, RIVER, PATHS, TAVERN, HOUSES, HEAD, SMITH, BELLTOWER, STONES, WINDMILL, FARMS, PIER, HANGTREE, HUNTER, DROWNED } from './layout.js';
+import { PASTURE, FENCE_R, TOAD, TEMPLE, RIVER, PATHS, TAVERN, HOUSES, HEAD, SMITH, PIGPEN, BELLTOWER, STONES, WINDMILL, FARMS, PIER, HANGTREE, HUNTER, DROWNED } from './layout.js';
 import { regionWeights } from './terrain.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -176,7 +176,8 @@ export function buildVegetation(scene, terrain, M, collision, quality) {
     || HOUSES.some(([hx, hz]) => Math.hypot(x - hx, z - hz) < 5.5 + pad)
     || Math.hypot(x - HEAD.x - 12, z - HEAD.z) < 38 + pad
     || Math.hypot(x - 62, z - 8) < 2.5
-    || Math.hypot(x - SMITH.x, z - SMITH.z) < 6 + pad;
+    || Math.hypot(x - SMITH.x, z - SMITH.z) < 6 + pad
+    || (Math.abs(x - PIGPEN.x) < 10 + pad && Math.abs(z - PIGPEN.z) < 10 + pad);
   const inTempleYard = (x, z) => Math.abs(x - TEMPLE.x) < 48 && Math.abs(z - TEMPLE.z) < 42;
   const nearPath = (x, z, d) => PATHS.some((p) => distToPolyline(x, z, p) < d);
   const dPasture = (x, z) => Math.hypot(x - PASTURE.x, z - PASTURE.z);

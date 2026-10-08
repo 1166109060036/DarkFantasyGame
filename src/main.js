@@ -28,6 +28,7 @@ import { Contracts } from './contracts.js';
 import { Moba, SEATS, BUILDINGS, baseSpawn } from './moba.js';
 import { Progress, SkillsUI, TREES } from './upgrades.js';
 import { loadHeroAssets } from './heroes.js';
+import { Critters } from './critters.js';
 import { Mount } from './mount.js';
 import { Lobby } from './lobby.js';
 import { UI } from './ui.js';
@@ -150,6 +151,7 @@ class Game {
     this.useProgress(new Progress());
     this.skillsUI = new SkillsUI(this);
     this.mount = new Mount(this);
+    this.critters = ARENA ? null : new Critters(this);
     // imported hero models (assets/heroes/) load in the background; until then the built ones stand in
     loadHeroAssets().then((k) => { this.heroModels = k; });
     this.setClass('wanderer');
@@ -1035,6 +1037,7 @@ class Game {
     this.veg?.updateVisibility?.(this.camera.position);
 
     this.flock.update(dt, this.time, p);
+    this.critters?.update(dt);
     if (this.state !== 'play' && !halted) this.combat.updateEnemies(dt, false);
     if (this.state !== 'play') this.mount.update(dt, null);
     this.particles.update(dt);
