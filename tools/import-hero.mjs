@@ -8,6 +8,10 @@
 // and write assets/heroes/<kind>.json, which src/heroes.js loads.
 //
 //   node tools/import-hero.mjs wanderer path/to/model.glb
+//
+// A model that already has UVs and a texture (a 'textured' profile) keeps them instead: no
+// simplifying or painting, its texture is written next to the JSON, and only the binding is done.
+// Such a profile can also re-pose the arms (an A-pose brought down to hanging) before binding.
 import { writeFileSync, mkdirSync } from 'fs';
 import { readGLB } from './glb.mjs';
 
@@ -48,11 +52,32 @@ const PROFILES = {
     ],
     // the moon-lantern the model doesn't have is added in-game (src/heroes.js)
   },
+  // "Low Poly Micolash" by ratmeaty (CC BY 4.0): a long dark coat and a cage over the head, already
+  // textured. Bones are given in the model's own units (it is 2.25 tall, cage and candles included).
+  coffin: {
+    textured: true, raw: true, alphaTest: 0.65,
+    // its arms are spread in an A-pose: swing them down to hang ~10° from the body
+    arms: { pivot: [0.17, 1.46, -0.06], angle: 0.586, from: 0.19, to: 0.31, minY: 0.84 },
+    bones: {
+      hips: [0, 0.98, -0.04], spine: [0, 1.15, -0.05], chest: [0, 1.35, -0.05], neck: [0, 1.55, -0.05], head: [0, 1.66, -0.05],
+      shL: [0.19, 1.44, -0.06], elL: [0.25, 1.06, -0.08], haL: [0.3, 0.84, -0.08],
+      shR: [-0.19, 1.44, -0.06], elR: [-0.25, 1.06, -0.08], haR: [-0.3, 0.84, -0.08],
+      hiL: [0.08, 0.95, -0.03], knL: [0.08, 0.5, -0.02], anL: [0.08, 0.1, -0.05],
+      hiR: [-0.08, 0.95, -0.03], knR: [-0.08, 0.5, -0.02], anR: [-0.08, 0.1, -0.05],
+    },
+    // the cage, its candles and the head ride on the head; everything else follows its nearest bones
+    regions: [
+      { name: 'cage', mesh: /^(mensiscage|Plane|Cylinder|head)/, grp: 'tex', bone: 'head' },
+      { name: 'coat', test: (p) => p.y < 1.0 && p.y > 0.3 && (Math.abs(p.x) > 0.13 || p.z < -0.1), grp: 'tex', follow: ['hips', 'hiL', 'hiR', 'spine'] },
+      { name: 'body', test: () => true, grp: 'tex' },
+    ],
+  },
 };
 
 const prof = PROFILES[kind];
 if (!prof || !src) { console.error('usage: node tools/import-hero.mjs <kind> <model.glb> [triangles]'); process.exit(1); }
 const target = +(targetArg || 3600);
+if (prof.textured) { importTextured(); process.exit(0); }
 
 // ---------------------------------------------------------------- 1. load, centre, scale
 const { meshes } = readGLB(src);
@@ -160,3 +185,100 @@ writeFileSync(file, JSON.stringify({
   pos: b64(out.pos), col: b64(out.col), grp: b64(out.grp), bone: b64(out.bone), skin: b64(out.skin),
 }));
 console.log('wrote', file);
+
+// ---------------------------------------------------------------- textured models
+function importTextured() {
+  const glb = readGLB(src);
+  const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  // gather triangles with their UVs and source mesh
+  const T = [];
+  for (const m of glb.meshes) {
+    const ix = m.indices || Array.from({ length: m.count }, (_, i) => i);
+    for (let t = 0; t < ix.length; t += 3) {
+      const v = [ix[t], ix[t + 1], ix[t + 2]].map((k) => ({
+        p: [m.positions[k * 3], m.positions[k * 3 + 1], m.positions[k * 3 + 2]],
+        uv: m.uvs ? [m.uvs[k * 2], m.uvs[k * 2 + 1]] : [0, 0],
+      }));
+      T.push({ v, mesh: m.name });
+    }
+  }
+  // arms down out of the A-pose: rotate about the shoulder, blended in across the armpit
+  if (prof.arms) {
+    const A = prof.arms;
+    for (const tri of T) {
+      if (/^(mensiscage|Plane|Cylinder|head)/.test(tri.mesh)) continue;
+      for (const c of tri.v) {
+        const [x, y, z] = c.p, side = Math.sign(x);
+        if (y < A.minY) continue;
+        const w = smooth(A.from, A.to, Math.abs(x));
+        if (!w) continue;
+        const px = side * A.pivot[0], py = A.pivot[1], phi = -side * A.angle * w;
+        const dx = x - px, dy = y - py, cs = Math.cos(phi), sn = Math.sin(phi);
+        c.p = [px + dx * cs - dy * sn, py + dx * sn + dy * cs, z];
+      }
+    }
+  }
+  // stand it on the ground, centred under its head
+  let minY = Infinity, maxY = -Infinity;
+  for (const tri of T) for (const c of tri.v) { minY = Math.min(minY, c.p[1]); maxY = Math.max(maxY, c.p[1]); }
+  const height = maxY - minY;
+  let hx = 0, hz = 0, hn = 0;
+  for (const tri of T) for (const c of tri.v) if (c.p[1] - minY > height - 0.23) { hx += c.p[0]; hz += c.p[2]; hn++; }
+  hx /= hn; hz /= hn;
+  for (const tri of T) for (const c of tri.v) c.p = [c.p[0] - hx, c.p[1] - minY, c.p[2] - hz];
+  const B = {};
+  for (const [k, [x, y, z]] of Object.entries(prof.bones)) B[k] = [x - hx, y - minY, z - hz];
+  console.log(`${T.length} triangles, ${height.toFixed(2)} tall, head at ${hx.toFixed(3)},${hz.toFixed(3)}`);
+
+  const parent = { spine: 'hips', chest: 'spine', neck: 'chest', head: 'neck', shL: 'chest', elL: 'shL', haL: 'elL', shR: 'chest', elR: 'shR', haR: 'elR', hiL: 'hips', knL: 'hiL', anL: 'knL', hiR: 'hips', knR: 'hiR', anR: 'knR' };
+  const segs = Object.entries(parent).map(([child, par]) => ({ bone: par, a: B[par], b: B[child] }));
+  segs.push({ bone: 'haL', a: B.haL, b: [B.haL[0], B.haL[1] - 0.14, B.haL[2]] }, { bone: 'haR', a: B.haR, b: [B.haR[0], B.haR[1] - 0.14, B.haR[2]] });
+  segs.push({ bone: 'anL', a: B.anL, b: [B.anL[0], 0, B.anL[2] + 0.14] }, { bone: 'anR', a: B.anR, b: [B.anR[0], 0, B.anR[2] + 0.14] });
+  segs.push({ bone: 'head', a: B.head, b: [B.head[0], height, B.head[2]] });
+  const distSeg = (p, a, b) => {
+    const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], ap = [p[0] - a[0], p[1] - a[1], p[2] - a[2]];
+    const t = Math.max(0, Math.min(1, (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / (ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2 || 1)));
+    return Math.hypot(ap[0] - ab[0] * t, ap[1] - ab[1] * t, ap[2] - ab[2] * t);
+  };
+  const BONES = ['hips', 'spine', 'chest', 'neck', 'head', 'shL', 'elL', 'haL', 'shR', 'elR', 'haR', 'hiL', 'knL', 'anL', 'hiR', 'knR', 'anR'];
+  const GROUPS = ['plain', 'team', 'metal', 'glow', 'tex'];
+  const linked = (a, b) => parent[a] === b || parent[b] === a;
+  const skinOf = (p, forced, follow) => {
+    if (forced) return [BONES.indexOf(forced), BONES.indexOf(forced), 0];
+    const ds = segs.filter((sg) => !follow || follow.includes(sg.bone)).map((sg) => [sg.bone, distSeg(p, sg.a, sg.b)]).sort((x, y) => x[1] - y[1]);
+    const b1 = ds[0][0], next = ds.find(([b]) => b !== b1 && linked(b, b1));
+    if (!next) return [BONES.indexOf(b1), BONES.indexOf(b1), 0];
+    const w2 = Math.max(0, Math.min(0.5, 0.5 - (next[1] - ds[0][1]) / 0.1));
+    return [BONES.indexOf(b1), BONES.indexOf(next[0]), Math.round(w2 * 255)];
+  };
+  const n = T.length;
+  const out = { pos: new Float32Array(n * 9), uv: new Float32Array(n * 6), col: new Uint8Array(n * 3).fill(255), grp: new Uint8Array(n), bone: new Uint8Array(n), skin: new Uint8Array(n * 9) };
+  const counts = {};
+  T.forEach((tri, i) => {
+    const c = [0, 1, 2].map((k) => (tri.v[0].p[k] + tri.v[1].p[k] + tri.v[2].p[k]) / 3);
+    const p = { x: c[0], y: c[1], z: c[2] };
+    const reg = prof.regions.find((r) => (r.mesh ? r.mesh.test(tri.mesh) : r.test(p)));
+    counts[reg.name] = (counts[reg.name] || 0) + 1;
+    out.grp[i] = GROUPS.indexOf(reg.grp);
+    out.bone[i] = BONES.indexOf(reg.bone || 'hips');
+    tri.v.forEach((v, k) => {
+      out.pos.set(v.p, i * 9 + k * 3);
+      out.uv.set(v.uv, i * 6 + k * 2);
+      out.skin.set(skinOf(v.p, reg.bone, reg.follow), i * 9 + k * 3);
+    });
+  });
+  console.log('regions', counts);
+  // the texture: the material's base colour image
+  const mat = glb.json.materials?.[0], ti = mat?.pbrMetallicRoughness?.baseColorTexture?.index;
+  const img = ti != null ? glb.image(glb.json.textures[ti].source) : null;
+  mkdirSync('assets/heroes', { recursive: true });
+  const tex = `${kind}.png`;
+  if (img) writeFileSync(`assets/heroes/${tex}`, img.bytes);
+  const b64 = (a) => Buffer.from(a.buffer, a.byteOffset, a.byteLength).toString('base64');
+  const file = `assets/heroes/${kind}.json`;
+  writeFileSync(file, JSON.stringify({
+    kind, version: 3, height, tris: n, bones: B, boneOrder: BONES, groups: GROUPS, tex: img ? tex : null, alphaTest: prof.alphaTest || 0,
+    pos: b64(out.pos), uv: b64(out.uv), col: b64(out.col), grp: b64(out.grp), bone: b64(out.bone), skin: b64(out.skin),
+  }));
+  console.log('wrote', file, img ? `and assets/heroes/${tex}` : '(no texture)');
+}

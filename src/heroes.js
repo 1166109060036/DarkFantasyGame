@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { part, mergeGeometries, cylinderBetween, clamp } from './util.js';
 import { rng } from './noise.js';
+import { ps2ify } from './ps2.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const C = (r, g, b) => new THREE.Color(r, g, b);
@@ -24,7 +25,7 @@ const P = (n) => V(BONES[n][1], BONES[n][2], BONES[n][3]);
 // ---------------------------------------------------------------- building blocks
 // parts are collected per material and per bone, then merged into one skinned mesh per material
 class Kit {
-  constructor() { this.parts = { plain: [], metal: [], wood: [], gold: [], team: [], glow: [] }; this.weapon = { plain: [], metal: [], wood: [], gold: [], team: [], glow: [] }; }
+  constructor() { this.parts = { plain: [], metal: [], wood: [], gold: [], team: [], glow: [], tex: [] }; this.weapon = { plain: [], metal: [], wood: [], gold: [], team: [], glow: [] }; }
   add(mat, bone, g) { this.parts[mat].push([bone, g]); return this; }
   wpn(mat, g) { this.weapon[mat].push(g); return this; }
 }
@@ -80,6 +81,18 @@ function face(kit, { skin, beard = null, eyes = C(0.08, 0.06, 0.05), closed = fa
 }
 
 // ---------------------------------------------------------------- the five heroes
+// the coffin, held upright by its side handle (the primitive coffin-bearer and the imported one)
+function coffinWeapon(kit) {
+  const profile = new THREE.Shape([[0, -0.85], [0.17, -0.85], [0.29, 0.38], [0.2, 0.85], [-0.2, 0.85], [-0.29, 0.38], [-0.17, -0.85]].map(([x, y]) => new THREE.Vector2(x, y)));
+  const coffin = new THREE.ExtrudeGeometry(profile, { depth: 0.32, bevelEnabled: false });
+  coffin.translate(0, 0, -0.16);
+  kit.wpn('wood', part(coffin, C(0.42, 0.3, 0.2)));
+  for (const y of [-0.62, 0.05, 0.62]) kit.wpn('metal', box(0, y, 0, y > 0.3 ? 0.44 : y > 0 ? 0.52 : 0.38, 0.05, 0.34, C(0.28, 0.27, 0.28)));
+  kit.wpn('team', box(0, -0.22, 0, 0.5, 0.26, 0.335, C(0.85, 0.82, 0.76)));
+  kit.wpn('glow', box(0, 0.36, 0.165, 0.025, 0.42, 0.01, C(0.5, 1.4, 0.7), [0, 0, 0.08]));
+  kit.wpn('metal', box(0.3, 0.05, 0, 0.04, 0.22, 0.05, C(0.3, 0.3, 0.32)));
+}
+
 const HEROES = {
   // the wanderer: pointed hood and long ragged cloak (team), leather jerkin, moon-lantern at the hip
   wanderer(kit) {
@@ -216,15 +229,7 @@ const HEROES = {
     kit.add('plain', 'head', cyl(0, 1.89, 0.03, 0.22, 0.22, 0.02, C(0.2, 0.15, 0.12), [0.06, 0, 0], 10));
     kit.add('plain', 'head', cyl(0, 2.01, 0.03, 0.13, 0.14, 0.24, C(0.22, 0.17, 0.13), [0.06, 0, 0.04], 9));
     kit.add('plain', 'head', cyl(0, 1.93, 0.03, 0.142, 0.142, 0.04, C(0.12, 0.09, 0.07), [0.06, 0, 0.04], 9));
-    // the coffin, held upright by its side handle
-    const profile = new THREE.Shape([[0, -0.85], [0.17, -0.85], [0.29, 0.38], [0.2, 0.85], [-0.2, 0.85], [-0.29, 0.38], [-0.17, -0.85]].map(([x, y]) => new THREE.Vector2(x, y)));
-    const coffin = new THREE.ExtrudeGeometry(profile, { depth: 0.32, bevelEnabled: false });
-    coffin.translate(0, 0, -0.16);
-    kit.wpn('wood', part(coffin, C(0.42, 0.3, 0.2)));
-    for (const y of [-0.62, 0.05, 0.62]) kit.wpn('metal', box(0, y, 0, y > 0.3 ? 0.44 : y > 0 ? 0.52 : 0.38, 0.05, 0.34, C(0.28, 0.27, 0.28)));
-    kit.wpn('team', box(0, -0.22, 0, 0.5, 0.26, 0.335, C(0.85, 0.82, 0.76)));
-    kit.wpn('glow', box(0, 0.36, 0.165, 0.025, 0.42, 0.01, C(0.5, 1.4, 0.7), [0, 0, 0.08]));
-    kit.wpn('metal', box(0.3, 0.05, 0, 0.04, 0.22, 0.05, C(0.3, 0.3, 0.32)));
+    coffinWeapon(kit);
     kit.grip = { pos: [-0.33, 0.06, 0.0], rot: [0, 0, 0] };
     kit.scale = 1.12;
   },
@@ -316,14 +321,27 @@ export async function loadHeroAssets() {
     try {
       const res = await fetch(`assets/heroes/${kind}.json`);
       if (res.ok) ASSETS[kind] = await res.json();
+      // a textured model: have its texture in hand before anyone is built from it
+      const a = ASSETS[kind];
+      if (a?.tex) await texMat({ url: `assets/heroes/${a.tex}`, alphaTest: a.alphaTest }).map.loadPromise;
     } catch { /* no model for this path yet: the primitive hero stands in */ }
   }));
   return Object.keys(ASSETS);
 }
 const unb64 = (s, T) => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new T(u.buffer); };
 
-// things the model lacks that the game adds (the wanderer's moon-lantern)
+// things the model lacks that the game adds (the wanderer's moon-lantern, the coffin and a team sash)
 const EXTRAS = {
+  coffin(kit) {
+    coffinWeapon(kit);
+    kit.grip = { pos: [-0.33, 0.06, 0.0], rot: [0, 0, 0] };
+    // the coat is near-black: a sash and armbands in the base's colour say whose side he is on
+    kit.add('team', 'chest', box(0, 1.3, -0.04, 0.46, 0.09, 0.3, C(0.9, 0.9, 0.9), [0, 0, 0.55]));
+    kit.add('team', 'hips', box(0, 0.98, -0.04, 0.4, 0.07, 0.3, C(0.85, 0.85, 0.85)));
+    for (const [b, x] of [['elL', 0.24], ['elR', -0.24]]) kit.add('team', b, box(x, 1.12, -0.08, 0.13, 0.07, 0.13, C(0.9, 0.9, 0.9)));
+    kit.glows = [['head', [0, 2.2, -0.05], 'candleSprite', 0.9]];          // the candles on his cage
+    kit.scale = 0.95;
+  },
   wanderer(kit) {
     kit.add('metal', 'hips', box(0.27, 0.8, 0.08, 0.11, 0.02, 0.11, C(0.3, 0.3, 0.32)));
     kit.add('metal', 'hips', box(0.27, 0.66, 0.08, 0.11, 0.02, 0.11, C(0.3, 0.3, 0.32)));
@@ -335,6 +353,7 @@ const EXTRAS = {
 
 function assetKit(a) {
   const kit = new Kit(), pos = unb64(a.pos, Float32Array), col = unb64(a.col, Uint8Array), grp = unb64(a.grp, Uint8Array), bone = unb64(a.bone, Uint8Array);
+  const uvs = a.uv ? unb64(a.uv, Float32Array) : null;      // a textured model keeps its own UVs
   const skin = a.skin ? unb64(a.skin, Uint8Array) : null;
   // one geometry per material group (per bone for old files), box-projected UVs so the cloth/iron textures show
   const buckets = {};
@@ -356,6 +375,7 @@ function assetKit(a) {
         const [u0, u1] = nx >= ny && nx >= nz ? [z, y] : ny >= nz ? [x, z] : [x, y];
         U[i * 6 + v * 2] = u0 * 2.5; U[i * 6 + v * 2 + 1] = u1 * 2.5;
       }
+      if (uvs && g === 'tex') U.set(uvs.subarray(t * 6, t * 6 + 6), i * 6);
     });
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(P, 3));
@@ -375,10 +395,24 @@ function assetKit(a) {
     }
     kit.add(g, b, geo);
   }
-  EXTRAS[a.kind]?.(kit);
   kit.rest = a.bones;
   kit.grip = { pos: [0, 0, 0], rot: [0, 0, 0] };   // the weapon is part of the model
+  if (a.tex) kit.texture = { url: `assets/heroes/${a.tex}`, alphaTest: a.alphaTest };
+  EXTRAS[a.kind]?.(kit);
   return kit;
+}
+
+// a model's own texture, lit, fogged and vertex-snapped like everything else (one per file)
+const TEXMATS = {};
+function texMat({ url, alphaTest }) {
+  if (!TEXMATS[url]) {
+    let done;
+    const map = new THREE.TextureLoader().load(url, () => done(), undefined, () => done());
+    map.loadPromise = new Promise((r) => { done = r; });
+    map.magFilter = THREE.NearestFilter; map.colorSpace = THREE.NoColorSpace;
+    TEXMATS[url] = ps2ify(new THREE.MeshLambertMaterial({ map, alphaTest, side: THREE.DoubleSide, color: new THREE.Color(1.35, 1.3, 1.3) }));
+  }
+  return TEXMATS[url];
 }
 
 export function createHero(kind, M, team) {
@@ -391,7 +425,7 @@ export function createHero(kind, M, team) {
   teamMat.side = THREE.DoubleSide;
   // coats and robes are open shells: show their insides too
   if (!M.plainTwoSided) { M.plainTwoSided = M.plain.clone(); M.plainTwoSided.side = THREE.DoubleSide; }
-  const mats = { plain: M.plainTwoSided, metal: M.metal, wood: M.wood, gold: M.gold, team: teamMat, glow: M.glow };
+  const mats = { plain: M.plainTwoSided, metal: M.metal, wood: M.wood, gold: M.gold, team: teamMat, glow: M.glow, tex: kit.texture ? texMat(kit.texture) : M.plain };
   const r = rig(kit.parts, mats, kit.rest || BONES);
   const obj = new THREE.Group();
   obj.add(r.root);
