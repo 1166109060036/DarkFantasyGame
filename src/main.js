@@ -35,6 +35,7 @@ import { Lobby } from './lobby.js';
 import { UI } from './ui.js';
 import { Quests } from './quests.js';
 import { Tutorial, CONTROLS } from './tutorial.js';
+import { Gamepads } from './gamepad.js';
 import { PASTURE, FENCE_R, TOAD, TEMPLE, SPAWN, LOST_SHEEP, LOCATIONS, TAVERN, CASTLE, HEAD, RIBCAGE, FARMS, PIER } from './layout.js';
 import { DayNight } from './daynight.js';
 import { clamp } from './util.js';
@@ -56,6 +57,7 @@ class Game {
   constructor() {
     this.canvas = document.getElementById('game');
     this.input = new Input(this.canvas);
+    this.gamepads = new Gamepads(this.input);
     this.tutorial = new Tutorial(this);
     const touch = this.input.touch;
     this.quality = touch
@@ -316,9 +318,24 @@ class Game {
     on('lobby-back', () => { this.lobby.leave(); page(false); });
     on('mobaover-back', () => page(true));
     on('btn-resume', () => this.resume());
+    // a controller's B and Start in menus: back out of whatever is open
+    const shown = (id) => !document.getElementById(id).classList.contains('hidden');
+    this.gamepads.onBack = () => {
+      if (shown('controls')) this.ui.show('controls', false);
+      else if (this.state === 'paused' && shown('pause')) this.resume();
+      else if (shown('classpick')) document.getElementById('classpick-cancel').click();
+      else if (shown('ending')) document.getElementById('btn-ending-continue').click();
+      else this.input.actions.add('escape');
+    };
+    this.gamepads.onStart = () => {
+      if (shown('controls')) this.ui.show('controls', false);
+      if (this.state === 'paused' && shown('pause')) this.resume();
+      else if (this.state !== 'title') this.input.actions.add('escape');
+    };
     // the controls page, and the first-steps drill again
     document.getElementById('controls-list').innerHTML = CONTROLS.map(([head, rows]) => `<div class="ctl-group"><h3>${head}</h3>${
-      rows.map(([k, what]) => `<div class="ctl-row"><span class="k">${k}</span><span>${what}</span></div>`).join('')}</div>`).join('');
+      rows.map(([k, pad, what]) => `<div class="ctl-row"><span class="k">${k}</span>${pad ? `<span class="k pad">🎮 ${pad}</span>` : '<span></span>'}<span>${what}</span></div>`).join('')}</div>`).join('')
+      + '<p class="small ctl-pad">🎮 ในเมนู: สติ๊กซ้ายเลื่อนลูกศร · A เลือก · B ย้อนกลับ · LB / RB ปรับค่าตั้งค่า · สติ๊กขวาเลื่อนหน้า</p>';
     on('btn-controls', () => this.ui.show('controls'));
     on('btn-controls-close', () => this.ui.show('controls', false));
     on('btn-tutorial', () => { this.resume(); this.tutorial.start(); });
@@ -1014,7 +1031,7 @@ class Game {
       }
       // loose items, herbs, ore and chests compete with NPCs for the prompt
       const lt = this.loot.nearest(p.pos, fx, fz);
-      const verb = input.touch ? '✋' : '[E]';
+      const verb = input.touch ? '✋' : this.gamepads.active ? '(X)' : '[E]';
       if (lt && lt.d < bd) {
         ui.setPrompt(`${verb} ${lt.label}`);
         if (input.consume('interact')) { ui.setPrompt(null); lt.act(); }
@@ -1059,6 +1076,8 @@ class Game {
   frame() {
     let dt = Math.min(0.05, this.clock.getDelta());
     const rawDt = dt;
+    // a controller: sticks and buttons in play, up/down/A in dialogue, a mouse-like cursor in menus
+    this.gamepads.poll(rawDt, this.state === 'play' ? (this.ui.dialogueOpen ? 'dialogue' : 'play') : 'menu');
     // the world holds still behind the case, shops and the pause menu
     const halted = this.state === 'bag' || this.state === 'menu' || this.state === 'paused' || this.state === 'classpick' || this.state === 'skills';
     if (halted) dt = 0;

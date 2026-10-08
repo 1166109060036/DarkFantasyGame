@@ -419,7 +419,17 @@ body.moba .story-only { display: none !important; }
 #controls { z-index: 32; background: rgba(2, 4, 14, 0.7); }
 .ctl-panel { width: min(920px, 94vw); max-height: 92vh; overflow-y: auto; background: #0a0d1a; }
 #controls-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 22px; text-align: left; }
-@media (max-width: 760px) { #controls-list { grid-template-columns: 1fr; } }
+
 .ctl-group h3 { margin: 12px 0 6px; color: #e8c46a; font-size: 16px; font-weight: normal; }
-.ctl-row { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; padding: 3px 0; font-size: 14px; }
+.ctl-row { display: grid; grid-template-columns: auto auto 1fr; gap: 10px; align-items: center; padding: 3px 0; font-size: 14px; }
 .ctl-row .k { justify-self: start; padding: 1px 8px; color: #1a140e; background: linear-gradient(#f0dca8, #c9a964); border: 1px solid #6b5530; border-bottom-width: 2px; border-radius: 3px; white-space: nowrap; font-size: 13px; }
+
+/* ---------- controller cursor for menus (src/gamepad.js) ---------- */
+#padcursor { position: fixed; left: 0; top: 0; z-index: 100; pointer-events: none; width: 0; height: 0;
+  border-left: 9px solid transparent; border-right: 9px solid transparent; border-bottom: 20px solid #f0dca8;
+  filter: drop-shadow(0 0 3px #000) drop-shadow(0 0 6px rgba(232, 196, 106, 0.6)); margin: -2px 0 0 -9px; transform-origin: 9px 0; }
+.pad-hover { outline: 2px solid #e8c46a !important; outline-offset: 2px; }
+.ctl-row .k.pad { background: linear-gradient(#cfd6e6, #8f9bb8); border-color: #3c4660; }
+.ctl-pad { grid-column: 1 / -1; margin-top: 10px; }
+#controls-list { grid-template-columns: 1fr 1fr; }
+@media (max-width: 760px) { #controls-list { grid-template-columns: 1fr; } }

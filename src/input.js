@@ -7,6 +7,8 @@ export class Input {
     this.lookDX = 0;
     this.lookDY = 0;
     this.joy = { x: 0, y: 0 };
+    this.pad = { x: 0, y: 0 };            // a controller's left stick (src/gamepad.js), and its held buttons
+    this.padAttack = this.padBlock = this.padSprint = this.padJump = false;
     this.actions = new Set();
     this.sprintToggle = false;
     this.locked = false;
@@ -123,16 +125,16 @@ export class Input {
   }
 
   get forward() {
-    return (this.keys.has('KeyW') || this.keys.has('ArrowUp') ? 1 : 0) - (this.keys.has('KeyS') || this.keys.has('ArrowDown') ? 1 : 0) + this.joy.y;
+    return (this.keys.has('KeyW') || this.keys.has('ArrowUp') ? 1 : 0) - (this.keys.has('KeyS') || this.keys.has('ArrowDown') ? 1 : 0) + this.joy.y + this.pad.y;
   }
   get strafe() {
-    return (this.keys.has('KeyD') || this.keys.has('ArrowRight') ? 1 : 0) - (this.keys.has('KeyA') || this.keys.has('ArrowLeft') ? 1 : 0) + this.joy.x;
+    return (this.keys.has('KeyD') || this.keys.has('ArrowRight') ? 1 : 0) - (this.keys.has('KeyA') || this.keys.has('ArrowLeft') ? 1 : 0) + this.joy.x + this.pad.x;
   }
-  get attackHeld() { return this.mouseAttack || this.held.attack; }
-  get blockHeld() { return this.mouseBlock || this.keys.has('KeyR') || this.held.block; }
+  get attackHeld() { return this.mouseAttack || this.held.attack || this.padAttack; }
+  get blockHeld() { return this.mouseBlock || this.keys.has('KeyR') || this.held.block || this.padBlock; }
 
   get sprint() {
-    return this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || this.sprintToggle;
+    return this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || this.sprintToggle || this.padSprint;
   }
 
   consume(action) {

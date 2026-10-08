@@ -182,7 +182,7 @@ export class Mount {
       if (p.onGround) { p.vel.y = MOUNT.flutter; p.onGround = false; this.g.audio.burst({ dur: 0.35, freq: 900, q: 0.6, gain: 0.12, sweep: 1.4 }); }
       else if (this.wing > 0.6) { p.vel.y = Math.max(p.vel.y, MOUNT.flutter * 0.7); this.wing -= 0.6; }
     }
-    const holding = input.keys.has('Space') || input.held.jump;
+    const holding = input.keys.has('Space') || input.held.jump || input.padJump;
     if (!p.onGround && holding && this.wing > 0 && p.vel.y < 0) {
       this.wing -= dt;
       p.vel.y = Math.max(p.vel.y, -MOUNT.glide * 0.35);
