@@ -342,12 +342,25 @@ const EXTRAS = {
     kit.glows = [['head', [0, 2.2, -0.05], 'candleSprite', 0.9]];          // the candles on his cage
     kit.scale = 0.95;
   },
+  // the knight's plate is dark and worn: the longsword, the moon-lantern at the hip, and a sash and
+  // armband in the base's colour so allies and enemies can be told apart
   wanderer(kit) {
-    kit.add('metal', 'hips', box(0.27, 0.8, 0.08, 0.11, 0.02, 0.11, C(0.3, 0.3, 0.32)));
-    kit.add('metal', 'hips', box(0.27, 0.66, 0.08, 0.11, 0.02, 0.11, C(0.3, 0.3, 0.32)));
-    kit.add('metal', 'hips', seg(V(0.22, 0.95, 0.08), V(0.27, 0.81, 0.08), 0.008, 0.008, C(0.35, 0.35, 0.37), 4));
-    kit.add('glow', 'hips', box(0.27, 0.73, 0.08, 0.085, 0.12, 0.085, C(0.6, 0.95, 1.6)));
-    kit.glows = [['hips', [0.27, 0.73, 0.08], 'sprite', 1.1]];
+    kit.add('metal', 'hips', box(0.27, 0.78, 0.07, 0.11, 0.02, 0.11, C(0.3, 0.3, 0.32)));
+    kit.add('metal', 'hips', box(0.27, 0.64, 0.07, 0.11, 0.02, 0.11, C(0.3, 0.3, 0.32)));
+    kit.add('metal', 'hips', seg(V(0.21, 0.92, 0.07), V(0.27, 0.79, 0.07), 0.008, 0.008, C(0.35, 0.35, 0.37), 4));
+    kit.add('glow', 'hips', box(0.27, 0.71, 0.07, 0.085, 0.12, 0.085, C(0.6, 0.95, 1.6)));
+    kit.glows = [['hips', [0.27, 0.71, 0.07], 'sprite', 1.1]];
+    // a tabard over the breastplate and a band round the left arm
+    kit.add('team', 'chest', box(0, 1.17, 0.165, 0.2, 0.34, 0.02, C(0.9, 0.9, 0.9)));
+    kit.add('team', 'hips', box(0, 0.86, 0.17, 0.18, 0.2, 0.02, C(0.82, 0.82, 0.82)));
+    kit.add('team', 'shL', box(0.222, 1.27, -0.03, 0.11, 0.06, 0.11, C(0.9, 0.9, 0.9), [0, 0, 0.2]));
+    kit.wpn('metal', box(0, 0, 0.5, 0.055, 0.012, 0.9, C(0.72, 0.75, 0.8)));
+    kit.wpn('metal', part(new THREE.ConeGeometry(0.039, 0.12, 4), C(0.72, 0.75, 0.8), { pos: [0, 0, 1.0], rot: [Math.PI / 2, Math.PI / 4, 0], scale: [1, 1, 0.3] }));
+    kit.wpn('metal', box(0, 0, 0.06, 0.22, 0.03, 0.04, C(0.45, 0.42, 0.38)));
+    kit.wpn('plain', box(0, 0, -0.05, 0.035, 0.035, 0.18, C(0.2, 0.13, 0.09)));
+    kit.wpn('metal', blob(0, 0, -0.15, 0.035, C(0.7, 0.55, 0.3)));
+    kit.grip = { pos: [0, -0.06, 0.02], rot: [0.6, 0, 0] };
+    kit.scale = 1.08;
   },
 };
 

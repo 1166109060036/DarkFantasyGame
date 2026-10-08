@@ -31,7 +31,7 @@ export class ClassPreview {
     const scene = this.scene = new THREE.Scene();
     // a cold moon from behind, a warm candle from the front, a little sky between
     scene.add(new THREE.HemisphereLight(0x5a6a9a, 0x1a1008, 1.4));
-    const key = new THREE.PointLight(0xffb060, 30, 9, 1.6);
+    const key = new THREE.PointLight(0xffc080, 16, 9, 1.6);
     key.position.set(1.2, 2.2, 2.4);
     scene.add(key);
     const rim = new THREE.DirectionalLight(0x9ab8ff, 2.2);

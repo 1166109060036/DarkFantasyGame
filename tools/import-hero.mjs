@@ -19,38 +19,24 @@ const [kind, src, targetArg] = process.argv.slice(2);
 const PROFILES = {
   // regions are tested in order; first match wins. p = triangle centre (x right-of-viewer = the
   // hero's left, y up from the soles, z forward), n = face normal
+  // "Knight Set Dark Souls 1 - PS1 Style" by MoiDev (CC BY 4.0): worn plate over mail and a leather
+  // kilt, already textured, standing in a T-pose. Bones in the model's own units (1.71 tall).
   wanderer: {
-    height: 1.85,
+    textured: true, raw: true,
+    // the arms straight out to the sides: swing them down to hang ~10° from the body
+    arms: { pivot: [0.2, 1.42, -0.03], angle: 1.4, from: 0.17, to: 0.26, minY: 1.17 },
     bones: {
-      hips: [0, 0.98, 0], spine: [0, 1.14, 0], chest: [0, 1.36, 0], neck: [0, 1.55, 0], head: [0, 1.65, 0],
-      shL: [0.19, 1.44, 0], elL: [0.29, 1.15, 0], haL: [0.33, 0.88, 0.04],
-      shR: [-0.19, 1.44, 0], elR: [-0.29, 1.15, -0.03], haR: [-0.37, 0.88, 0.05],
-      hiL: [0.12, 0.94, 0], knL: [0.2, 0.52, 0], anL: [0.22, 0.1, -0.03],
-      hiR: [-0.12, 0.94, 0], knR: [-0.2, 0.52, 0], anR: [-0.2, 0.1, -0.04],
+      hips: [0, 0.92, 0], spine: [0, 1.05, 0], chest: [0, 1.22, 0], neck: [0, 1.45, 0], head: [0, 1.53, 0],
+      shL: [0.19, 1.41, -0.03], elL: [0.245, 1.14, -0.03], haL: [0.285, 0.93, -0.03],
+      shR: [-0.19, 1.41, -0.03], elR: [-0.245, 1.14, -0.03], haR: [-0.285, 0.93, -0.03],
+      hiL: [0.1, 0.9, 0], knL: [0.11, 0.5, 0], anL: [0.11, 0.1, -0.02],
+      hiR: [-0.1, 0.9, 0], knR: [-0.11, 0.5, 0], anR: [-0.11, 0.1, -0.02],
     },
     regions: [
-      // the longsword (forward of the body below the chest) and its hilt in the right hand
-      { name: 'blade', test: (p) => p.z > 0.16 && p.y < 1.0 && p.y > 0.15, grp: 'metal', col: [0.74, 0.77, 0.82], bone: 'haR' },
-      { name: 'hilt', test: (p) => p.z > 0.04 && p.y < 0.98 && p.y > 0.66 && p.x < -0.26, grp: 'plain', col: [0.32, 0.22, 0.15], bone: 'haR' },
-      // the face in the shadow of the hood
-      { name: 'face', test: (p, n) => p.y > 1.52 && p.y < 1.76 && p.z > 0.05 && Math.abs(p.x) < 0.09 && n.z > 0.2, grp: 'plain', col: [0.5, 0.38, 0.3], bone: 'head' },
-      { name: 'hood', test: (p) => p.y > 1.5, grp: 'team', col: [0.9, 0.9, 0.9], follow: ['head', 'neck', 'chest'] },
-      // the cloak hangs behind; the capelet covers the shoulders
-      { name: 'cloak', test: (p) => p.z < -0.13 && p.y > 0.3, grp: 'team', col: [0.82, 0.82, 0.82], follow: ['chest', 'spine', 'hips', 'hiL', 'hiR'] },
-      { name: 'capelet', test: (p) => p.y > 1.32 && (p.z < 0.02 || Math.abs(p.x) > 0.13) && Math.abs(p.x) < 0.3 && Math.hypot(p.x * 0.8, p.z) > 0.15, grp: 'team', col: [0.88, 0.88, 0.88], follow: ['chest', 'neck', 'spine'] },
-      // hands, wrapped forearms (a team band on the left)
-      { name: 'hands', test: (p) => p.y < 0.98 && p.y > 0.72 && Math.abs(p.x) > 0.27, grp: 'plain', col: [0.66, 0.5, 0.4] },
-      { name: 'bandL', test: (p) => p.x > 0.22 && p.y > 1.0 && p.y < 1.12, grp: 'team', col: [0.95, 0.95, 0.95] },
-      { name: 'wraps', test: (p) => Math.abs(p.x) > 0.22 && p.y > 0.95 && p.y < 1.15, grp: 'plain', col: [0.72, 0.69, 0.64] },
-      { name: 'sleeves', test: (p) => Math.abs(p.x) > 0.19 && p.y > 1.12, grp: 'plain', col: [0.17, 0.16, 0.16] },
-      // belt, pouch, jerkin
-      { name: 'belt', test: (p) => p.y > 0.9 && p.y < 1.02, grp: 'plain', col: [0.2, 0.13, 0.09] },
-      { name: 'jerkin', test: (p) => p.y >= 1.02, grp: 'plain', col: [0.38, 0.25, 0.16] },
-      // boots to the calf, dark trousers above
-      { name: 'boots', test: (p) => p.y < 0.42, grp: 'plain', col: [0.33, 0.21, 0.13] },
-      { name: 'trousers', test: () => true, grp: 'plain', col: [0.21, 0.17, 0.14] },
+      // the kilt hangs from the belt: hips and thighs share it so it swings without tearing
+      { name: 'kilt', test: (p) => p.y < 0.95 && p.y > 0.55 && Math.abs(p.x) < 0.3, grp: 'tex', follow: ['hips', 'hiL', 'hiR'] },
+      { name: 'body', test: () => true, grp: 'tex' },
     ],
-    // the moon-lantern the model doesn't have is added in-game (src/heroes.js)
   },
   // "Low Poly Micolash" by ratmeaty (CC BY 4.0): a long dark coat and a cage over the head, already
   // textured. Bones are given in the model's own units (it is 2.25 tall, cage and candles included).
