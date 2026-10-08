@@ -201,7 +201,7 @@ export class UI {
     if (!d || d.phase !== 'options' || !d.options[i]) return;
     const o = d.options[i];
     o.fn();
-    if (o.keepOpen) return;
+    if (o.keepOpen || this.dlg !== d) return;      // the option opened a dialogue of its own: leave it up
     this.closeDialogue();
   }
 
