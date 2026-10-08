@@ -4,11 +4,12 @@ import * as THREE from 'three';
 import { createWisp, createStrawman, createWolf, createLeech, createStoneKnight, blobShadow } from './characters.js';
 import {
   WISP_SPAWNS, STRAW_SPAWNS, WOLF_PACKS, LEECH_SPAWNS, KNIGHT_POS, GAUNT_SPAWNS, GAUNT_DAY_SPAWNS, CRAWLER_SPAWNS,
-  WEEPER_SPAWNS, BRUTE_SPAWNS, EXTRA_WOLF_PACKS, EXTRA_STRAW_SPAWNS, EXTRA_LEECH_SPAWNS, WILD_SPAWNS, HOLLOW_SPAWNS, ARMOUR_SPAWNS,
+  WEEPER_SPAWNS, BRUTE_SPAWNS, EXTRA_WOLF_PACKS, EXTRA_STRAW_SPAWNS, EXTRA_LEECH_SPAWNS, WILD_SPAWNS, HOLLOW_SPAWNS, ARMOUR_SPAWNS, HANDKING,
 } from './layout.js';
 import { createGaunt, createCrawler, createWeeper, createBrute } from './gaunts.js';
 import { createHollow } from './hollow.js';
 import { createArmour } from './armour.js';
+import { createHandKing, updateHandKing } from './handking.js';
 import { clamp, lerp, wrapAngle } from './util.js';
 import { rng } from './noise.js';
 import { SWORD_POSE } from './classes.js';
@@ -28,6 +29,8 @@ export const ENEMY_TYPES = {
   hollow: { name: 'ผู้หลงทาง', hp: 6, speed: 2.3, sprint: 7, range: 2.0, windup: 0.5, recover: 0.9, damage: 13, aggro: 18, leash: 50, radius: 0.4, height: 1.95, weight: 1, active: 'always', guard: true, combo: 2, coins: [4, 8], respawn: 180, cull: 95, freq: 1 },
   // empty plate armour (src/armour.js): light blows glance off; a parried swing leaves it open
   armour: { name: 'ชุดเกราะไร้ร่าง', hp: 12, speed: 1.6, range: 2.9, windup: 0.95, recover: 1.2, damage: 24, aggro: 16, leash: 40, radius: 0.5, height: 2.0, weight: 3, active: 'always', armour: true, slamEvery: 3, coins: [12, 20], respawn: 400, cull: 100, freq: 1, elite: true },
+  // the King of a Hundred Hands (src/handking.js): a boss with its own brain and attacks
+  handking: { name: 'ราชันร้อยกร', hp: 80, speed: 2.5, range: 0, windup: 1, recover: 1, damage: 30, aggro: 26, leash: 60, radius: 3.0, height: 9.6, hitY: 2.4, weight: 25, active: 'always', boss: true, custom: true, coins: [120, 160], cull: 260 },
   knight: { name: 'อัศวินหินผู้เฝ้าสะพาน', hp: 32, speed: 2.5, range: 3.8, windup: 1.05, recover: 1.4, damage: 28, aggro: 22, leash: 40, radius: 1.1, height: 4.2, weight: 6, active: 'always', boss: true, slamEvery: 3, coins: [60, 60] },
 };
 
@@ -108,6 +111,8 @@ export class Combat {
     W.leech.forEach(([x, z]) => { if (T.getHeight(x, z) < -0.3) this.spawn('leech', x, z); });
     HOLLOW_SPAWNS.wild.forEach(([x, z]) => this.spawn('hollow', x, z));
     ARMOUR_SPAWNS.wild.forEach(([x, z]) => this.spawn('armour', x, z));
+    this.handKing = this.spawn('handking', HANDKING.x, HANDKING.z);
+    this.handKing.ry = HANDKING.ry;
   }
 
   // the online arena: packs at the four camps, and a few strays in the woods. They hunt day and
@@ -133,7 +138,7 @@ export class Combat {
 
   spawn(type, x, z) {
     const def = ENEMY_TYPES[type], M = this.g.M;
-    const obj = { wisp: createWisp, straw: createStrawman, wolf: createWolf, leech: createLeech, knight: createStoneKnight, gaunt: createGaunt, crawler: createCrawler, weeper: createWeeper, brute: createBrute, hollow: createHollow, armour: createArmour }[type](M);
+    const obj = { wisp: createWisp, straw: createStrawman, wolf: createWolf, leech: createLeech, knight: createStoneKnight, gaunt: createGaunt, crawler: createCrawler, weeper: createWeeper, brute: createBrute, hollow: createHollow, armour: createArmour, handking: createHandKing }[type](M);
     this.g.scene.add(obj);
     let shadow = null;
     if (!def.fly && !def.water) {
@@ -175,7 +180,7 @@ export class Combat {
     return best;
   }
 
-  serialize() { return { bossDefeated: this.bossDefeated, swordMul: this.swordMul }; }
+  serialize() { return { bossDefeated: this.bossDefeated, swordMul: this.swordMul, handKingDefeated: this.handKingDefeated }; }
 
   load(d = {}) {
     this.bossDefeated = !!d.bossDefeated;
@@ -184,6 +189,12 @@ export class Combat {
       this.boss.alive = false;
       this.boss.obj.visible = false;
       this.boss.shadow.visible = false;
+    }
+    this.handKingDefeated = !!d.handKingDefeated;
+    if (this.handKingDefeated && this.handKing) {
+      Object.assign(this.handKing, { alive: false, respawn: 1e12 });
+      this.handKing.obj.visible = false;
+      this.handKing.shadow.visible = false;
     }
   }
 
@@ -311,7 +322,7 @@ export class Combat {
     for (const e of this.enemies) {
       if (!e.alive || e.state === 'dying' || !e.obj.visible) continue;
       V.copy(e.pos);
-      if (!e.def.fly) V.y += e.def.height * 0.5;
+      if (!e.def.fly) V.y += e.def.hitY ?? e.def.height * 0.5;
       V.sub(cam);
       const d = V.length();
       if (spec.aoe) {
@@ -358,6 +369,8 @@ export class Combat {
       }
       if (front && heavy) { e.state = 'stagger'; e.t = 1.0; e.guarding = false; e.comboN = 0; g.ui.combatText('ทำลายการ์ด!', 'parry'); }
     }
+    // a big thing caught with its arms in the ground
+    if (e.weakT > 0) dmg *= 1.5;
     // plate: light blows glance off (a third gets through), unless it has just been parried open
     if (def.armour) {
       if (e.exposedT > 0) { dmg *= 2; g.ui.combatText('ช่องโหว่! ×2', 'parry'); }
@@ -405,7 +418,15 @@ export class Combat {
     g.hud.grin();
     if (e.type === 'wisp') g.quests.onWispKilled();
     g.loot.dropFrom(e);
-    if (def.boss) {
+    if (e.type === 'handking') {
+      this.handKingDefeated = true;
+      e.respawn = 1e12;
+      for (const f of e.ai?.fx || []) f.update(99);           // clear its marks and hands
+      g.ui.banner('ชนะ', `${def.name} พ่ายแพ้`);
+      setTimeout(() => g.ui.toast('รังไหมบนต้นไม้แขวนคอเงียบลงแล้ว'), 1800);
+      g.music?.sting('victory');
+      g.save();
+    } else if (def.boss) {
       this.bossDefeated = true;
       this.swordMul = 1.6;
       g.ui.banner('ชนะ', `${def.name} พ่ายแพ้`);
@@ -483,13 +504,13 @@ export class Combat {
 
   // a blow from something that is not a local enemy (online creeps, towers, kings, other heroes):
   // dodging, parrying and blocking work just as they do against the wild
-  takeHit(dmg, from, by = null) {
+  takeHit(dmg, from, by = null, { unblockable = false } = {}) {
     const g = this.g, p = g.player;
     if (p.hp <= 0 || g.state !== 'play') return;
     if (this.iframes > 0) { this.say('หลบ!'); return; }
     const dx = p.pos.x - from.x, dz = p.pos.z - from.z, d = Math.max(Math.hypot(dx, dz), 1e-3);
     const facing = (-dx * -Math.sin(p.yaw) - dz * -Math.cos(p.yaw)) / d > 0.3;
-    if (this.blocking && facing) {
+    if (this.blocking && facing && !unblockable) {
       if (g.kit.blockMode === 'wall') {
         this.spend(dmg * 0.6); g.audio.block();
         g.kit.onWallBlock(null, dmg, by);
@@ -524,13 +545,13 @@ export class Combat {
   updateEnemies(dt, inPlay) {
     const g = this.g, p = g.player, t = g.time;
     const playerOk = inPlay && p.hp > 0;
-    let bossEngaged = false, engaged = 0, namedEngaged = null;
+    let bossEngaged = false, engaged = 0, namedEngaged = null, bossE = null;
 
     for (const e of this.enemies) {
       const def = e.def;
       if (!e.alive) {
         e.respawn -= dt * (g.events?.respawnMul ?? 1);
-        if (!def.boss && e.respawn <= 0 && e.home.distanceTo(p.pos) > 45) {
+        if (!def.boss && !e.summoned && e.respawn <= 0 && e.home.distanceTo(p.pos) > 45) {
           Object.assign(e, { alive: true, hp: def.hp, state: 'idle', t: 2, dots: null, corpseHold: 0 });
           e.pos.copy(e.home);
           e.obj.scale.setScalar(def.scale ?? (def.boss ? 1.55 : 1));
@@ -627,7 +648,8 @@ export class Combat {
       if (e.named) g.contracts?.updateNamed(e, dt, dist);
       e.frozen = seen && (e.state === 'chase' || e.state === 'idle' || e.state === 'return');
 
-      switch (e.state) {
+      if (def.custom) updateHandKing(e, dt, this, { dist, toPlayer, playerOk });
+      else switch (e.state) {
         case 'idle':
           if (e.t <= 0) {
             const a = Math.random() * Math.PI * 2, r = Math.random() * (def.boss ? 2 : 7);
@@ -708,7 +730,7 @@ export class Combat {
         }
       }
       const fighting = e.state === 'chase' || e.state === 'windup' || e.state === 'strike' || e.state === 'recover' || e.state === 'stagger';
-      if (fighting && def.boss) bossEngaged = true;
+      if (fighting && def.boss) { bossEngaged = true; bossE = e; }
       if (fighting && e.named && dist < 30) namedEngaged = e;
       // a weeper creeping up unseen must not give herself away by starting the battle music
       if (fighting && dist < 35 && !(def.stalker && e.state === 'chase' && dist > 5)) engaged += def.weight > 2 ? 2 : 1;
@@ -716,10 +738,10 @@ export class Combat {
       // facing (a watched stalker doesn't even turn)
       const goal = turn ? toPlayer : moveAngle;
       const rate = turn || 6;
-      if (!e.frozen) e.ry += clamp(wrapAngle(goal - e.ry), -rate * dt, rate * dt);
+      if (!e.frozen && !def.custom) e.ry += clamp(wrapAngle(goal - e.ry), -rate * dt, rate * dt);
       if (PALE_ONES.has(e.type)) moveSpeed *= g.events?.enemySpeedMul ?? 1;
       moveSpeed *= e.spdMul ?? 1;
-      e.curSpeed = moveSpeed;
+      if (!def.custom) e.curSpeed = moveSpeed;          // a boss with its own brain sets its own
       // movement (aim may differ from facing for a frame or two; that's fine)
       if (moveSpeed > 0) this.moveEnemy(e, Math.sin(moveAngle) * moveSpeed * dt, Math.cos(moveAngle) * moveSpeed * dt);
       // keep out of the player
@@ -729,10 +751,10 @@ export class Combat {
       this.animate(e, dt, t, active);
     }
     // the boss bar also names a bounty target once it is on you
-    g.ui.setBoss(bossEngaged && this.boss?.alive ? this.boss : namedEngaged);
+    g.ui.setBoss(bossEngaged && bossE?.alive ? bossE : namedEngaged);
     // the score follows the fight: how many things are on you, and whether it is the knight
     this.engaged = engaged;
-    this.bossEngaged = bossEngaged && !!this.boss?.alive;
+    this.bossEngaged = bossEngaged && !!bossE?.alive;
     const tgt = this.target;
     g.ui.setTarget(tgt && this.targetT > 0 && tgt.alive && tgt.state !== 'dying' && !tgt.def.boss ? tgt : null);
   }

@@ -397,6 +397,13 @@ export class AudioSys {
       if (w) this.voice({ freq: 130, dur: 0.22, gain: 0.12, slide: 0.7, formant: 650, q: 2, vibrato: 20, ...P });
       else { this.burst({ dur: 1.2, freq: 700, q: 0.8, gain: 0.12, sweep: 0.6, attack: 0.2, ...P }); this.voice({ freq: 95, dur: 1.1, gain: 0.06, slide: 0.85, formant: 420, q: 2, vibrato: 5, ...P }); }
     }
+    if (type === 'handking') {
+      if (kind === 'aggro') {                                            // the roar: a choir of throats
+        [55, 82, 110, 147].forEach((f, i) => this.voice({ freq: f, dur: 2.4, gain: 0.14, slide: 0.7, formant: 300 + i * 140, q: 2, vibrato: 6 + i * 3, delay: i * 0.05, ...P }));
+        this.burst({ dur: 2.4, freq: 180, q: 0.6, type: 'lowpass', gain: 0.5, attack: 0.2, ...P });
+      } else if (kind === 'rumble') this.burst({ dur: 1.0, freq: 90, q: 0.7, type: 'lowpass', gain: 0.35, attack: 0.3, ...P });
+      else { this.voice({ freq: 70, dur: 0.9, gain: 0.14, slide: 1.4, formant: 320, q: 2, vibrato: 9, ...P }); this.burst({ dur: 0.8, freq: 600, q: 0.6, gain: 0.12, sweep: 1.6, ...P }); }
+    }
     if (type === 'armour') {
       // plates grinding on plates, and something hollow ringing inside the helm
       this.burst({ dur: w ? 0.5 : 0.9, freq: 2400, q: 2, gain: 0.12, sweep: w ? 1.5 : 0.7, ...P });

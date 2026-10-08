@@ -11,9 +11,10 @@ import { ps2ify } from './ps2.js';
 const _q = new THREE.Quaternion(), _e = new THREE.Euler();
 
 export class Rig {
-  // bones: { key: 'boneName' }; tint: multiplies the texture
-  constructor(path, bones, { tint = new THREE.Color(1, 1, 1) } = {}) {
-    this.path = path; this.names = bones; this.tint = tint;
+  // bones: { key: 'boneName' }; tint: multiplies the texture; ascii: match bone names by their
+  // ASCII characters only (for rigs whose bones were named in another script, e.g. 'Кость.018')
+  constructor(path, bones, { tint = new THREE.Color(1, 1, 1), ascii = false } = {}) {
+    this.path = path; this.names = bones; this.tint = tint; this.ascii = ascii;
     this.asset = null; this.loading = null;
     this.rest = {};          // per bone: rest quaternion and its parent's rest orientation in model space
   }
@@ -37,10 +38,10 @@ export class Rig {
         const root = new THREE.Quaternion();
         gltf.scene.getWorldQuaternion(root).invert();
         for (const name of Object.values(this.names)) {
-          const b = gltf.scene.getObjectByName(name);
+          const b = this.find(gltf.scene, name);
           if (!b) { console.warn(this.path, 'missing bone', name); continue; }
           const P = root.clone().multiply(b.parent.getWorldQuaternion(new THREE.Quaternion()));
-          this.rest[name] = { rest: b.quaternion.clone(), P, Pi: P.clone().invert() };
+          this.rest[b.name] = { rest: b.quaternion.clone(), P, Pi: P.clone().invert() };
         }
         this.asset = gltf;
         return gltf;
@@ -53,7 +54,7 @@ export class Rig {
   instance() {
     const body = cloneSkinned(this.asset.scene);
     const bones = {};
-    for (const [k, n] of Object.entries(this.names)) bones[k] = body.getObjectByName(n);
+    for (const [k, n] of Object.entries(this.names)) bones[k] = this.find(body, n);
     const mats = new Map();
     body.traverse((o) => {
       if (!o.isMesh) return;
@@ -62,6 +63,13 @@ export class Rig {
     });
     body.updateMatrixWorld(true);
     return { body, bones, mats: [...mats.values()] };
+  }
+
+  find(root, name) {
+    if (!this.ascii) return root.getObjectByName(name);
+    let hit = null;
+    root.traverse((o) => { if (!hit && o.isBone && o.name.replace(/[^\x20-\x7e]/g, '') === name) hit = o; });
+    return hit;
   }
 
   // rotate a bone by (x, y, z) about the model's own axes, on top of its rest pose

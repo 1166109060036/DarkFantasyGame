@@ -134,25 +134,28 @@ LOCATIONS.push(...WILD_LOCATIONS);
 export const HOLLOW_SPAWNS = {
   valley: [[-118, -8], [72, 136], [-148, -100], [236, 34]],
   wild: [[150, -360], [128, -446], [-40, -470], [300, -6], [424, -26], [-360, 26], [-400, 146], [184, 350],
-    [-20, 432], [132, -548], [-575, 30], [480, 160], [-462, 292]],
+    [-20, 432], [132, -548], [-610, 90], [480, 160], [-462, 292]],
 };
 
 // empty plate armour, still keeping watch where the knights once stood
 export const ARMOUR_SPAWNS = {
   valley: [[CASTLE.x - 95, CASTLE.z - 20], [TEMPLE.x + 22, TEMPLE.z + 30]],
   wild: [[BELLTOWER.x + 10, BELLTOWER.z + 16], [STONES.x + 4, STONES.z + 18], [WINDMILL.x - 14, WINDMILL.z + 6],
-    [DROWNED.x + 30, DROWNED.z - 52], [HANGTREE.x + 14, HANGTREE.z - 10], [128, -300]],
+    [DROWNED.x + 30, DROWNED.z - 52], [HANGTREE.x - 70, HANGTREE.z + 60], [128, -300]],
 };
+
+// the King of a Hundred Hands squats among the roots of the hanging tree (src/handking.js)
+export const HANDKING = { x: HANGTREE.x + 13, z: HANGTREE.z + 7, ry: -1.9 };
 
 // the wild's own inhabitants
 export const WILD_SPAWNS = {
   wolf: [[-420, -40, 3], [-520, 160, 3], [-620, -120, 2], [-380, 260, 2], [260, -420, 2], [-120, -620, 3], [380, -520, 2]],
   gaunt: [[-480, -80], [-600, 100], [-430, 330], [-500, 260], [300, 120], [460, 240], [600, 40], [-200, 420], [40, 420]],
-  gauntDay: [[-560, -30], [-520, 60], [-640, 10]],
-  crawler: [[-540, 0], [-590, 50], [-30, 470], [-160, 470], [60, 500], [-460, 300]],
-  weeper: [[BELLTOWER.x - 8, BELLTOWER.z + 10], [-300, -460], [-90, 520], [-560, 34]],
+  gauntDay: [[-600, -80], [-500, 90], [-660, 40]],
+  crawler: [[-520, -60], [-600, 110], [-30, 470], [-160, 470], [60, 500], [-460, 300]],
+  weeper: [[BELLTOWER.x - 8, BELLTOWER.z + 10], [-300, -460], [-90, 520], [-640, -40]],
   straw: [[440, 150], [500, 210], [470, 240], [520, 120], [560, -20], [600, -100], [380, 60], [420, 220]],
-  brute: [[160, -500], [540, -80], [-560, -40], [-20, 520]],
-  wisp: [[-100, 470], [0, 480], [-200, 500], [120, 520], [-300, -440], [-280, -500], [-560, 40]],
+  brute: [[160, -500], [540, -80], [-480, -120], [-20, 520]],
+  wisp: [[-100, 470], [0, 480], [-200, 500], [120, 520], [-300, -440], [-280, -500], [-500, -90]],
   leech: [[-60, 470], [40, 540], [-180, 560], [-120, 660], [60, 660]],
 };

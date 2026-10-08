@@ -21,6 +21,7 @@ export const DROPS = {
   weeper: [['locket', 1, 1], ['essence', 2, 0.7]],
   hollow: [['token', 1, 0.4], ['moon_herb', 1, 0.3], ['potion', 1, 0.15], ['watch', 1, 0.05]],
   armour: [['ore', 1, 0.8], ['ore', 1, 0.4], ['candlestick', 1, 0.12], ['oil', 1, 0.2]],
+  handking: [['hand_crown', 1, 1], ['potion_big', 1, 1], ['star_shard', 2, 1], ['moonstone', 1, 1]],
   brute: [['pale_heart', 1, 1], ['claw', 3, 1], ['ore', 1, 0.7]],
 };
 
