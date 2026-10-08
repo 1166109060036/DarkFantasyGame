@@ -38,6 +38,34 @@ const PROFILES = {
       { name: 'body', test: () => true, grp: 'tex' },
     ],
   },
+  // "Investigator" (FBX, Mixamo-rigged): a long trench coat, a wide-brimmed hat and a gas mask. Its
+  // texture did not come with it, so it is painted by region like the AI meshes. The arms are
+  // lowered out of the T-pose on its own skeleton before export (the posed mesh is the input here).
+  leech: {
+    height: 1.85,
+    bones: {
+      hips: [0, 1.02, 0], spine: [0, 1.12, 0], chest: [0, 1.3, 0], neck: [0, 1.54, 0], head: [0, 1.62, 0],
+      shL: [0.21, 1.45, -0.02], elL: [0.245, 1.24, -0.02], haL: [0.32, 0.97, -0.02],
+      shR: [-0.21, 1.45, -0.02], elR: [-0.245, 1.24, -0.02], haR: [-0.32, 0.97, -0.02],
+      hiL: [0.15, 0.96, 0], knL: [0.15, 0.56, 0], anL: [0.15, 0.15, -0.02],
+      hiR: [-0.15, 0.96, 0], knR: [-0.15, 0.56, 0], anR: [-0.15, 0.15, -0.02],
+    },
+    regions: [
+      // the hat: crown and brim
+      { name: 'hat', test: (p) => p.y > 1.74, grp: 'plain', col: [0.15, 0.12, 0.1], bone: 'head' },
+      // the gas mask: round dark glass over a stitched leather snout
+      { name: 'lens', test: (p, n) => p.y > 1.64 && p.y < 1.74 && p.z > 0.08 && Math.abs(p.x) > 0.02 && Math.abs(p.x) < 0.09 && n.z > 0.4, grp: 'metal', col: [0.1, 0.12, 0.13], bone: 'head' },
+      { name: 'mask', test: (p) => (p.y > 1.55 && Math.abs(p.x) < 0.13 && p.z > -0.02) || p.y > 1.62, grp: 'plain', col: [0.36, 0.32, 0.27], bone: 'head' },
+      // the scarf round the collar, dyed in the base's colour
+      { name: 'scarf', test: (p) => p.y > 1.48 && Math.abs(p.x) < 0.2, grp: 'team', col: [0.85, 0.85, 0.85], follow: ['chest', 'neck', 'head'] },
+      // gloved hands
+      { name: 'gloves', test: (p) => Math.abs(p.x) > 0.26 && p.y < 1.04 && p.y > 0.78, grp: 'plain', col: [0.11, 0.09, 0.08] },
+      { name: 'boots', test: (p) => p.y < 0.17, grp: 'plain', col: [0.17, 0.12, 0.09] },
+      // dark trousers between the open coat-tails
+      { name: 'trousers', test: (p) => p.y < 0.95 && Math.abs(p.x) < 0.08 && p.z > 0.04, grp: 'plain', col: [0.11, 0.1, 0.1] },
+      { name: 'coat', test: () => true, grp: 'plain', col: [0.27, 0.23, 0.2] },
+    ],
+  },
   // "Low Poly Micolash" by ratmeaty (CC BY 4.0): a long dark coat and a cage over the head, already
   // textured. Bones are given in the model's own units (it is 2.25 tall, cage and candles included).
   coffin: {

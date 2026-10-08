@@ -362,6 +362,22 @@ const EXTRAS = {
     kit.grip = { pos: [0, -0.06, 0.02], rot: [0.6, 0, 0] };
     kit.scale = 1.08;
   },
+  // the investigator's coat: a bandolier of glowing leech jars across it, and the lancet in hand
+  leech(kit) {
+    kit.add('plain', 'chest', box(0, 1.3, 0.15, 0.07, 0.56, 0.025, C(0.3, 0.19, 0.12), [0, 0, 0.75]));
+    for (let i = 0; i < 5; i++) {
+      const t = (i - 2) * 0.085, x = -t * 0.93, y = 1.3 + t * 1.36;
+      kit.add('glow', 'chest', cyl(x, y, 0.18, 0.03, 0.03, 0.07, C(1.15, 0.12, 0.1), [0, 0, 0], 6));
+      kit.add('wood', 'chest', cyl(x, y + 0.045, 0.18, 0.025, 0.025, 0.02, C(0.55, 0.42, 0.28), [0, 0, 0], 6));
+    }
+    kit.add('team', 'elL', box(0.24, 1.18, -0.02, 0.13, 0.07, 0.13, C(0.9, 0.9, 0.9), [0, 0, 0.15]));
+    kit.wpn('plain', box(0, 0, -0.04, 0.03, 0.03, 0.15, C(0.85, 0.8, 0.68)));
+    kit.wpn('plain', blob(0, 0, -0.12, 0.025, C(0.8, 0.74, 0.6)));
+    kit.wpn('metal', box(0, 0.01, 0.17, 0.008, 0.045, 0.26, C(0.72, 0.74, 0.78), [-0.15, 0, 0]));
+    kit.wpn('metal', box(0, 0.025, 0.12, 0.009, 0.03, 0.14, C(0.5, 0.12, 0.1), [-0.15, 0, 0]));
+    kit.grip = { pos: [0, -0.07, 0.03], rot: [0.9, 0, 0] };
+    kit.glows = [['chest', [0, 1.3, 0.2], 'fireSprite', 0.35]];        // a faint red-orange haze off the jars
+  },
 };
 
 function assetKit(a) {
