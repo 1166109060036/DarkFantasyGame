@@ -324,7 +324,7 @@ export class AudioSys {
 
   // what the blade bites into changes the sound
   hit(heavy = false, type = 'flesh', pos = null) {
-    const material = type === 'knight' ? 'stone' : type === 'straw' ? 'straw' : type === 'wisp' ? 'spirit' : 'flesh';
+    const material = type === 'knight' || type === 'armour' ? 'stone' : type === 'straw' ? 'straw' : type === 'wisp' ? 'spirit' : 'flesh';
     const k = heavy ? 1.4 : 1;
     if (material === 'stone') {
       this.metal({ freq: 520, dur: 0.9, gain: 0.12 * k, partials: [1, 2.31, 3.9, 6.2], pos, verb: 0.5 });
@@ -396,6 +396,11 @@ export class AudioSys {
       // a man's voice with nothing left in it: a long breath out, a grunt as it throws a blow
       if (w) this.voice({ freq: 130, dur: 0.22, gain: 0.12, slide: 0.7, formant: 650, q: 2, vibrato: 20, ...P });
       else { this.burst({ dur: 1.2, freq: 700, q: 0.8, gain: 0.12, sweep: 0.6, attack: 0.2, ...P }); this.voice({ freq: 95, dur: 1.1, gain: 0.06, slide: 0.85, formant: 420, q: 2, vibrato: 5, ...P }); }
+    }
+    if (type === 'armour') {
+      // plates grinding on plates, and something hollow ringing inside the helm
+      this.burst({ dur: w ? 0.5 : 0.9, freq: 2400, q: 2, gain: 0.12, sweep: w ? 1.5 : 0.7, ...P });
+      this.metal({ freq: w ? 330 : 220, dur: w ? 0.8 : 1.6, gain: 0.07, partials: [1, 2.76, 5.4], ...P });
     }
     if (type === 'knight') {
       this.burst({ dur: w ? 0.9 : 1.5, freq: 160, q: 0.8, type: 'lowpass', gain: 0.35, ...P });

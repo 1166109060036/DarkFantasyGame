@@ -137,6 +137,13 @@ export const HOLLOW_SPAWNS = {
     [-20, 432], [132, -548], [-575, 30], [480, 160], [-462, 292]],
 };
 
+// empty plate armour, still keeping watch where the knights once stood
+export const ARMOUR_SPAWNS = {
+  valley: [[CASTLE.x - 95, CASTLE.z - 20], [TEMPLE.x + 22, TEMPLE.z + 30]],
+  wild: [[BELLTOWER.x + 10, BELLTOWER.z + 16], [STONES.x + 4, STONES.z + 18], [WINDMILL.x - 14, WINDMILL.z + 6],
+    [DROWNED.x + 30, DROWNED.z - 52], [HANGTREE.x + 14, HANGTREE.z - 10], [128, -300]],
+};
+
 // the wild's own inhabitants
 export const WILD_SPAWNS = {
   wolf: [[-420, -40, 3], [-520, 160, 3], [-620, -120, 2], [-380, 260, 2], [260, -420, 2], [-120, -620, 3], [380, -520, 2]],

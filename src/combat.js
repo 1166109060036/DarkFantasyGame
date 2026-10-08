@@ -4,10 +4,11 @@ import * as THREE from 'three';
 import { createWisp, createStrawman, createWolf, createLeech, createStoneKnight, blobShadow } from './characters.js';
 import {
   WISP_SPAWNS, STRAW_SPAWNS, WOLF_PACKS, LEECH_SPAWNS, KNIGHT_POS, GAUNT_SPAWNS, GAUNT_DAY_SPAWNS, CRAWLER_SPAWNS,
-  WEEPER_SPAWNS, BRUTE_SPAWNS, EXTRA_WOLF_PACKS, EXTRA_STRAW_SPAWNS, EXTRA_LEECH_SPAWNS, WILD_SPAWNS, HOLLOW_SPAWNS,
+  WEEPER_SPAWNS, BRUTE_SPAWNS, EXTRA_WOLF_PACKS, EXTRA_STRAW_SPAWNS, EXTRA_LEECH_SPAWNS, WILD_SPAWNS, HOLLOW_SPAWNS, ARMOUR_SPAWNS,
 } from './layout.js';
 import { createGaunt, createCrawler, createWeeper, createBrute } from './gaunts.js';
 import { createHollow } from './hollow.js';
+import { createArmour } from './armour.js';
 import { clamp, lerp, wrapAngle } from './util.js';
 import { rng } from './noise.js';
 import { SWORD_POSE } from './classes.js';
@@ -25,6 +26,8 @@ export const ENEMY_TYPES = {
   brute: { name: 'ร่างซูบยักษ์', hp: 16, speed: 1.8, range: 3.0, windup: 1.1, recover: 1.5, damage: 26, aggro: 18, leash: 35, radius: 0.9, height: 3.2, weight: 4, active: 'always', slamEvery: 2, coins: [20, 30], respawn: 600, cull: 110, freq: 2, elite: true },
   // the Lost (src/hollow.js): people still, of a kind; they guard, combine blows and sidestep
   hollow: { name: 'ผู้หลงทาง', hp: 6, speed: 2.3, sprint: 7, range: 2.0, windup: 0.5, recover: 0.9, damage: 13, aggro: 18, leash: 50, radius: 0.4, height: 1.95, weight: 1, active: 'always', guard: true, combo: 2, coins: [4, 8], respawn: 180, cull: 95, freq: 1 },
+  // empty plate armour (src/armour.js): light blows glance off; a parried swing leaves it open
+  armour: { name: 'ชุดเกราะไร้ร่าง', hp: 12, speed: 1.6, range: 2.9, windup: 0.95, recover: 1.2, damage: 24, aggro: 16, leash: 40, radius: 0.5, height: 2.0, weight: 3, active: 'always', armour: true, slamEvery: 3, coins: [12, 20], respawn: 400, cull: 100, freq: 1, elite: true },
   knight: { name: 'อัศวินหินผู้เฝ้าสะพาน', hp: 32, speed: 2.5, range: 3.8, windup: 1.05, recover: 1.4, damage: 28, aggro: 22, leash: 40, radius: 1.1, height: 4.2, weight: 6, active: 'always', boss: true, slamEvery: 3, coins: [60, 60] },
 };
 
@@ -89,6 +92,7 @@ export class Combat {
       if (best) this.spawn('leech', best[0], best[1]);
     });
     HOLLOW_SPAWNS.valley.forEach(([x, z]) => this.spawn('hollow', x, z));
+    ARMOUR_SPAWNS.valley.forEach(([x, z]) => this.spawn('armour', x, z));
     this.boss = this.spawn('knight', KNIGHT_POS.x, KNIGHT_POS.z);
     this.boss.ry = -Math.PI / 2;
     this.spawnWild(r);
@@ -103,6 +107,7 @@ export class Combat {
     for (const type of ['crawler', 'weeper', 'straw', 'brute', 'wisp']) W[type].forEach(([x, z]) => this.spawn(type, x, z));
     W.leech.forEach(([x, z]) => { if (T.getHeight(x, z) < -0.3) this.spawn('leech', x, z); });
     HOLLOW_SPAWNS.wild.forEach(([x, z]) => this.spawn('hollow', x, z));
+    ARMOUR_SPAWNS.wild.forEach(([x, z]) => this.spawn('armour', x, z));
   }
 
   // the online arena: packs at the four camps, and a few strays in the woods. They hunt day and
@@ -128,7 +133,7 @@ export class Combat {
 
   spawn(type, x, z) {
     const def = ENEMY_TYPES[type], M = this.g.M;
-    const obj = { wisp: createWisp, straw: createStrawman, wolf: createWolf, leech: createLeech, knight: createStoneKnight, gaunt: createGaunt, crawler: createCrawler, weeper: createWeeper, brute: createBrute, hollow: createHollow }[type](M);
+    const obj = { wisp: createWisp, straw: createStrawman, wolf: createWolf, leech: createLeech, knight: createStoneKnight, gaunt: createGaunt, crawler: createCrawler, weeper: createWeeper, brute: createBrute, hollow: createHollow, armour: createArmour }[type](M);
     this.g.scene.add(obj);
     let shadow = null;
     if (!def.fly && !def.water) {
@@ -353,6 +358,15 @@ export class Combat {
       }
       if (front && heavy) { e.state = 'stagger'; e.t = 1.0; e.guarding = false; e.comboN = 0; g.ui.combatText('ทำลายการ์ด!', 'parry'); }
     }
+    // plate: light blows glance off (a third gets through), unless it has just been parried open
+    if (def.armour) {
+      if (e.exposedT > 0) { dmg *= 2; g.ui.combatText('ช่องโหว่! ×2', 'parry'); }
+      else if (!heavy) {
+        dmg *= 0.33;
+        g.audio.metal?.({ freq: 900 + Math.random() * 300, dur: 0.5, gain: 0.08, partials: [1, 2.7, 5.1], pos: e.pos });
+        if ((this.armourHint = (this.armourHint || 0) + 1) <= 3) g.ui.combatText('เกราะหนา! ฟันหนัก หรือปัดแล้วฟันตอนเซ', 'bad');
+      }
+    }
     // a stone-skinned bounty shrugs off light blows
     if (e.named?.affix === 'stone' && !heavy) { dmg *= 0.25; g.ui.combatText('ฟันไม่เข้า! ต้องฟันหนัก', 'info'); }
     // an oiled blade sets foes alight
@@ -367,8 +381,10 @@ export class Combat {
     this.target = e;
     this.targetT = 3;
     if (e.hp <= 0) { this.kill(e); return; }
-    // ordinary foes flinch (a light hit interrupts their windup); the knight only staggers to heavy blows briefly
-    if (!def.boss && (!def.named || heavy)) { e.state = 'stagger'; e.t = heavy ? 0.65 : 0.3; }
+    // ordinary foes flinch (a light hit interrupts their windup); the knight only staggers to heavy blows briefly;
+    // empty plate does not flinch at all, except to a heavy blow outside its swing
+    if (def.armour) { if (heavy && e.state !== 'windup' && e.state !== 'strike') { e.state = 'stagger'; e.t = 0.5; } }
+    else if (!def.boss && (!def.named || heavy)) { e.state = 'stagger'; e.t = heavy ? 0.65 : 0.3; }
     else if (heavy && e.state !== 'windup') { e.state = 'stagger'; e.t = 0.3; }
     if (e.state === 'idle' || e.state === 'return') e.state = 'chase';
   }
@@ -434,6 +450,7 @@ export class Combat {
       if (g.time - this.blockStart < PARRY_WINDOW + g.kit.parryBonus) {
         e.state = 'stagger';
         e.t = def.boss ? 1.9 : 1.4;
+        if (def.armour) e.exposedT = 1.6;
         e.vel.set(-dx, 0, -dz).normalize().multiplyScalar(4 / def.weight);
         this.stamina = Math.min(this.maxStamina, this.stamina + 15);
         this.hitStop = 0.14;
@@ -675,6 +692,7 @@ export class Combat {
           if (e.t <= 0) e.state = playerOk && active ? 'chase' : 'return';
           break;
       }
+      if (def.armour) e.exposedT = (e.exposedT || 0) - dt;
       if (def.guard) {
         // fists up once you are close; a sidestep, now and then, when you start a swing
         e.guarding = e.state === 'chase' && dist < 4.5;

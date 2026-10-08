@@ -20,6 +20,7 @@ export const DROPS = {
   crawler: [['claw', 1, 1], ['claw', 1, 0.3], ['slime', 1, 0.2]],
   weeper: [['locket', 1, 1], ['essence', 2, 0.7]],
   hollow: [['token', 1, 0.4], ['moon_herb', 1, 0.3], ['potion', 1, 0.15], ['watch', 1, 0.05]],
+  armour: [['ore', 1, 0.8], ['ore', 1, 0.4], ['candlestick', 1, 0.12], ['oil', 1, 0.2]],
   brute: [['pale_heart', 1, 1], ['claw', 3, 1], ['ore', 1, 0.7]],
 };
 

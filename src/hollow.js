@@ -6,9 +6,7 @@
 // Model: "Lowpoly Male Base Mesh" by arsenios (https://sketchfab.com/arsenikos), Sketchfab
 // Standard licence. It ships only an idle, so every pose here is set on its bones in code.
 import * as THREE from 'three';
-import { GLTFLoader } from '../vendor/addons/loaders/GLTFLoader.js';
-import { clone as cloneSkinned } from '../vendor/addons/utils/SkeletonUtils.js';
-import { ps2ify } from './ps2.js';
+import { Rig, whenLoaded } from './rigpose.js';
 import { lerp } from './util.js';
 
 // the bones we pose (model faces +z, +x is its left)
@@ -17,43 +15,9 @@ const B = {
   armL: 'upper_armL_09', foreL: 'forearmL_010', armR: 'upper_armR_012', foreR: 'forearmR_013',
   thighL: 'thighL_014', shinL: 'shinL_015', footL: 'footL_019', thighR: 'thighR_016', shinR: 'shinR_017', footR: 'footR_040',
 };
-
-let ASSET = null, loading = null;
-const REST = {};          // per bone: rest quaternion and its parent's rest orientation in model space
-export function loadHollowAsset() {
-  if (!loading) {
-    loading = new GLTFLoader().loadAsync('assets/enemies/husk.glb').then((gltf) => {
-      gltf.scene.traverse((o) => {
-        if (!o.isMesh) return;
-        const map = o.material.map;
-        if (map) { map.magFilter = THREE.NearestFilter; map.colorSpace = THREE.NoColorSpace; }
-        o.material = ps2ify(new THREE.MeshLambertMaterial({ map, color: new THREE.Color(0.72, 0.62, 0.58), side: THREE.DoubleSide }));
-        o.frustumCulled = false;
-      });
-      gltf.scene.updateMatrixWorld(true);
-      const root = new THREE.Quaternion();
-      gltf.scene.getWorldQuaternion(root).invert();
-      for (const name of Object.values(B)) {
-        const b = gltf.scene.getObjectByName(name);
-        if (!b) { console.warn('hollow: missing bone', name); continue; }
-        const P = root.clone().multiply(b.parent.getWorldQuaternion(new THREE.Quaternion()));
-        REST[name] = { rest: b.quaternion.clone(), P, Pi: P.clone().invert() };
-      }
-      ASSET = gltf;
-      return gltf;
-    }).catch((e) => { console.warn('hollow model failed to load', e); return null; });
-  }
-  return loading;
-}
-
-const _q = new THREE.Quaternion(), _e = new THREE.Euler();
-// rotate a bone by (x pitch, y yaw, z roll) about the model's own axes, on top of its rest pose
-function rot(bone, x = 0, y = 0, z = 0) {
-  const r = bone && REST[bone.name];
-  if (!r) return;
-  _q.setFromEuler(_e.set(x, y, z, 'YXZ'));
-  bone.quaternion.copy(r.Pi).multiply(_q).multiply(r.P).multiply(r.rest);
-}
+const RIG = new Rig('assets/enemies/husk.glb', B, { tint: new THREE.Color(0.72, 0.62, 0.58) });
+export const loadHollowAsset = () => RIG.load();
+const rot = (bone, x, y, z) => RIG.rot(bone, x, y, z);
 
 const glowEye = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.3, 0.75, 0.35), fog: false });
 
@@ -63,19 +27,14 @@ export function createHollow() {
   obj.rotation.order = 'YXZ';            // so a fall tips it over backwards along its own facing
   const ud = obj.userData;
   const attach = () => {
-    const body = cloneSkinned(ASSET.scene);
-    const bones = {};
-    for (const [k, n] of Object.entries(B)) bones[k] = body.getObjectByName(n);
+    const { body, bones, mats } = RIG.instance();
     // the rig is built for IK: hands and feet hang off control bones, not off the forearms and
     // shins. Re-hang them on the limbs (keeping their rest placement) so they follow our poses.
-    body.updateMatrixWorld(true);
     for (const [limb, end] of [['foreL', 'handL_024'], ['foreR', 'handR_045'], ['shinL', 'footL_019'], ['shinR', 'footR_040']]) {
       const b = body.getObjectByName(end);
       if (b && bones[limb]) bones[limb].attach(b);
     }
-    // each one gets its own material so a hit can flash it
-    let mat = null;
-    body.traverse((o) => { if (o.isMesh) { o.material = mat ||= o.material.clone(); } });
+    const mat = mats[0];
     // embers where the eyes were (placed in model space, then parented to the head)
     body.updateMatrixWorld(true);
     if (bones.head) {
@@ -90,7 +49,7 @@ export function createHollow() {
     obj.add(body);
     Object.assign(ud, { body, bones, mat });
   };
-  if (ASSET) attach(); else loadHollowAsset().then(() => ASSET && attach());
+  whenLoaded(RIG, attach);
 
   // st: { windup, striking, stagger, moving, running, speed, dying }
   ud.animate = (e, dt, t, st) => {
