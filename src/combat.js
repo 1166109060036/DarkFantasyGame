@@ -221,7 +221,7 @@ export class Combat {
 
   playerMods() {
     return {
-      speedMul: (this.blocking && !this.g.kit.speedBoost ? 0.45 : this.charging ? 0.6 : 1) * this.g.kit.speedMul,
+      speedMul: (this.blocking && !this.g.kit.speedBoost ? this.g.kit.blockSpeed ?? 0.45 : this.charging ? 0.6 : 1) * this.g.kit.speedMul,
       sprintOk: !this.exhausted && !this.blocking,
       dodgeVel: this.dodgeT > 0 ? this.dodgeVel : null,
       locked: this.staggerT > 0,
@@ -411,7 +411,12 @@ export class Combat {
     g.kit.onKill(e);
     g.contracts?.onKill(e);
     if (g.moba) g.moba.earn({ soul: e.soul ?? (def.elite || def.named ? 4 : 1), xp: 5 }, def.name);
-    else g.gainXP(Math.round(def.hp * 3 + (def.elite ? 20 : 0) + (def.named ? 60 : 0) + (def.boss ? 120 : 0)));
+    else {
+      // the wild pays half again; the same kind of kill, over and over, pays less and less
+      const wild = Math.max(Math.abs(e.home.x), Math.abs(e.home.z)) > 300 ? 1.5 : 1;
+      const base = def.hp * 5 + (def.elite ? 40 : 0) + (def.named ? 150 : 0) + (def.boss ? 500 : 0);
+      g.gainXP(Math.round(base * wild * (def.boss || def.named ? 1 : g.progress.killMul(e.type, g.time))));
+    }
     g.particles.burst(e.pos.clone().setY(e.pos.y + def.height * 0.5), 22, 5, 0.9);
     const [a, b] = def.coins;
     g.addCoins(a + Math.floor(Math.random() * (b - a + 1)));
@@ -459,13 +464,14 @@ export class Combat {
     let dmg = def.damage * (slam ? 1.3 : 1) * (PALE_ONES.has(e.type) ? g.events?.enemyDamageMul ?? 1 : 1) * (e.dmgMul ?? 1);
     // the coffin is a wall: it stops anything from the front, even a ground slam, but cannot parry
     if (this.blocking && facingEnemy && g.kit.blockMode === 'wall') {
-      this.spend(dmg * 0.6);
+      this.spend(dmg * 0.6 * (g.kit.wallCostMul ?? 1));
       g.audio.block();
       g.audio.thump({ freq: 80, dur: 0.3, gain: 0.3 });
       p.shake = Math.max(p.shake, 0.15);
-      p.vel.x += dx / d * 2; p.vel.z += dz / d * 2;
+      const push = g.kit.wallPush ?? 1;
+      p.vel.x += dx / d * 2 * push; p.vel.z += dz / d * 2 * push;
       g.kit.onWallBlock(e, dmg);
-      if (this.stamina > 0) return;
+      if (this.stamina > 0 || g.kit.holdFirm?.()) return;
       dmg *= 0.5; this.staggerT = 0.8; this.blocking = false; g.ui.combatText('การ์ดแตก!', 'bad');
     } else if (this.blocking && facingEnemy && !slam) {
       if (g.time - this.blockStart < PARRY_WINDOW + g.kit.parryBonus) {
@@ -512,9 +518,9 @@ export class Combat {
     const facing = (-dx * -Math.sin(p.yaw) - dz * -Math.cos(p.yaw)) / d > 0.3;
     if (this.blocking && facing && !unblockable) {
       if (g.kit.blockMode === 'wall') {
-        this.spend(dmg * 0.6); g.audio.block();
+        this.spend(dmg * 0.6 * (g.kit.wallCostMul ?? 1)); g.audio.block();
         g.kit.onWallBlock(null, dmg, by);
-        if (this.stamina > 0) return;
+        if (this.stamina > 0 || g.kit.holdFirm?.()) return;
         dmg *= 0.5; this.staggerT = 0.8; this.blocking = false;
       } else if (g.time - this.blockStart < PARRY_WINDOW + g.kit.parryBonus) {
         this.stamina = Math.min(this.maxStamina, this.stamina + 15);

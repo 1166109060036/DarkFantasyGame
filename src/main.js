@@ -426,6 +426,10 @@ class Game {
     this.lastStage = d.questStage ?? this.quests.stage;
     this.setClass(d.cls || 'wanderer', { gear: false });
     this.kit.load(d.kit || {});
+    if (this.progress.refunded) {
+      this.progress.refunded = false;
+      setTimeout(() => this.ui.banner('ต้นไม้สกิลใหม่', 'เลเวลแยกตามวิถีแล้ว · คืนแต้มทั้งหมดให้เลือกใหม่ (กด K)'), 1500);
+    }
     this.events.load(d.events || {});
     this.contracts.load(d.contracts || {});
     if (d.pos) this.player.place(d.pos.x, d.pos.z, d.yaw ?? 0);
@@ -444,6 +448,7 @@ class Game {
   setClass(id, { gear = true } = {}) {
     if (!CLASSES[id]) id = 'wanderer';
     this.kit?.dispose();
+    this.progress?.setClass(id);               // each path has its own level
     this.kit = createKit(id, this);
     this.player.regenMul = this.kit.regenMul;
     this.applyKitStats();
@@ -507,9 +512,10 @@ class Game {
   // ---------------------------------------------------------------- path upgrades (src/upgrades.js)
   useProgress(pr) {
     this.progress = pr;
+    if (this.kit) pr.setClass(this.kit.id);
     pr.onChange = (what, n, cls) => {
       if (what === 'xp' && n > 0) {
-        this.ui.banner(`เลเวล ${pr.level}!`, `ได้แต้มอัพเกรด +${n} · กด K เพื่อเลือกสายอัพเกรด`);
+        this.ui.banner(`${CLASSES[cls]?.name ?? ''} เลเวล ${pr.levelOf(cls)}!`, `ได้แต้มสกิล +${n} · กด K เพื่อเปิดต้นไม้สกิล`);
         this.audio?.discover();
       }
       if (what === 'token' && cls === this.kit?.id) {
@@ -532,7 +538,7 @@ class Game {
   updateXPBar() {
     const pr = this.progress, cls = this.kit?.id;
     if (!pr || !cls) return;
-    const maxed = pr.level >= Progress.MAX_LEVEL, pts = pr.points(cls);
+    const maxed = pr.level >= pr.MAX, pts = pr.points(cls);
     const key = `${pr.level}|${Math.round(pr.xp)}|${pts}|${cls}`;
     if (key === this._xpKey) return;
     this._xpKey = key;
@@ -555,7 +561,7 @@ class Game {
   onQuestChanged(saveNow = true) {
     // every step of the story is worth some experience
     if (this.lastStage == null) this.lastStage = this.quests.stage;
-    if (this.quests.stage > this.lastStage) { this.gainXP(60 * (this.quests.stage - this.lastStage)); this.lastStage = this.quests.stage; }
+    if (this.quests.stage > this.lastStage) { this.gainXP(150 * (this.quests.stage - this.lastStage)); this.lastStage = this.quests.stage; }
     this.ui.setQuest(this.quests.objective());
     this.updateHud();
     if (saveNow) {
@@ -777,6 +783,7 @@ class Game {
       this.discovered.add(loc.id);
       this.ui.discover(loc.name, this.discovered.size, locs.length);
       this.audio.discover();
+      if (!ARENA) this.gainXP(120);                 // finding a place is worth more than another kill
       this.save();
     }
   }

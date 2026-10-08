@@ -620,6 +620,7 @@ class CoffinBearer extends Kit {
     this.blockMode = 'wall';
     this.slots = [];
     this.graves = [];
+    this.blocks = 0;
     this.M = M;
     const w = new THREE.Group();
     w.add(new THREE.Mesh(part(coffinGeometry(), C(0.42, 0.3, 0.24)), M.wood));
@@ -636,34 +637,65 @@ class CoffinBearer extends Kit {
 
   // a corpse's power: carried in the coffin, or still lingering after its burial
   has(type) { return this.slots.includes(type) || !!this.lingering?.some((l) => l.type === type); }
-  get maxSlots() { return this.perk('roomy') ? 6 : COFFIN_SLOTS; }
+  get maxSlots() { return this.perk('b_ossuary') ? 8 : this.perk('roomy') ? 6 : COFFIN_SLOTS; }
+  get hpBonus() { return (this.perk('c_back') ? 10 : 0) + (this.perk('a_root') ? 10 : 0); }
 
-  // carried corpses change the rules
+  // carried corpses (and the skill tree) change the rules
   apply() {
-    const p = this.g.player;
-    this.speedMul = (this.has('gaunt') ? 1.0 : 0.88) - this.slots.length * 0.025;
+    const p = this.g.player, n = this.slots.length;
+    this.speedMul = ((this.has('gaunt') ? 1.0 : 0.88) - (this.perk('c_stride') ? 0 : n * 0.025))
+      * (this.perk('c_stride') ? 1.05 : 1) * (this.ritesT > 0 ? 1.2 : 1);
     this.sprintCost = this.has('gaunt') ? 0 : 1;
     this.climb = this.has('crawler') ? 4 : 1.25;
-    this.armorMul = (this.has('straw') ? 0.85 : 1) * (this.perk('plated') ? 0.88 : 1);
+    this.armorMul = (this.has('straw') ? 0.85 : 1) * (this.perk('plated') ? 0.88 : 1) * (this.perk('a_root') ? 0.95 : 1)
+      * (this.perk('b_stack') ? 1 - 0.04 * n : 1);
+    // the raised coffin: what it costs to take a blow, how it moves, whether it gives
+    this.wallCostMul = (this.perk('c_thick') ? 0.8 : 1) * (this.perk('a_iron') ? 0.7 : 1);
+    this.wallPush = this.perk('a_unmoved') ? 0 : 1;
+    this.blockSpeed = this.perk('a_fortress') ? 0.8 : 0.45;
     p.climb = this.climb;
   }
   refresh() { this.apply(); }
 
+  // unmoved: once every ten seconds, an empty arm still holds the coffin up
+  holdFirm() {
+    if (!this.perk('a_unmoved') || this.g.time < (this.firmAt || 0)) return false;
+    this.firmAt = this.g.time + 10;
+    this.g.ui.combatText('ไม่สะเทือน!', 'parry');
+    return true;
+  }
+
   onWallBlock(e, dmg, by) {
     this.feat(1);
+    const g = this.g, p = g.player;
+    if (this.perk('a_bastion')) p.hp = Math.min(p.maxHp, p.hp + 3);
+    if (this.perk('a_vengeance') && ++this.blocks >= 3 && !this.venge) { this.venge = true; g.ui.combatText('แค้นโลง: ครั้งต่อไป ×2', 'parry'); }
     if (!this.perk('reflect')) return;
-    const g = this.g;
-    if (e && e.alive && e.state !== 'dying') { V.set(e.pos.x - g.player.pos.x, 0, e.pos.z - g.player.pos.z).normalize(); this.combat.damageEnemy(e, false, V, 1.2); }
-    else if (by != null) g.moba?.riposte(by, 1.2);
+    const back = this.perk('a_bash') ? 2.4 : 1.2;
+    if (e && e.alive && e.state !== 'dying') {
+      V.set(e.pos.x - p.pos.x, 0, e.pos.z - p.pos.z).normalize();
+      this.combat.damageEnemy(e, false, V, back);
+      if (this.perk('a_bash') && e.alive && !e.def.boss) { e.state = 'stagger'; e.t = Math.max(e.t, 0.8); }
+    } else if (by != null) g.moba?.riposte(by, back);
+  }
+
+  // what the coffin is worth this swing: the dead it carries, and the tree
+  power() {
+    const n = this.slots.length;
+    return (this.perk('strength') ? 1 + 0.06 * n : 1) * (this.perk('b_onesoul') && n <= 2 ? 1.25 : 1) * (this.venge ? 2 : 1);
   }
 
   swing(kind) {
-    const quick = this.has('wolf') ? 0.75 : 1, dead = this.perk('strength') ? 1 + 0.06 * this.slots.length : 1;
+    const quick = this.has('wolf') ? 0.75 : 1, dead = this.power();
     if (kind === 'heavy') {
-      const big = this.has('brute'), quake = this.perk('quake');
-      return { dur: 1.0 * quick, cost: 32, hitAt: 0.55, aoe: { dist: 2.2, r: (big ? 5.5 : 3.6) + (quake ? 1.2 : 0) }, dmg: (big ? 6 : 4) * (quake ? 1.25 : 1) * dead, heavy: true };
+      const big = this.has('brute'), quake = this.perk('quake'), sink = this.perk('a_sinkhole');
+      const dur = 1.0 * quick * (sink ? 0.8 : 1), cost = 32 * (sink ? 0.7 : 1);
+      const dmg = (big ? 6 : 4) * (quake ? 1.25 : 1) * dead;
+      // the iron spin: the coffin swept all the way round you instead of brought down in front
+      if (this.perk('a_spin')) return { dur, cost, hitAt: 0.55, aoe: { dist: 0, r: 4.5 + (quake ? 0.6 : 0) }, dmg: dmg * 1.2, heavy: true, spin: true };
+      return { dur, cost, hitAt: 0.55, aoe: { dist: 2.2, r: (big ? 5.5 : 3.6) + (quake ? 1.2 : 0) }, dmg, heavy: true };
     }
-    return { dur: 0.62 * quick, cost: 16, hitAt: 0.5, range: 3.5, arc: 0.12, dmg: 1.6 * dead, heavy: true };
+    return { dur: 0.62 * quick, cost: 16, hitAt: 0.5, range: 3.5, arc: 0.12, dmg: 1.6 * dead * (this.perk('c_spade') ? 1.15 : 1), heavy: true };
   }
 
   swingSound(kind) {
@@ -672,6 +704,7 @@ class CoffinBearer extends Kit {
   }
 
   onStrike(kind) {
+    if (this.venge) { this.venge = false; this.blocks = 0; }
     if (kind !== 'heavy') return;
     const g = this.g, p = g.player, f = p.forwardVec;
     const at = new THREE.Vector3(p.pos.x + f.x * 2.2, p.pos.y + 0.2, p.pos.z + f.z * 2.2);
@@ -680,17 +713,25 @@ class CoffinBearer extends Kit {
     p.shake = Math.max(p.shake, 0.3);
   }
 
-  onHit(e) { this.g.audio.thump({ freq: 90, dur: 0.25, gain: 0.3, pos: e.pos }); }
+  onHit(e, kind) {
+    this.g.audio.thump({ freq: 90, dur: 0.25, gain: 0.3, pos: e.pos });
+    if (kind !== 'heavy' || !e.alive || e.def.boss) return;
+    // the ground split under it, or the dead in the coffin looked at it
+    if (this.perk('a_fissure')) { e.state = 'stagger'; e.t = Math.max(e.t, 1.3); }
+    if (this.perk('b_fear') && Math.random() < 0.3) { e.state = 'stagger'; e.t = Math.max(e.t, 1.5); this.g.ui.combatText('ขวัญเสีย!', 'parry'); }
+  }
 
   onKill(e) {
+    const p = this.g.player;
+    if (this.perk('b_drain') && this.slots.length) p.hp = Math.min(p.maxHp, p.hp + 4);
     if (!CORPSES[e.type]) return;
-    e.corpseHold = 30;          // the body stays put until it is taken or the time runs out
+    e.corpseHold = this.perk('b_root') ? 60 : 30;    // the body stays put until it is taken or the time runs out
     if (!this.hinted) { this.hinted = true; setTimeout(() => this.g.ui.toast('กด G ใกล้ศพเพื่อเก็บเข้าโลง'), 900); }
   }
 
   nearestCorpse() {
     const p = this.g.player;
-    let best = null, bd = 3.6;
+    let best = null, bd = this.perk('b_root') ? 6 : 3.6;
     for (const e of this.combat.enemies) {
       if (e.state !== 'dying' || !(e.corpseHold > 0)) continue;
       const d = Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z);
@@ -700,7 +741,10 @@ class CoffinBearer extends Kit {
   }
 
   skill() {
-    const g = this.g, e = this.nearestCorpse();
+    const g = this.g;
+    // the legion: with the coffin raised, every corpse in it bursts out at once
+    if (this.perk('b_legion') && this.combat.blocking && this.slots.length) { this.legion(); return; }
+    const e = this.nearestCorpse();
     if (e) {
       if (this.slots.length >= this.maxSlots && !this.bury()) return;   // make room: the oldest goes in the ground
       this.feat(2);
@@ -713,6 +757,7 @@ class CoffinBearer extends Kit {
       g.particles.burst(e.pos.clone().setY(e.pos.y + 0.5), 10, 2, 0.6);
       g.ui.combatText(`เก็บ${CORPSES[e.type].name}: ${CORPSES[e.type].power}`, 'parry');
       g.hud.grin();
+      if (this.perk('b_harvest')) { g.player.hp = Math.min(g.player.maxHp, g.player.hp + 8); this.combat.stamina = Math.min(this.combat.maxStamina, this.combat.stamina + 20); }
       return;
     }
     if (!this.slots.length) { this.combat.say('ไม่มีศพในโลง และไม่มีศพให้เก็บ'); return; }
@@ -732,6 +777,7 @@ class CoffinBearer extends Kit {
     const heal = this.perk('hallowed') ? 70 : 40;
     p.hp = Math.min(p.maxHp, p.hp + heal);
     this.feat(3);
+    if (this.perk('b_rites')) { this.combat.stamina = this.combat.maxStamina; this.ritesT = 10; this.apply(); }
     // lingering: the grave bursts open around you, and the dead one's strength stays a while
     if (this.perk('lingering')) {
       areaStrike(g, { range: 5, dmg: 3, heavy: true, stagger: 1.2 });
@@ -746,6 +792,19 @@ class CoffinBearer extends Kit {
     g.ui.combatText(`ฝัง${CORPSES[type].name} · จุดฟื้นคืนชีพใหม่ · +${heal} เลือด`, 'parry');
     g.save();
     return true;
+  }
+
+  legion() {
+    const g = this.g, p = g.player, n = this.slots.length;
+    areaStrike(g, { range: 6, dmg: 2.5 * n, heavy: true, stagger: 1.5 });
+    p.hp = Math.min(p.maxHp, p.hp + 5 * n);
+    this.slots = [];
+    this.apply();
+    g.particles.burst(p.pos.clone().setY(p.pos.y + 0.8), 20 + n * 8, 7, 1.4);
+    g.audio.slam(p.pos);
+    g.audio.burst({ dur: 1.2, freq: 400, q: 0.7, gain: 0.25, sweep: 0.5 });
+    p.shake = Math.max(p.shake, 0.4);
+    g.ui.combatText(`กองทัพในโลง! ×${n}`, 'parry');
   }
 
   addGrave(x, z, type) {
@@ -769,6 +828,11 @@ class CoffinBearer extends Kit {
 
   update(dt) {
     const p = this.g.player, fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
+    if (this.ritesT > 0 && (this.ritesT -= dt) <= 0) this.apply();
+    // a walking graveyard: your own graves knit you back together
+    if (this.perk('b_cemetery') && p.hp > 0 && p.hp < p.maxHp && this.graves.some((gv) => Math.hypot(gv.x - p.pos.x, gv.z - p.pos.z) < 6)) {
+      p.hp = Math.min(p.maxHp, p.hp + 3 * dt);
+    }
     // lingering powers fade
     if (this.lingering?.length) {
       for (const l of this.lingering) l.t -= dt;
