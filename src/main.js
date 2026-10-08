@@ -34,6 +34,7 @@ import { Mount } from './mount.js';
 import { Lobby } from './lobby.js';
 import { UI } from './ui.js';
 import { Quests } from './quests.js';
+import { Tutorial, CONTROLS } from './tutorial.js';
 import { PASTURE, FENCE_R, TOAD, TEMPLE, SPAWN, LOST_SHEEP, LOCATIONS, TAVERN, CASTLE, HEAD, RIBCAGE, FARMS, PIER } from './layout.js';
 import { DayNight } from './daynight.js';
 import { clamp } from './util.js';
@@ -55,6 +56,7 @@ class Game {
   constructor() {
     this.canvas = document.getElementById('game');
     this.input = new Input(this.canvas);
+    this.tutorial = new Tutorial(this);
     const touch = this.input.touch;
     this.quality = touch
       ? { height: 360, grass: 7000, trees: 480, ferns: 900, rocks: 160, mushrooms: 220, rain: 1600 }
@@ -314,6 +316,13 @@ class Game {
     on('lobby-back', () => { this.lobby.leave(); page(false); });
     on('mobaover-back', () => page(true));
     on('btn-resume', () => this.resume());
+    // the controls page, and the first-steps drill again
+    document.getElementById('controls-list').innerHTML = CONTROLS.map(([head, rows]) => `<div class="ctl-group"><h3>${head}</h3>${
+      rows.map(([k, what]) => `<div class="ctl-row"><span class="k">${k}</span><span>${what}</span></div>`).join('')}</div>`).join('');
+    on('btn-controls', () => this.ui.show('controls'));
+    on('btn-controls-close', () => this.ui.show('controls', false));
+    on('btn-tutorial', () => { this.resume(); this.tutorial.start(); });
+    if (ARENA) document.getElementById('btn-tutorial').classList.add('hidden');
     on('btn-restart', () => { store.del(SAVE_KEY); location.reload(); });
     // desktop build (Electron) only
     if (window.desktop) {
@@ -384,10 +393,9 @@ class Game {
     this.input.enabled = true;
     this.input.requestLock();
     this.onQuestChanged(false);
-    if (!continueGame) {
-      setTimeout(() => this.ui.toast('ฝนเย็นเยียบตกลงบนบึง... เดินตามรางรถไฟขึ้นไปทางเหนือ'), 600);
-      if (!this.input.touch) setTimeout(() => this.ui.toast('WASD เดิน · Shift วิ่ง · คลิก ฟัน · คลิกขวา ป้องกัน · C หลบ · E คุย · M แผนที่'), 3200);
-      setTimeout(() => this.ui.toast('กด H ผิวปากเรียกแมลงสาบยักษ์มาขี่'), 7000);
+    if (!continueGame && !ARENA) {
+      // a new story starts with the first-steps drill (src/tutorial.js), then the road north
+      setTimeout(() => this.tutorial.start(), 400);
     }
   }
 
@@ -839,6 +847,11 @@ class Game {
     this.ui.openDialogue(this.quests.talk(id), () => this.updateHud());
   }
 
+  // the drill is over: the story's first words
+  onTutorialDone() {
+    setTimeout(() => this.ui.toast('ฝนเย็นเยียบตกลงบนบึง... เดินตามรางรถไฟขึ้นไปทางเหนือ'), 400);
+  }
+
   // Rest at the inn: fade to black, skip to the chosen hour, wake fully healed.
   sleepUntil(t) {
     this.state = 'sleeping';
@@ -1058,6 +1071,7 @@ class Game {
     ps2Uniforms.uTime.value = this.time;
     const p = this.player;
 
+    this.tutorial?.update(dt);
     if (this.state === 'play') this.updatePlay(dt);
     else if (this.state === 'title') {
       // slow flyover along the railway behind the title screen

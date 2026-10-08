@@ -394,3 +394,32 @@ body.moba .moba-only { display: inline-block; }
 @media (max-width: 760px) { .sk-lines { grid-template-columns: 1fr; } .sk-row { flex-wrap: wrap; } .sk-branches { grid-template-columns: 1fr; } }
 
 #title .credits { font-size: 10px; color: var(--dim); opacity: 0.6; margin-top: 18px; }
+
+/* ---------- first-steps drill (src/tutorial.js) and the controls page ---------- */
+#tutorial { position: fixed; left: 18px; top: 110px; width: min(340px, calc(100vw - 36px)); z-index: 16; padding: 12px 14px 10px;
+  background: rgba(10, 8, 6, 0.82); border: 1px solid #a88a50; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6); color: var(--ink); transition: opacity 0.2s, border-color 0.2s; }
+#tutorial.away { opacity: 0; pointer-events: none; }
+#tutorial.ok { border-color: #8fd36a; }
+#tutorial .tut-step { font-size: 12px; color: var(--dim); letter-spacing: 0.08em; }
+#tutorial .tut-row { display: flex; align-items: center; gap: 10px; margin: 6px 0 4px; }
+#tutorial .tut-key { display: inline-block; min-width: 34px; padding: 3px 9px; text-align: center; font-weight: bold; color: #1a140e;
+  background: linear-gradient(#f0dca8, #c9a964); border: 1px solid #6b5530; border-bottom-width: 3px; border-radius: 4px; white-space: nowrap; }
+#tutorial.ok .tut-key { background: linear-gradient(#c8f0a8, #79b85a); }
+#tutorial .tut-title { font-size: 19px; color: #e8c46a; }
+#tutorial .tut-text { font-size: 14px; line-height: 1.45; }
+#tutorial .tut-text b { color: #e8c46a; }
+#tutorial .tut-bar { height: 4px; margin: 8px 0 5px; background: rgba(255, 255, 255, 0.1); }
+#tutorial .tut-bar i { display: block; height: 100%; background: #c9a964; transition: width 0.3s; }
+#tutorial .tut-hint { font-size: 11px; color: var(--dim); }
+#tutorial .tut-btns { display: none; gap: 6px; margin-top: 6px; }
+#tutorial .tut-btns button { padding: 4px 10px; font-size: 13px; }
+#tutorial.touch .tut-btns { display: flex; }
+#tutorial.summary .tut-btns .tut-skip { display: none; }
+body.moba .story-only { display: none !important; }
+#controls { z-index: 32; background: rgba(2, 4, 14, 0.7); }
+.ctl-panel { width: min(920px, 94vw); max-height: 92vh; overflow-y: auto; background: #0a0d1a; }
+#controls-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 22px; text-align: left; }
+@media (max-width: 760px) { #controls-list { grid-template-columns: 1fr; } }
+.ctl-group h3 { margin: 12px 0 6px; color: #e8c46a; font-size: 16px; font-weight: normal; }
+.ctl-row { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; padding: 3px 0; font-size: 14px; }
+.ctl-row .k { justify-self: start; padding: 1px 8px; color: #1a140e; background: linear-gradient(#f0dca8, #c9a964); border: 1px solid #6b5530; border-bottom-width: 2px; border-radius: 3px; white-space: nowrap; font-size: 13px; }

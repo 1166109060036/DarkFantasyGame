@@ -98,6 +98,15 @@
     </div>
   </div>
 
+  <div id="tutorial" class="hidden">
+    <div class="tut-step"></div>
+    <div class="tut-row"><span class="tut-key"></span><span class="tut-title"></span></div>
+    <div class="tut-text"></div>
+    <div class="tut-bar"><i></i></div>
+    <div class="tut-hint"></div>
+    <div class="tut-btns"><button class="tut-skip ghost">ข้ามขั้นนี้</button><button class="tut-end ghost">ข้ามทั้งหมด</button></div>
+  </div>
+
   <div id="map" class="hidden">
     <div class="panel">
       <h2>แผนที่บึงจันทรา</h2>
@@ -157,7 +166,19 @@
         <button id="btn-restart" class="ghost">เริ่มใหม่ทั้งหมด</button>
         <button id="btn-quit" class="ghost desktop-only">ออกจากเกม</button>
       </div>
-      <p class="small controls">เวลาในเกม 1 วัน = 15 นาที · พักที่โรงเตี๊ยมเพื่อข้ามเวลาได้<br>WASD เดิน · Shift วิ่ง · Space กระโดด · คลิกซ้าย ฟัน (กดค้าง = ฟันหนัก) · คลิกขวาค้าง ป้องกัน/ปัด · C หรือ Ctrl หลบ · G สกิลประจำสาย · E คุย/เก็บของ · I หรือ Tab กระเป๋า · Q ดื่มยา · M แผนที่ · Esc หยุด</p>
+      <div class="buttons">
+        <button id="btn-controls" class="ghost">ปุ่มควบคุมทั้งหมด</button>
+        <button id="btn-tutorial" class="ghost story-only">ฝึกพื้นฐานอีกครั้ง</button>
+      </div>
+      <p class="small controls">เวลาในเกม 1 วัน = 15 นาที · พักที่โรงเตี๊ยมเพื่อข้ามเวลาได้</p>
+    </div>
+  </div>
+
+  <div id="controls" class="hidden overlay">
+    <div class="panel ctl-panel">
+      <h2>ปุ่มควบคุม</h2>
+      <div id="controls-list"></div>
+      <div class="buttons"><button id="btn-controls-close">กลับ</button></div>
     </div>
   </div>
 
