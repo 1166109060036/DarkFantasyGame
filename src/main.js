@@ -34,7 +34,7 @@ import { Mount } from './mount.js';
 import { Lobby } from './lobby.js';
 import { UI } from './ui.js';
 import { Quests } from './quests.js';
-import { Tutorial, CONTROLS } from './tutorial.js';
+import { Tutorial, CONTROLS, padDiagram } from './tutorial.js';
 import { Gamepads } from './gamepad.js';
 import { PASTURE, FENCE_R, TOAD, TEMPLE, SPAWN, LOST_SHEEP, LOCATIONS, TAVERN, CASTLE, HEAD, RIBCAGE, FARMS, PIER } from './layout.js';
 import { DayNight } from './daynight.js';
@@ -336,7 +336,21 @@ class Game {
     document.getElementById('controls-list').innerHTML = CONTROLS.map(([head, rows]) => `<div class="ctl-group"><h3>${head}</h3>${
       rows.map(([k, pad, what]) => `<div class="ctl-row"><span class="k">${k}</span>${pad ? `<span class="k pad">🎮 ${pad}</span>` : '<span></span>'}<span>${what}</span></div>`).join('')}</div>`).join('')
       + '<p class="small ctl-pad">🎮 ในเมนู: สติ๊กซ้ายเลื่อนลูกศร · A เลือก · B ย้อนกลับ · LB / RB ปรับค่าตั้งค่า · สติ๊กขวาเลื่อนหน้า</p>';
-    on('btn-controls', () => this.ui.show('controls'));
+    document.getElementById('controls-pad').innerHTML = padDiagram()
+      + `<div class="pad-notes">
+        <p><b>ในเมนูทุกหน้า</b> (หน้าแรก กระเป๋า ร้านค้า ต้นไม้สกิล เมนูหยุดเกม) จะมีลูกศรขึ้นบนจอ: สติ๊กซ้ายเลื่อนลูกศร · <b>A</b> เลือก / กดค้างเพื่อลากของ · <b>B</b> ย้อนกลับ · <b>Y</b> หมุนของในกระเป๋า · <b>LB / RB</b> ปรับค่าตั้งค่า · สติ๊กขวาเลื่อนหน้า</p>
+        <p><b>ในบทสนทนา</b>: ขึ้น / ลง เลือกคำตอบ · <b>A</b> ตอบ</p>
+        <p class="small">จอย PlayStation: A = ✕ · B = ○ · X = □ · Y = △ · LB / RB = L1 / R1 · LT / RT = L2 / R2 · Back / Start = Share / Options · เสียบจอยแล้วเล่นได้เลย กดคีย์บอร์ดหรือขยับเมาส์เมื่อไรก็สลับกลับ</p>
+      </div>`;
+    const tab = (which) => {
+      document.querySelectorAll('.ctl-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.ctl === which));
+      document.querySelectorAll('[data-ctl-page]').forEach((p) => p.classList.toggle('hidden', p.dataset.ctlPage !== which));
+    };
+    document.querySelectorAll('.ctl-tabs button').forEach((b) => b.addEventListener('click', () => tab(b.dataset.ctl)));
+    const howto = () => { tab(this.gamepads.active ? 'pad' : 'keys'); this.ui.show('controls'); };
+    on('btn-howto', howto);
+    addEventListener('gamepadconnected', () => this.ui.toast('พบจอยเกม 🎮 — ดูปุ่มได้ที่ "วิธีเล่น" (หน้าแรก หรือกด Start ในเกม)'));
+    on('btn-controls', howto);
     on('btn-controls-close', () => this.ui.show('controls', false));
     on('btn-tutorial', () => { this.resume(); this.tutorial.start(); });
     if (ARENA) document.getElementById('btn-tutorial').classList.add('hidden');

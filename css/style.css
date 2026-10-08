@@ -433,3 +433,11 @@ body.moba .story-only { display: none !important; }
 .ctl-pad { grid-column: 1 / -1; margin-top: 10px; }
 #controls-list { grid-template-columns: 1fr 1fr; }
 @media (max-width: 760px) { #controls-list { grid-template-columns: 1fr; } }
+
+.ctl-tabs { display: flex; gap: 6px; justify-content: center; margin: 4px 0 8px; }
+.ctl-tabs button { padding: 6px 16px; font-size: 14px; background: transparent; border: 1px solid #556; color: var(--dim); }
+.ctl-tabs button.on { border-color: #e8c46a; color: #e8c46a; background: rgba(232, 196, 106, 0.08); }
+#controls-pad .pad-svg { width: 100%; height: auto; display: block; }
+.pad-notes { text-align: left; font-size: 14px; line-height: 1.5; }
+.pad-notes b { color: #e8c46a; }
+#controls { z-index: 32; }

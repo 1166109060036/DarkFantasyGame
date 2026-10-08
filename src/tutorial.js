@@ -129,3 +129,46 @@ export const CONTROLS = [
   ['อื่น ๆ', [['E / F', 'X', 'คุย · เก็บของ · เปิดหีบ'], ['I / Tab', 'ขวา (D-pad) / Back', 'กระเป๋า'], ['M', 'ขึ้น (D-pad)', 'แผนที่'], ['K', 'ซ้าย (D-pad)', 'ต้นไม้สกิล'], ['1–4 / Enter', 'ขึ้น-ลง / A', 'เลือกตัวเลือกในบทสนทนา'], ['Esc', 'Start', 'หยุดเกม · ตั้งค่า'], ['F11', '', 'สลับเต็มจอ']]],
 ];
 // in menus a controller moves a cursor: stick = move, A = click, B = back, LB/RB = change a setting, right stick = scroll
+
+// a controller drawn with what every button does (the controls page's "controller" tab)
+export function padDiagram() {
+  const gold = '#e8c46a', ink = '#e6e2d0', dim = '#9fb0d8', body = '#2a2f3e', edge = '#8f9bb8';
+  const L = [   // [x, y] of the button, label row y, button name, what it does
+    [310, 92, 60, 'LT ค้าง', 'ป้องกัน · กันพอดีจังหวะ = ปัด'],
+    [315, 117, 110, 'LB ค้าง', 'วิ่ง'],
+    [330, 200, 175, 'สติ๊กซ้าย', 'เดิน · กดลงไป (L3) = สลับวิ่ง'],
+    [390, 258, 240, 'D-pad ขึ้น', 'แผนที่'],
+    [390, 270, 275, 'D-pad ซ้าย', 'ต้นไม้สกิล'],
+    [390, 282, 310, 'D-pad ขวา', 'กระเป๋า'],
+    [390, 290, 345, 'D-pad ลง', 'เรียก / ลงจากแมลงสาบ'],
+  ];
+  const R = [
+    [590, 92, 60, 'RT', 'ฟัน · กดค้างแล้วปล่อย = ฟันหนัก'],
+    [585, 117, 110, 'RB', 'สกิลประจำสาย'],
+    [570, 170, 155, 'Y', 'ดื่มยาฟื้นเลือด'],
+    [540, 200, 195, 'X', 'คุย · เก็บของ · เปิดหีบ'],
+    [600, 200, 235, 'B', 'กลิ้งหลบ'],
+    [570, 230, 275, 'A', 'กระโดด'],
+    [510, 270, 315, 'สติ๊กขวา', 'หันมอง'],
+    [482, 190, 355, 'Start', 'หยุดเกม · ตั้งค่า'],
+  ];
+  const lab = (x, y, name, what, right) => `<text x="${x}" y="${y}" text-anchor="${right ? 'start' : 'end'}" font-size="15" fill="${ink}"><tspan fill="${gold}" font-weight="bold">${name}</tspan>  ${what}</text>`;
+  const line = (bx, by, ly, right) => { const ex = right ? 700 : 200; return `<polyline points="${bx},${by} ${right ? Math.max(bx + 20, 660) : Math.min(bx - 20, 240)},${ly - 5} ${ex},${ly - 5}" fill="none" stroke="${dim}" stroke-width="1" opacity="0.7"/>`; };
+  const face = (x, y, t, c) => `<circle cx="${x}" cy="${y}" r="13" fill="${c}" stroke="#111" stroke-width="2"/><text x="${x}" y="${y + 5}" text-anchor="middle" font-size="14" font-weight="bold" fill="#111">${t}</text>`;
+  return `<svg viewBox="-170 40 1240 365" class="pad-svg" role="img" aria-label="ปุ่มจอยเกม">
+  ${L.map(([x, y, ly]) => line(x, y, ly, false)).join('')}${R.map(([x, y, ly]) => line(x, y, ly, true)).join('')}
+  <rect x="270" y="78" width="80" height="26" rx="10" fill="${body}" stroke="${edge}"/><text x="310" y="96" text-anchor="middle" font-size="12" fill="${ink}">LT</text>
+  <rect x="550" y="78" width="80" height="26" rx="10" fill="${body}" stroke="${edge}"/><text x="590" y="96" text-anchor="middle" font-size="12" fill="${ink}">RT</text>
+  <rect x="262" y="108" width="105" height="18" rx="8" fill="${body}" stroke="${edge}"/><text x="315" y="122" text-anchor="middle" font-size="11" fill="${ink}">LB</text>
+  <rect x="533" y="108" width="105" height="18" rx="8" fill="${body}" stroke="${edge}"/><text x="585" y="122" text-anchor="middle" font-size="11" fill="${ink}">RB</text>
+  <path d="M330,132 H570 Q640,132 660,200 L690,318 Q700,372 650,372 Q618,372 592,322 L562,292 H338 L308,322 Q282,372 250,372 Q200,372 210,318 L240,200 Q260,132 330,132 Z" fill="${body}" stroke="${edge}" stroke-width="2"/>
+  <circle cx="330" cy="200" r="30" fill="#1a1d27" stroke="${edge}"/><circle cx="330" cy="200" r="19" fill="#3a4152"/>
+  <circle cx="510" cy="270" r="28" fill="#1a1d27" stroke="${edge}"/><circle cx="510" cy="270" r="18" fill="#3a4152"/>
+  <g fill="#3a4152" stroke="${edge}"><rect x="378" y="250" width="24" height="64" rx="3"/><rect x="358" y="270" width="64" height="24" rx="3"/></g>
+  <rect x="408" y="183" width="24" height="14" rx="7" fill="#3a4152" stroke="${edge}"/><text x="420" y="214" text-anchor="middle" font-size="10" fill="${dim}">Back</text>
+  <rect x="470" y="183" width="24" height="14" rx="7" fill="#3a4152" stroke="${edge}"/><text x="482" y="214" text-anchor="middle" font-size="10" fill="${dim}">Start</text>
+  ${face(570, 170, 'Y', '#e8c84a')}${face(540, 200, 'X', '#4a8fe8')}${face(600, 200, 'B', '#e85a4a')}${face(570, 230, 'A', '#6ac84a')}
+  ${L.map(([, , ly, n, w]) => lab(195, ly, n, w, false)).join('')}${R.map(([, , ly, n, w]) => lab(705, ly, n, w, true)).join('')}
+  <text x="420" y="395" text-anchor="middle" font-size="13" fill="${dim}">Back = กระเป๋า</text>
+</svg>`;
+}

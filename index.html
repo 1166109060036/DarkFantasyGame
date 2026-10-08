@@ -169,7 +169,7 @@
         <button id="btn-quit" class="ghost desktop-only">ออกจากเกม</button>
       </div>
       <div class="buttons">
-        <button id="btn-controls" class="ghost">ปุ่มควบคุมทั้งหมด</button>
+        <button id="btn-controls" class="ghost">วิธีเล่น / ปุ่มควบคุม</button>
         <button id="btn-tutorial" class="ghost story-only">ฝึกพื้นฐานอีกครั้ง</button>
       </div>
       <p class="small controls">เวลาในเกม 1 วัน = 15 นาที · พักที่โรงเตี๊ยมเพื่อข้ามเวลาได้</p>
@@ -178,8 +178,10 @@
 
   <div id="controls" class="hidden overlay">
     <div class="panel ctl-panel">
-      <h2>ปุ่มควบคุม</h2>
-      <div id="controls-list"></div>
+      <h2>วิธีเล่น</h2>
+      <div class="ctl-tabs"><button data-ctl="keys" class="on">คีย์บอร์ด + เมาส์</button><button data-ctl="pad">🎮 จอยเกม</button></div>
+      <div id="controls-list" data-ctl-page="keys"></div>
+      <div id="controls-pad" data-ctl-page="pad" class="hidden"></div>
       <div class="buttons"><button id="btn-controls-close">กลับ</button></div>
     </div>
   </div>
@@ -234,6 +236,7 @@
         <button id="btn-new">เริ่มการเดินทาง</button>
         <button id="btn-continue" class="hidden">เล่นต่อจากที่บันทึกไว้</button>
         <button id="btn-online">ศึกราชาจันทรา (ออนไลน์ 2–4 คน)</button>
+        <button id="btn-howto" class="ghost">วิธีเล่น (คีย์บอร์ด / จอยเกม)</button>
         <button id="btn-quit-title" class="ghost desktop-only">ออกจากเกม</button>
       </div>
       <p class="small">คลิกเพื่อเริ่ม · แนะนำให้ใส่หูฟัง<span class="desktop-only"> · F11 เต็มจอ</span></p>
