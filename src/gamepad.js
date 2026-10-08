@@ -94,7 +94,7 @@ export class Gamepads {
     c.y = Math.max(0, Math.min(innerHeight - 1, c.y + (ly * Math.abs(ly) + dy * 0.35) * sp));
     this.el.style.transform = `translate(${c.x}px, ${c.y}px) rotate(-25deg)`;
     const under = document.elementFromPoint(c.x, c.y);
-    const target = under?.closest('button, [data-tab], .sk-node, .cp-card, select, input, .dlg-opt') || null;
+    const target = under?.closest('button, [data-tab], .sk-node, .g-menu li, select, input, .dlg-opt') || null;
     if (target !== this.hover) {
       this.hover?.classList?.remove('pad-hover');
       this.hover = target;

@@ -139,44 +139,50 @@
     </div>
   </div>
 
-  <div id="pause" class="hidden overlay">
-    <div class="panel">
+  <div id="pause" class="hidden overlay gothic">
+    <div class="panel pause-panel">
       <h2>หยุดชั่วคราว</h2>
-      <label>ความละเอียดภาพ (แนว PS2)
-        <select id="set-res">
-          <option value="240">240p — ดิบสุด</option>
-          <option value="360">360p</option>
-          <option value="448">448p — PS2 แท้</option>
-          <option value="540">540p</option>
-          <option value="720">720p — คมชัด</option>
-        </select>
-      </label>
-      <label>จุดยอดสั่นไหว (vertex wobble)
-        <select id="set-snap">
-          <option value="0">ปิด</option>
-          <option value="1">น้อย (PS2)</option>
-          <option value="2">มาก (PS1)</option>
-        </select>
-      </label>
-      <label>ความไวเมาส์ / การมอง <input id="set-sens" type="range" min="0.3" max="2.5" step="0.1"></label>
-      <label>เสียงรวม <input id="set-vol" type="range" min="0" max="1" step="0.05"></label>
-      <label>ดนตรีประกอบ <input id="set-music" type="range" min="0" max="1" step="0.05"></label>
-      <label>เสียงเอฟเฟกต์ <input id="set-sfx" type="range" min="0" max="1" step="0.05"></label>
-      <div class="buttons">
-        <button id="btn-resume">เล่นต่อ</button>
-        <button id="btn-fullscreen" class="ghost desktop-only">สลับเต็มจอ (F11)</button>
-        <button id="btn-restart" class="ghost">เริ่มใหม่ทั้งหมด</button>
-        <button id="btn-quit" class="ghost desktop-only">ออกจากเกม</button>
-      </div>
-      <div class="buttons">
-        <button id="btn-controls" class="ghost">วิธีเล่น / ปุ่มควบคุม</button>
-        <button id="btn-tutorial" class="ghost story-only">ฝึกพื้นฐานอีกครั้ง</button>
+      <div class="g-rule"></div>
+      <div class="pause-cols">
+        <div class="buttons g-menu-col">
+          <button id="btn-resume">เล่นต่อ</button>
+          <button id="btn-controls">วิธีเล่น / ปุ่มควบคุม</button>
+          <button id="btn-tutorial" class="story-only">ฝึกพื้นฐานอีกครั้ง</button>
+          <button id="btn-fullscreen" class="desktop-only">สลับเต็มจอ (F11)</button>
+          <button id="btn-restart" class="danger">เริ่มใหม่ทั้งหมด</button>
+          <button id="btn-quit" class="desktop-only">ออกจากเกม</button>
+        </div>
+        <div class="pause-settings">
+          <h3>ภาพ</h3>
+          <label>ความละเอียด (แนว PS2)
+            <select id="set-res">
+              <option value="240">240p — ดิบสุด</option>
+              <option value="360">360p</option>
+              <option value="448">448p — PS2 แท้</option>
+              <option value="540">540p</option>
+              <option value="720">720p — คมชัด</option>
+            </select>
+          </label>
+          <label>จุดยอดสั่นไหว
+            <select id="set-snap">
+              <option value="0">ปิด</option>
+              <option value="1">น้อย (PS2)</option>
+              <option value="2">มาก (PS1)</option>
+            </select>
+          </label>
+          <h3>การควบคุม</h3>
+          <label>ความไวเมาส์ / การมอง <input id="set-sens" type="range" min="0.3" max="2.5" step="0.1"></label>
+          <h3>เสียง</h3>
+          <label>เสียงรวม <input id="set-vol" type="range" min="0" max="1" step="0.05"></label>
+          <label>ดนตรีประกอบ <input id="set-music" type="range" min="0" max="1" step="0.05"></label>
+          <label>เสียงเอฟเฟกต์ <input id="set-sfx" type="range" min="0" max="1" step="0.05"></label>
+        </div>
       </div>
       <p class="small controls">เวลาในเกม 1 วัน = 15 นาที · พักที่โรงเตี๊ยมเพื่อข้ามเวลาได้</p>
     </div>
   </div>
 
-  <div id="controls" class="hidden overlay">
+  <div id="controls" class="hidden overlay gothic">
     <div class="panel ctl-panel">
       <h2>วิธีเล่น</h2>
       <div class="ctl-tabs"><button data-ctl="keys" class="on">คีย์บอร์ด + เมาส์</button><button data-ctl="pad">🎮 จอยเกม</button></div>
@@ -186,16 +192,29 @@
     </div>
   </div>
 
-  <div id="classpick" class="hidden overlay">
+  <div id="classpick" class="hidden overlay gothic">
     <div class="cp-wrap">
-      <h2 id="classpick-title">เลือกวิถีของเจ้า</h2>
-      <div id="classpick-list"></div>
-      <button id="classpick-cancel" class="ghost">ยกเลิก</button>
-      <p class="small">เปลี่ยนวิถีได้ภายหลังที่โรงเตี๊ยม (คุยกับเทียนหลอม) · ปุ่มสกิลของทุกสาย: G</p>
+      <h2 id="classpick-title" class="g-title">เลือกวิถีของเจ้า</h2>
+      <div class="g-rule"></div>
+      <div class="cp-main">
+        <ol id="classpick-list" class="g-menu"></ol>
+        <div class="cp-stage"><canvas id="cp-canvas"></canvas><div class="cp-hint">ลากเพื่อหมุน</div></div>
+        <div class="cp-info">
+          <div class="cp-name" id="cp-name"></div>
+          <div class="cp-weapon" id="cp-weapon"></div>
+          <p class="cp-blurb" id="cp-blurb"></p>
+          <ul id="cp-lines"></ul>
+          <button id="cp-choose" class="g-btn primary">เลือกวิถีนี้</button>
+        </div>
+      </div>
+      <div class="cp-foot">
+        <button id="classpick-cancel" class="g-btn">ย้อนกลับ</button>
+        <p class="small">↑ ↓ เปลี่ยนวิถี · Enter เลือก · Esc ย้อนกลับ · เปลี่ยนวิถีได้ภายหลังที่โรงเตี๊ยม (คุยกับเทียนหลอม)</p>
+      </div>
     </div>
   </div>
 
-  <div id="lobby" class="hidden overlay">
+  <div id="lobby" class="hidden overlay gothic">
     <div class="panel lb-panel">
       <h2>ศึกราชาจันทรา</h2>
       <p class="small lb-rules">ผู้เล่น 2–4 คนต่างมีฐานและราชาของตัวเอง ออกไปหาไม้ แร่ และวิญญาณ สร้างหอคอยกับแคมป์ฮีลในฐาน ซัมม่อนฝูงร่างซีดไปตีฐานศัตรู · ราชาองค์สุดท้ายที่ยังมีชีวิตคือผู้ชนะ</p>
@@ -219,7 +238,7 @@
     </div>
   </div>
 
-  <div id="mobaover" class="hidden overlay">
+  <div id="mobaover" class="hidden overlay gothic">
     <div class="panel">
       <h2 id="mobaover-title"></h2>
       <p id="mobaover-text"></p>
@@ -227,33 +246,33 @@
     </div>
   </div>
 
-  <div id="title" class="overlay">
+  <div id="title" class="overlay gothic">
     <div class="title-wrap">
       <h1>MOONMIRE</h1>
-      <div class="subtitle">ตำนานบึงจันทรา</div>
-      <div class="chapter">บทที่ 1 — มือที่กอดดวงจันทร์</div>
-      <div class="buttons">
+      <div class="subtitle"><span class="g-orn"></span>ตำนานบึงจันทรา<span class="g-orn r"></span></div>
+      <div class="chapter">บทที่ 1 · มือที่กอดดวงจันทร์</div>
+      <div class="buttons g-menu-col">
         <button id="btn-new">เริ่มการเดินทาง</button>
         <button id="btn-continue" class="hidden">เล่นต่อจากที่บันทึกไว้</button>
-        <button id="btn-online">ศึกราชาจันทรา (ออนไลน์ 2–4 คน)</button>
-        <button id="btn-howto" class="ghost">วิธีเล่น (คีย์บอร์ด / จอยเกม)</button>
-        <button id="btn-quit-title" class="ghost desktop-only">ออกจากเกม</button>
+        <button id="btn-online">ศึกราชาจันทรา <small>ออนไลน์ 2–4 คน</small></button>
+        <button id="btn-howto">วิธีเล่น</button>
+        <button id="btn-quit-title" class="desktop-only">ออกจากเกม</button>
       </div>
-      <p class="small">คลิกเพื่อเริ่ม · แนะนำให้ใส่หูฟัง<span class="desktop-only"> · F11 เต็มจอ</span></p>
+      <p class="small title-hint">↑ ↓ เลือก · Enter ยืนยัน · แนะนำให้ใส่หูฟัง<span class="desktop-only"> · F11 เต็มจอ</span></p>
       <p class="credits">โมเดล "Giant cockroach" โดย Drillimpact (sketchfab.com/Drillimpact) · "PS1 Pig" โดย joann5632 (sketchfab.com/ioann5632) · สัญญาอนุญาต CC BY 4.0 · "Lowpoly Male Base Mesh" โดย arsenios (sketchfab.com/arsenikos) · "PS1/PSX style low poly plate armor" โดย annaumurn (sketchfab.com/annaumurn, CC BY 4.0) · "Psx hands monster (ps2 style)" โดย petya-petyavich (sketchfab.com/petya-petyavich, CC BY 4.0) · "Low Poly Micolash" โดย ratmeaty (sketchfab.com/ratmeaty, CC BY 4.0) · "BOUNTY HUNTER" โดย EZ-GAZI (sketchfab.com/EZ-GAZI, CC BY 4.0)</p>
     </div>
   </div>
 
-  <div id="ending" class="hidden overlay">
+  <div id="ending" class="hidden overlay gothic">
     <div class="title-wrap">
-      <div class="chapter">บทที่ 1 — มือที่กอดดวงจันทร์ — จบ</div>
+      <div class="g-title end-title">บทที่ 1</div><div class="chapter">มือที่กอดดวงจันทร์ · จบ</div><div class="g-rule"></div>
       <p class="ending-text">มือนับร้อยแบออกพร้อมกัน... รังไหมแตกทีละใบ<br>แสงสีฟ้าลอยขึ้นสู่ฟ้า และดวงจันทร์ก็หายใจออกเป็นครั้งแรกในรอบร้อยปี<br><br>ทางตะวันตก ดวงตาของราชาหินเปิดขึ้นช้า ๆ<br>"ลูกข้า... ในที่สุดเจ้าก็แบมือ"</p>
       <div class="buttons"><button id="btn-ending-continue">สำรวจต่อ</button></div>
     </div>
   </div>
 
   <div id="fade"></div>
-  <div id="loading" class="overlay"><div>กำลังสร้างโลก...</div></div>
+  <div id="loading" class="overlay gothic"><div class="load-box"><div class="load-title">MOONMIRE</div><div class="g-rule"></div><div class="load-text">กำลังสร้างโลก...</div></div></div>
 
   <script src="vendor/peerjs.min.js"></script>
   <script type="module" src="src/main.js"></script>

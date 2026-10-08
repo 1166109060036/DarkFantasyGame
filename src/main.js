@@ -36,6 +36,7 @@ import { UI } from './ui.js';
 import { Quests } from './quests.js';
 import { Tutorial, CONTROLS, padDiagram } from './tutorial.js';
 import { Gamepads } from './gamepad.js';
+import { ClassPreview } from './classpreview.js';
 import { PASTURE, FENCE_R, TOAD, TEMPLE, SPAWN, LOST_SHEEP, LOCATIONS, TAVERN, CASTLE, HEAD, RIBCAGE, FARMS, PIER } from './layout.js';
 import { DayNight } from './daynight.js';
 import { clamp } from './util.js';
@@ -318,6 +319,20 @@ class Game {
     on('lobby-back', () => { this.lobby.leave(); page(false); });
     on('mobaover-back', () => page(true));
     on('btn-resume', () => this.resume());
+    // the gothic menus answer the arrow keys: up / down walk the choices, Enter takes one
+    addEventListener('keydown', (e) => {
+      if (this.state === 'play' || this.classPreviewOpen || (e.code !== 'ArrowUp' && e.code !== 'ArrowDown')) return;
+      const open = [...document.querySelectorAll('.overlay.gothic:not(.hidden)')].filter((o) => o.id !== 'classpick' && o.id !== 'loading')
+        .sort((a, b) => (+getComputedStyle(b).zIndex || 0) - (+getComputedStyle(a).zIndex || 0))[0];
+      if (!open) return;
+      const btns = [...open.querySelectorAll('button')].filter((b) => b.offsetParent !== null && !b.closest('.ctl-tabs'));
+      if (!btns.length) return;
+      e.preventDefault();
+      const i = btns.indexOf(document.activeElement);
+      const next = i < 0 ? 0 : (i + (e.code === 'ArrowDown' ? 1 : -1) + btns.length) % btns.length;
+      btns[next].focus({ focusVisible: true });
+      this.audio.ui?.();
+    });
     // a controller's B and Start in menus: back out of whatever is open
     const shown = (id) => !document.getElementById(id).classList.contains('hidden');
     this.gamepads.onBack = () => {
@@ -527,21 +542,44 @@ class Game {
   // The path picker: on a new game, or when changing paths at the inn
   pickClass(done, { current = null } = {}) {
     const el = document.getElementById('classpick'), list = document.getElementById('classpick-list');
+    const ids = Object.keys(CLASSES);
+    let sel = Math.max(0, ids.indexOf(current || 'wanderer'));
+    if (!this.classPreview) this.classPreview = new ClassPreview(document.getElementById('cp-canvas'), this.M);
+    const $ = (id) => document.getElementById(id);
+    const pick = (i) => {
+      sel = (i + ids.length) % ids.length;
+      const id = ids[sel], c = CLASSES[id];
+      [...list.children].forEach((li, k) => li.classList.toggle('on', k === sel));
+      $('cp-name').textContent = `${c.icon}  ${c.name}`;
+      $('cp-weapon').textContent = `อาวุธ: ${c.weapon}` + (id === current ? ' · วิถีปัจจุบัน' : '');
+      $('cp-blurb').textContent = c.blurb;
+      $('cp-lines').innerHTML = c.lines.map((l) => `<li>${l}</li>`).join('');
+      this.classPreview.show(id);
+    };
+    const close = () => { el.classList.add('hidden'); removeEventListener('keydown', keys); this.classPreviewOpen = false; };
+    const choose = () => { close(); this.audio.ui(); done(ids[sel]); };
+    const keys = (e) => {
+      if (e.code === 'Escape') { close(); done(null); }
+      else if (e.code === 'ArrowUp' || e.code === 'KeyW') { pick(sel - 1); this.audio.ui(); }
+      else if (e.code === 'ArrowDown' || e.code === 'KeyS') { pick(sel + 1); this.audio.ui(); }
+      else if (e.code === 'Enter') { e.preventDefault(); choose(); }
+    };
     list.innerHTML = '';
-    const close = () => { el.classList.add('hidden'); removeEventListener('keydown', esc); };
-    const esc = (e) => { if (e.code === 'Escape') { close(); done(null); } };
-    for (const [id, c] of Object.entries(CLASSES)) {
-      const card = document.createElement('button');
-      card.className = 'cp-card' + (id === current ? ' current' : '');
-      card.innerHTML = `<div class="cp-icon">${c.icon}</div><div class="cp-name">${c.name}</div><div class="cp-weapon">อาวุธ: ${c.weapon}</div>
-        <div class="cp-blurb">${c.blurb}</div><ul>${c.lines.map((l) => `<li>${l}</li>`).join('')}</ul>`;
-      card.addEventListener('click', () => { close(); this.audio.ui(); done(id); });
-      list.appendChild(card);
-    }
-    document.getElementById('classpick-cancel').onclick = () => { close(); done(null); };
-    document.getElementById('classpick-title').textContent = current ? 'เปลี่ยนวิถี' : 'เลือกวิถีของเจ้า';
+    ids.forEach((id, i) => {
+      const c = CLASSES[id], li = document.createElement('li');
+      li.innerHTML = `<span class="cp-li-icon">${c.icon}</span><span><b>${c.name}</b><small>${c.weapon}</small></span>`;
+      if (id === current) li.classList.add('current');
+      li.addEventListener('click', () => { if (sel !== i) { pick(i); this.audio.ui(); } });
+      list.appendChild(li);
+    });
+    $('cp-choose').onclick = choose;
+    $('classpick-cancel').onclick = () => { close(); done(null); };
+    $('classpick-title').textContent = current ? 'เปลี่ยนวิถี' : 'เลือกวิถีของเจ้า';
     el.classList.remove('hidden');
-    addEventListener('keydown', esc);
+    document.activeElement?.blur?.();          // the title's button keeps no focus behind the picker
+    this.classPreviewOpen = true;
+    pick(sel);
+    addEventListener('keydown', keys);
   }
 
   changeClassAtInn() {
@@ -1092,6 +1130,7 @@ class Game {
     const rawDt = dt;
     // a controller: sticks and buttons in play, up/down/A in dialogue, a mouse-like cursor in menus
     this.gamepads.poll(rawDt, this.state === 'play' ? (this.ui.dialogueOpen ? 'dialogue' : 'play') : 'menu');
+    if (this.classPreviewOpen) this.classPreview.update(rawDt);
     // the world holds still behind the case, shops and the pause menu
     const halted = this.state === 'bag' || this.state === 'menu' || this.state === 'paused' || this.state === 'classpick' || this.state === 'skills';
     if (halted) dt = 0;
