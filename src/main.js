@@ -42,6 +42,7 @@ import { DayNight } from './daynight.js';
 import { clamp } from './util.js';
 import { LANG, setLang, applyHtml, L } from './i18n.js';
 import { Equipment } from './equipment.js';
+import { ThirdPerson } from './thirdperson.js';
 
 const SAVE_KEY = 'moonmire-save-v1';
 const SETTINGS_KEY = 'moonmire-settings-v1';
@@ -68,7 +69,7 @@ class Game {
     this.quality = touch
       ? { height: 360, grass: 7000, trees: 480, ferns: 900, rocks: 160, mushrooms: 220, rain: 1600 }
       : { height: 448, grass: 16000, trees: 760, ferns: 1600, rocks: 260, mushrooms: 340, rain: 3200 };
-    this.settings = Object.assign({ height: this.quality.height, snap: 1, sens: 1, volume: 0.8, music: 0.7, sfx: 0.9 }, store.get(SETTINGS_KEY) || {});
+    this.settings = Object.assign({ height: this.quality.height, snap: 1, sens: 1, volume: 0.8, music: 0.7, sfx: 0.9, view: 0 }, store.get(SETTINGS_KEY) || {});
     this.state = 'loading';
     this.time = 0;
     this.coins = 0;
@@ -162,6 +163,7 @@ class Game {
     this.useProgress(new Progress());
     this.skillsUI = new SkillsUI(this);
     this.mount = new Mount(this);
+    this.thirdPerson = new ThirdPerson(this);     // V: the over-the-shoulder view
     this.critters = ARENA ? null : new Critters(this);
     // imported hero models (assets/heroes/) load in the background; until then the built ones stand in
     loadHeroAssets().then((k) => { this.heroModels = k; });
@@ -408,6 +410,7 @@ class Game {
     bind('set-vol', 'volume');
     bind('set-music', 'music');
     bind('set-sfx', 'sfx');
+    bind('set-view', 'view');
     document.getElementById('dialogue').addEventListener('touchstart', () => this.input.actions.add('tap'), { passive: true });
     document.getElementById('dialogue').addEventListener('click', () => { if (!this.input.locked) this.input.actions.add('tap'); });
     this.canvas.addEventListener('click', () => {
@@ -422,6 +425,7 @@ class Game {
     this.audio?.setVolume(this.settings.volume);
     this.audio?.setMusicVolume(this.settings.music);
     this.audio?.setSfxVolume(this.settings.sfx);
+    this.thirdPerson?.set(this.settings.view === 1);
     this.resize();
   }
 
@@ -822,6 +826,17 @@ class Game {
   // damage multiplier for the player's blows, and the share of incoming damage that gets through
   get damageMul() { return this.combat.swordMul * (1 + this.gear.sword * 0.2) * (this.buffs.oil > 0 ? 1.5 : 1) * (this.quests?.guardForged ? 1.25 : 1); }
 
+  // first person <-> over the shoulder; remembered with the settings
+  toggleView() {
+    this.settings.view = this.settings.view === 1 ? 0 : 1;
+    store.set(SETTINGS_KEY, this.settings);
+    this.applySettings();
+    const el = document.getElementById('set-view');
+    if (el) el.value = this.settings.view;
+    this.audio.ui?.();
+    this.ui.toast(this.settings.view ? L('มุมมองบุคคลที่สาม', 'Third-person view') : L('มุมมองบุคคลที่หนึ่ง', 'First-person view'));
+  }
+
   get armorMul() { return (1 - this.gear.cloak * 0.08) * this.equipment.armourMul; }
   pathName(cls) { return CLASSES[cls]?.name || cls; }
 
@@ -1090,6 +1105,7 @@ class Game {
     c.updatePlayer(dt, input, frozen);
     p.update(dt, input, this.time, frozen, c.playerMods());
 
+    if (input.consume('view')) this.toggleView();
     if (!frozen) {
       if (input.consume('potion')) this.quickHeal();
       if (input.consume('bag')) { this.openBag(); return; }
@@ -1223,9 +1239,14 @@ class Game {
     this.applyDayNight(dt, rainI, w.flash);
     this.hurtFlash = Math.max(0, (this.hurtFlash || 0) - dt * 2);
     this.pipeline.uniforms.uHurt.value = Math.max(this.hurtFlash * 0.8, p.hp < 30 && this.state === 'play' ? 0.25 + Math.sin(this.time * 4) * 0.1 : 0);
-    this.sky.position.copy(this.camera.position);
-    this.terrain.updateVisibility?.(this.camera.position);
-    this.veg?.updateVisibility?.(this.camera.position);
+    // over the shoulder: a camera on a boom behind the hero; the game still aims from the eye
+    const tps = this.thirdPerson.on && this.state !== 'title' && this.state !== 'loading';
+    if (this.thirdPerson.hero || tps) this.thirdPerson.update(tps ? rawDt * (dt > 0 ? 1 : 0) : 0, this.state === 'play');
+    if (this.thirdPerson.hero && !tps) this.thirdPerson.hero.visible = false;
+    const viewCam = tps ? this.thirdPerson.cam : this.camera;
+    this.sky.position.copy(viewCam.position);
+    this.terrain.updateVisibility?.(viewCam.position);
+    this.veg?.updateVisibility?.(viewCam.position);
 
     this.flock.update(dt, this.time, p);
     this.critters?.update(dt);
@@ -1252,7 +1273,7 @@ class Game {
     lan.position.set(-0.3, -0.36 + p.bob * 0.7 + Math.sin(this.time * 1.7) * 0.006, -0.5);
     lan.rotation.z = Math.sin(p.bobT) * 0.08 * p.moving;
     this.view.userData.flame.scale.setScalar(flick);
-    this.view.visible = this.state === 'play' || halted;
+    this.view.visible = (this.state === 'play' || halted) && !tps;
     if (this.state !== 'play') this.combat.updateViewModel(dt);
 
     if (this.state !== 'title' && this.state !== 'loading') {
@@ -1281,7 +1302,7 @@ class Game {
       this.updateMusic(dt, halted);
     }
 
-    this.pipeline.render(this.scene, this.camera, this.view.visible ? this.overlay : null);
+    this.pipeline.render(this.scene, viewCam, this.view.visible ? this.overlay : null);
     this.input.endFrame();
   }
 }

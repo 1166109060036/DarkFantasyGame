@@ -54,7 +54,7 @@ The web version is for quick tests and for playing on phones through GitHub Page
 
 **The menus** use a black-and-gold Gothic theme: the title screen, Choose Your Path, the pause menu, How to Play, the chapter-end screen and the loading screen · `↑ ↓` + `Enter` works on every screen · **Choose Your Path** shows a 3D model of the path turning in the middle of the screen. It loops through light attack, heavy attack and block. Drag the mouse to turn it yourself.
 
-**Controllers (Xbox / PlayStation / generic)** work as soon as you plug them in. No setup: left stick move · right stick look · `A` jump · `B` dodge · `X` talk/pick up · `Y` drink a draught · `RT` attack (hold = heavy attack) · `LT` block/parry · hold `LB` (or press `L3`) sprint · `RB` skill · D-pad up map / down cockroach / left skill tree / right bag · `Start` pause · in every menu: left stick moves the cursor, `A` selects, `B` goes back, `LB`/`RB` change settings, right stick scrolls · touch the keyboard or move the mouse at any time to switch back at once · a picture of the controller with every button explained is under **How to Play** on the title screen, or in the pause menu (🎮 Controller tab)
+**Controllers (Xbox / PlayStation / generic)** work as soon as you plug them in. No setup: left stick move · right stick look · `A` jump · `B` dodge · `X` talk/pick up · `Y` drink a draught · `RT` attack (hold = heavy attack) · `LT` block/parry · hold `LB` (or press `L3`) sprint · `RB` skill · D-pad up map / down cockroach / left skill tree / right bag · `Back` first/third-person view · `Start` pause · in every menu: left stick moves the cursor, `A` selects, `B` goes back, `LB`/`RB` change settings, right stick scrolls · touch the keyboard or move the mouse at any time to switch back at once · a picture of the controller with every button explained is under **How to Play** on the title screen, or in the pause menu (🎮 Controller tab)
 
 A new game (story mode) starts with **First Steps, a 13-step tutorial** in the top-left corner. It teaches one button at a time and waits until you really try it (look, walk, sprint, jump, light attack, heavy attack, block, dodge, skill, bag, map, skill tree, ride the cockroach) · `Enter` skips a step · `Backspace` skips them all · the pause menu (`Esc`) has an **all controls** page and a **Repeat the First Steps** button
 
@@ -73,8 +73,11 @@ A new game (story mode) starts with **First Steps, a 13-step tutorial** in the t
 | `I` or `Tab` | `🎒` | Open the bag |
 | `Q` | `⚱` | Drink a Healing Draught |
 | `M` / `Tab` | `⌖` | Map |
+| `V` | (pause menu → Camera) | Switch between **first person** and **third person** (over the shoulder) |
 | `Esc` | `❚❚` | Pause / settings |
 | `F11` | | Fullscreen (desktop version) |
+
+**Third-person view (`V`, or `Back` on a controller, or Pause → Camera):** the camera moves behind your right shoulder and you see your path's hero (the same model as on Choose Your Path) walking, striking, guarding and riding the cockroach. The crosshair still marks exactly what you aim at; the camera comes in close while you aim the crossbow, moves further back on the mount, and stops short of walls. The choice is remembered.
 
 ## The in-game screen (Doom style)
 
@@ -473,6 +476,7 @@ src/
   hud.js            Doom-style status bar (face, pixel digits, weapon icon)
   items.js          every item (slot size, stacking, price) + pixel icons
   equipment.js      weapons (4 per path) and armour: stats, effects, equipping
+  thirdperson.js    the over-the-shoulder view: camera boom and the hero's body
   inventory.js      grid bag logic (place, rotate, stack, auto-sort, save)
   bagui.js          RE4-style bag screen (drag and drop, item menu, waiting slot)
   loot.js           enemy drops, regrowing herbs/mushrooms/ore, treasure chests

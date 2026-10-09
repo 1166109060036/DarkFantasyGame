@@ -1467,6 +1467,7 @@ class Hunter extends Kit {
   refresh() { this.apply(); }
 
   get magazine() { return this.perk('h_twin') ? 2 : 1; }
+  get aiming() { return this.g.combat.charging && this.canShoot; }
   get reloadTime() { return RELOAD * (this.perk('h_load') ? 0.85 : 1) * (this.perk('h_quick') ? 0.75 : 1) * (this.g.equipment?.weapon.speed || 1); }
   get maxTraps() { return this.perk('h_snare') ? 3 : 2; }
   get hpBonus() { return this.perk('h_hide') ? 10 : 0; }
@@ -1484,6 +1485,7 @@ class Hunter extends Kit {
   }
 
   fire(aimed) {
+    this.shots = (this.shots || 0) + 1;      // the third-person body raises the crossbow
     const g = this.g, c = this.combat, p = g.player, cam = g.camera;
     const dir = cam.getWorldDirection(new THREE.Vector3());
     const at = cam.position.clone().addScaledVector(dir, 0.5).add(new THREE.Vector3(0, -0.08, 0));

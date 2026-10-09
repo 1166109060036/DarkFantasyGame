@@ -7,9 +7,9 @@
 //
 //   A jump · B dodge · X talk/pick up · Y potion · RT slash (hold = heavy) · LT block/parry
 //   LB hold = sprint (L3 toggles) · RB class skill · D-pad: up map, down mount, left skill tree,
-//   right bag · Back bag · Start pause
+//   right bag · Back first/third-person view · Start pause
 const B = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, BACK: 8, START: 9, L3: 10, R3: 11, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
-const PLAY = { [B.A]: 'jump', [B.B]: 'dodge', [B.X]: 'interact', [B.Y]: 'potion', [B.RB]: 'skill', [B.RT]: 'attack', [B.BACK]: 'bag', [B.START]: 'pause', [B.UP]: 'map', [B.DOWN]: 'mount', [B.LEFT]: 'skills', [B.RIGHT]: 'bag', [B.R3]: 'turn' };
+const PLAY = { [B.A]: 'jump', [B.B]: 'dodge', [B.X]: 'interact', [B.Y]: 'potion', [B.RB]: 'skill', [B.RT]: 'attack', [B.BACK]: 'view', [B.START]: 'pause', [B.UP]: 'map', [B.DOWN]: 'mount', [B.LEFT]: 'skills', [B.RIGHT]: 'bag', [B.R3]: 'turn' };
 
 const dead = (x, y, dz = 0.18) => {
   const m = Math.hypot(x, y);

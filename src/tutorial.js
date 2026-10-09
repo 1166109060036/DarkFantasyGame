@@ -127,7 +127,7 @@ export class Tutorial {
 export const CONTROLS = [
   [L('การเคลื่อนที่', 'Movement'), [['W A S D', L('สติ๊กซ้าย', 'Left stick'), L('เดิน', 'Walk')], [L('เมาส์', 'Mouse'), L('สติ๊กขวา', 'Right stick'), L('หันมอง', 'Look')], [L('Shift ค้าง', 'Hold Shift'), L('LB ค้าง / L3', 'Hold LB / L3'), L('วิ่ง', 'Run')], ['Space', 'A', L('กระโดด', 'Jump')], ['C / Ctrl', 'B', L('กลิ้งหลบ', 'Roll')], ['H', L('ลง (D-pad)', 'Down (D-pad)'), L('เรียก / ลงจากแมลงสาบยักษ์', 'Summon / dismount the giant cockroach')]]],
   [L('การต่อสู้', 'Combat'), [[L('คลิกซ้าย', 'Left click'), 'RT', L('ฟัน', 'Light attack')], [L('คลิกซ้ายค้าง', 'Hold left click'), L('RT ค้าง', 'Hold RT'), L('ฟันหนัก (ทำลายการ์ด)', 'Heavy attack (breaks guard)')], [L('คลิกขวาค้าง / R', 'Hold right click / R'), L('LT ค้าง', 'Hold LT'), L('ป้องกัน · กันพอดีจังหวะ = ปัด', 'Block · block on the beat = parry')], ['G', 'RB', L('สกิลประจำสาย', 'Path skill')], ['Q', 'Y', L('ดื่มยาฟื้นเลือด', 'Drink a Healing Draught')]]],
-  [L('อื่น ๆ', 'Other'), [['E / F', 'X', L('คุย · เก็บของ · เปิดหีบ', 'Speak · pick up · open chests')], ['I / Tab', L('ขวา (D-pad) / Back', 'Right (D-pad) / Back'), L('กระเป๋า', 'Bag')], ['M', L('ขึ้น (D-pad)', 'Up (D-pad)'), L('แผนที่', 'Map')], ['K', L('ซ้าย (D-pad)', 'Left (D-pad)'), L('ต้นไม้สกิล', 'Skill tree')], ['1–4 / Enter', L('ขึ้น-ลง / A', 'Up-down / A'), L('เลือกตัวเลือกในบทสนทนา', 'Choose a reply in dialogue')], ['Esc', 'Start', L('หยุดเกม · ตั้งค่า', 'Pause · settings')], ['F11', '', L('สลับเต็มจอ', 'Toggle fullscreen')]]],
+  [L('อื่น ๆ', 'Other'), [['E / F', 'X', L('คุย · เก็บของ · เปิดหีบ', 'Speak · pick up · open chests')], ['I / Tab', L('ขวา (D-pad)', 'Right (D-pad)'), L('กระเป๋า', 'Bag')], ['V', 'Back', L('สลับมุมมองบุคคลที่หนึ่ง / ที่สาม', 'Switch first / third-person view')], ['M', L('ขึ้น (D-pad)', 'Up (D-pad)'), L('แผนที่', 'Map')], ['K', L('ซ้าย (D-pad)', 'Left (D-pad)'), L('ต้นไม้สกิล', 'Skill tree')], ['1–4 / Enter', L('ขึ้น-ลง / A', 'Up-down / A'), L('เลือกตัวเลือกในบทสนทนา', 'Choose a reply in dialogue')], ['Esc', 'Start', L('หยุดเกม · ตั้งค่า', 'Pause · settings')], ['F11', '', L('สลับเต็มจอ', 'Toggle fullscreen')]]],
 ];
 // in menus a controller moves a cursor: stick = move, A = click, B = back, LB/RB = change a setting, right stick = scroll
 
@@ -142,6 +142,7 @@ export function padDiagram() {
     [390, 270, 275, L('D-pad ซ้าย', 'D-pad left'), L('ต้นไม้สกิล', 'Skill tree')],
     [390, 282, 310, L('D-pad ขวา', 'D-pad right'), L('กระเป๋า', 'Bag')],
     [390, 290, 345, L('D-pad ลง', 'D-pad down'), L('เรียก / ลงจากแมลงสาบ', 'Summon / dismount cockroach')],
+    [418, 190, 380, 'Back', L('สลับมุมกล้อง 1 / 3', 'Switch 1st / 3rd-person view')],
   ];
   const R = [
     [590, 92, 60, 'RT', L('ฟัน · กดค้างแล้วปล่อย = ฟันหนัก', 'Attack · hold and release = heavy')],
@@ -170,6 +171,5 @@ export function padDiagram() {
   <rect x="470" y="183" width="24" height="14" rx="7" fill="#3a4152" stroke="${edge}"/><text x="482" y="214" text-anchor="middle" font-size="10" fill="${dim}">Start</text>
   ${face(570, 170, 'Y', '#e8c84a')}${face(540, 200, 'X', '#4a8fe8')}${face(600, 200, 'B', '#e85a4a')}${face(570, 230, 'A', '#6ac84a')}
   ${LEFT.map(([, , ly, n, w]) => lab(195, ly, n, w, false)).join('')}${R.map(([, , ly, n, w]) => lab(705, ly, n, w, true)).join('')}
-  <text x="420" y="395" text-anchor="middle" font-size="13" fill="${dim}">${L('Back = กระเป๋า', 'Back = bag')}</text>
 </svg>`;
 }

@@ -23,7 +23,7 @@ export class Input {
         KeyE: 'interact', KeyF: 'interact', Space: 'jump', KeyQ: 'potion', KeyM: 'map', Tab: 'bag', KeyI: 'bag', KeyR: 'rotate',
         Enter: 'confirm', ArrowUp: 'up', ArrowDown: 'down', KeyW: 'up', KeyS: 'down',
         Digit1: 'opt1', Digit2: 'opt2', Digit3: 'opt3', Digit4: 'opt4', Escape: 'escape',
-        KeyC: 'dodge', ControlLeft: 'dodge', KeyG: 'skill', KeyB: 'build', KeyT: 'turn', KeyK: 'skills', KeyH: 'mount',
+        KeyC: 'dodge', ControlLeft: 'dodge', KeyG: 'skill', KeyB: 'build', KeyT: 'turn', KeyK: 'skills', KeyH: 'mount', KeyV: 'view',
       };
       if (map[e.code]) this.actions.add(map[e.code]);
       if (e.code === 'Tab' || e.code === 'Space') e.preventDefault();

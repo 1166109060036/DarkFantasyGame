@@ -163,13 +163,18 @@ export class Equipment {
     return true;
   }
 
-  // standing effects and the look of the weapon in hand
+  // standing effects and the look of the weapon in hand (and on the third-person body)
   apply() {
     const g = this.g;
     g.applyKitStats?.();
-    const w = this.weapon, held = g.kit?.weapon;
+    this.tint(g.kit?.weapon);
+    this.tint(g.thirdPerson?.hero?.userData.weapon);
+  }
+
+  // the weapon's own colour, and a glow for the rare ones
+  tint(held) {
     if (!held) return;
-    // tint the weapon in hand: its own colour, and a glow for the rare ones
+    const w = this.weapon;
     held.traverse((o) => {
       if (!o.isMesh) return;
       if (!o.userData.baseMat) o.userData.baseMat = o.material;
