@@ -43,6 +43,11 @@ export const CLASSES = {
     blurb: 'สัปเหร่อที่ไม่มีใครจ้าง เดินเก็บศพที่ไม่มีใครฝัง และยืมพลังจากพวกมันระหว่างทาง',
     lines: ['เหวี่ยงโลงช้าแต่หนัก · กดค้าง: ทุบพื้นวงกว้าง · ยกโลงเป็นกำแพงกันได้ทุกอย่าง (ปัดไม่ได้)', 'G ใกล้ศพ: เก็บศพเข้าโลง (4 ช่อง) ได้พลังของศพนั้นตราบที่ยังแบกอยู่', 'G ที่อื่น: ฝังศพ — กลายเป็นหลุมศพที่ใช้ฟื้นคืนชีพ และฟื้นเลือด'],
   },
+  hunter: {
+    name: 'นักล่าหน้าไม้', weapon: 'หน้าไม้', icon: '🏹',
+    blurb: 'นายพรานจากป่ามืดตะวันตก ล่าสัตว์ที่ไม่ควรมีชีวิตมาตั้งแต่ก่อนดวงจันทร์จะป่วย ยิงจากที่ไกล ไม่เคยให้อะไรเข้ามาถึงตัว',
+    lines: ['คลิก: ยิงหน้าไม้ (ใช้ลูกดอก 1 ดอก) แล้วบรรจุใหม่ 1.2 วินาที · ระหว่างบรรจุหรือลูกดอกหมด คลิก = แทงมีด', 'กดค้าง: เล็งซูม แล้วปล่อยยิงแรง ×2 ทะลุหลายตัว · ยิงโดนหัวแรงขึ้นอีก', 'G: วางกับดักเหล็กหนีบ ศัตรูเหยียบแล้วติดอยู่กับที่ · ลูกดอกมีจำกัด ซื้อ/ตีที่ช่าง และเก็บคืนจากพื้นและศพ'],
+  },
   wick: {
     name: 'ผู้แบกไส้เทียน', weapon: 'กระถางไฟ', icon: '🕯️',
     blurb: 'ญาติห่าง ๆ ของเจ้าของโรงเตี๊ยม หัวเป็นเทียนที่ไม่เคยดับ... แต่ละลายลงทุกลมหายใจ',
@@ -1378,7 +1383,355 @@ class WickBearer extends Kit {
   }
 }
 
-const KITS = { wanderer: Wanderer, bell: Bellwright, leech: LeechDoctor, coffin: CoffinBearer, wick: WickBearer };
+// ------------------------------------------------------------------------------------------------
+// The Crossbow Hunter: one bolt at a time, loaded by hand. A tap looses it, a held aim zooms in and
+// drives it through a line of them; while it reloads (or the quiver is empty) the hand goes to the
+// skinning knife. Bolts are counted: bought, forged, picked out of the mud and out of the dead.
+const RELOAD = 1.2;
+const BOLT_G = 4;               // gravity on a bolt in flight
+const HUNTER_POSE = {
+  rest: [0.2, -0.27, -0.42, 0.04, 0, 0],
+  guard: [0.06, -0.24, -0.44, 0.1, 0.1, 0.9],
+  charge: [0.0, -0.16, -0.36, 0, 0, 0],
+  up: [0.32, -0.16, -0.4, 0.5, -0.2, -0.3],
+  end: [-0.06, -0.32, -0.62, -0.3, 0.2, 0.25],
+  heavyEnd: [-0.06, -0.32, -0.62, -0.3, 0.2, 0.25],
+};
+
+function crossbowGeometry() {
+  const wood = C(0.42, 0.28, 0.17), dark = C(0.2, 0.14, 0.1), iron = C(0.45, 0.45, 0.48);
+  return {
+    wood: mergeGeometries([
+      part(new THREE.BoxGeometry(0.06, 0.07, 0.62), wood, { pos: [0, 0, -0.12] }),             // the stock
+      part(new THREE.BoxGeometry(0.07, 0.12, 0.16), dark, { pos: [0, -0.05, 0.16] }),           // the butt
+      part(new THREE.BoxGeometry(0.03, 0.09, 0.05), dark, { pos: [0, -0.07, 0.0] }),            // the grip
+    ]),
+    metal: mergeGeometries([
+      part(new THREE.BoxGeometry(0.62, 0.025, 0.035), iron, { pos: [0, 0.03, -0.4], rot: [0, 0, 0] }),  // the prod
+      part(new THREE.BoxGeometry(0.04, 0.05, 0.05), iron, { pos: [0, 0.02, -0.42] }),
+      part(new THREE.BoxGeometry(0.03, 0.03, 0.06), iron, { pos: [0, 0.05, -0.06] }),           // the latch
+    ]),
+    string: part(new THREE.BoxGeometry(1, 0.005, 0.005), C(0.55, 0.52, 0.45)),     // unit length, stretched per frame
+    bolt: mergeGeometries([
+      part(new THREE.BoxGeometry(0.014, 0.014, 0.42), C(0.55, 0.42, 0.28), { pos: [0, 0, 0] }),
+      part(new THREE.ConeGeometry(0.018, 0.06, 4), C(0.75, 0.77, 0.8), { pos: [0, 0, -0.24], rot: [-Math.PI / 2, 0, 0] }),
+      part(new THREE.BoxGeometry(0.002, 0.03, 0.06), C(0.85, 0.82, 0.76), { pos: [0, 0.012, 0.18] }),
+      part(new THREE.BoxGeometry(0.03, 0.002, 0.06), C(0.85, 0.82, 0.76), { pos: [0, 0.012, 0.18] }),
+    ]),
+  };
+}
+
+class Hunter extends Kit {
+  constructor(g, M) {
+    super(g);
+    this.id = 'hunter';
+    this.poses = HUNTER_POSE;
+    this.bolts = [];            // in flight and stuck in the ground
+    this.traps = [];
+    this.loaded = 2;            // shots before the next reload (1, or 2 with the twin string)
+    this.reloadT = 0;
+    this.cool = 0;
+    this.still = 0;
+    this.kick = 0;
+    this.baseFov = g.camera.fov;
+    const geo = crossbowGeometry();
+    this.geo = geo;
+    const w = new THREE.Group();
+    w.add(new THREE.Mesh(geo.wood, M.wood), new THREE.Mesh(geo.metal, M.metal));
+    // the string, in two halves from the tips of the prod to wherever it is held
+    this.strings = [new THREE.Mesh(geo.string, M.plain), new THREE.Mesh(geo.string, M.plain)];
+    this.nocked = new THREE.Mesh(geo.bolt, M.plain);
+    this.nocked.position.set(0, 0.05, -0.28);
+    w.add(...this.strings, this.nocked);
+    // the skinning knife in the other hand, for anything that gets close
+    this.knife = new THREE.Mesh(mergeGeometries([
+      part(new THREE.BoxGeometry(0.03, 0.03, 0.1), C(0.3, 0.2, 0.13), { pos: [0, 0, 0.05] }),
+      part(new THREE.BoxGeometry(0.008, 0.035, 0.2), C(0.75, 0.77, 0.8), { pos: [0, 0.005, -0.1] }),
+    ]), M.metal);
+    this.knife.position.set(-0.36, -0.12, 0.1);
+    this.knife.rotation.set(-0.5, 0.2, 0);
+    w.add(this.knife);
+    this.addWeapon(w);
+    this.boltMat = M.plain;
+    this.trapMat = M.metal;
+    this.apply();
+  }
+
+  apply() {
+    this.dodgeCostMul = this.perk('h_feet') ? 0.6 : 1;
+    this.speedMul = this.perk('h_feet') ? 1.05 : 1;
+    this.loaded = Math.min(this.loaded, this.magazine);
+  }
+  refresh() { this.apply(); }
+
+  get magazine() { return this.perk('h_twin') ? 2 : 1; }
+  get reloadTime() { return RELOAD * (this.perk('h_load') ? 0.85 : 1) * (this.perk('h_quick') ? 0.75 : 1); }
+  get maxTraps() { return this.perk('h_snare') ? 3 : 2; }
+  get hpBonus() { return this.perk('h_hide') ? 10 : 0; }
+  get quiver() { return this.g.bag.count('bolt'); }
+  get canShoot() { return this.loaded > 0 && this.reloadT <= 0 && this.quiver > 0; }
+  // snared or staggered prey bleeds easier
+  targetMul(e) { return this.perk('h_prey') && (e.state === 'stagger' || e.trapped > 0) ? 1.3 : 1; }
+
+  swing(kind) {
+    if (this.canShoot) { this.fire(kind === 'heavy'); return null; }
+    // the knife: quick, short, for when the crossbow is empty or still being wound
+    if (!this.quiver && !this.warned) { this.warned = true; this.combat.say('ลูกดอกหมด! — ใช้มีด'); }
+    const k = this.perk('h_knife');
+    return { dur: 0.28 * (k ? 0.85 : 1), cost: 7, hitAt: 0.45, range: 2.3, arc: 0.6, dmg: (kind === 'heavy' ? 1.3 : 0.8) * (k ? 1.4 : 1), heavy: kind === 'heavy' };
+  }
+
+  fire(aimed) {
+    const g = this.g, c = this.combat, p = g.player, cam = g.camera;
+    const dir = cam.getWorldDirection(new THREE.Vector3());
+    const at = cam.position.clone().addScaledVector(dir, 0.5).add(new THREE.Vector3(0, -0.08, 0));
+    if (!(this.perk('h_thrift') && Math.random() < 0.3)) g.bag.remove('bolt', 1);
+    this.warned = false;
+    this.loaded--;
+    if (this.loaded <= 0) this.reloadT = this.reloadTime;
+    c.spend(aimed ? 10 : 5);
+    let dmg = aimed ? 4 : 2;
+    if (!aimed && this.perk('h_sure')) dmg *= 1.1;
+    if (aimed && this.perk('h_eye')) dmg *= 1.2;
+    if (this.perk('h_still') && this.still >= 1.5) { dmg *= 1.4; g.ui.combatText('นิ่ง...', 'info'); }
+    const moon = aimed && this.perk('h_moon');
+    if (moon) dmg *= 1.5;
+    const pierce = !aimed ? 1 : moon ? 99 : this.perk('h_pierce') ? 5 : 3;
+    const speed = (aimed ? 95 : 70) * (moon ? 1.4 : 1);
+    const fan = aimed && this.perk('h_volley') ? [-0.07, 0, 0.07] : [0];
+    for (const a of fan) {
+      const d = dir.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), a);
+      const m = this.addWorld(new THREE.Mesh(this.geo.bolt, this.boltMat));
+      this.bolts.push({ m, pos: at.clone(), vel: d.multiplyScalar(speed), from: p.pos.clone(), t: 0, dmg, aimed, pierce, hit: new Set(), life: moon ? 3 : 1.6, state: 'fly' });
+    }
+    this.still = 0;
+    this.kick = 1;
+    g.audio.burst({ dur: 0.12, freq: 900, q: 2.5, gain: 0.22, sweep: 0.5 });
+    g.audio.burst({ dur: 0.08, freq: 220, q: 1, gain: 0.18 });
+    g.hud.grin?.();
+  }
+
+  hitBolt(b, e, point) {
+    const g = this.g, c = this.combat;
+    b.hit.add(e);
+    let dmg = b.dmg;
+    const head = !e.def.fly && point.y > e.pos.y + e.def.height * 0.85;
+    if (head) { dmg *= this.perk('h_head') ? 2 : 1.5; g.ui.combatText('หัว!', 'parry'); this.feat(1); }
+    if (this.perk('h_far')) dmg *= 1 + Math.min(0.32, Math.floor(b.from.distanceTo(e.pos) / 5) * 0.04);
+    if (this.perk('h_unseen') && (e.state === 'idle' || e.state === 'return' || e.state === 'wander')) { dmg *= 1.6; g.ui.combatText('ไร้เงา!', 'parry'); }
+    V.copy(b.vel).setY(0).normalize();
+    this.lastShotAimed = b.aimed;
+    e.boltsIn = (e.boltsIn || 0) + 1;          // counted first: the bolt that kills comes out of the body too
+    c.damageEnemy(e, b.aimed, V, dmg);
+    if (this.perk('h_barb') && e.alive) { e.dots = e.dots || {}; e.dots.bleed = { dps: 0.3, t: 4 }; }
+    if (this.perk('h_iron') && e.alive && e.state !== 'dying' && !e.def.boss && !e.moba && !e.storyBoss) { e.state = 'stagger'; e.t = Math.max(e.t, 0.6); }
+    g.particles.burst(point.clone(), 4, 2, 0.3);
+    g.audio.burst({ dur: 0.1, freq: 400, q: 1.5, gain: 0.2, pos: e.pos });
+  }
+
+  onKill(e) {
+    const g = this.g, p = g.player;
+    // bolts come out of the dead (not all of them come out whole)
+    if (e.boltsIn) {
+      let n = 0;
+      for (let i = 0; i < e.boltsIn; i++) if (this.perk('h_salvage') || Math.random() < 0.6) n++;
+      e.boltsIn = 0;
+      if (n && g.bag.add('bolt', n) < n) g.ui.combatText(`+${n} ลูกดอก`, 'info');
+    }
+    if (this.lastShotAimed && this.combat.swing == null) this.feat(1);
+    if (this.perk('h_chain')) { this.reloadT = 0; this.loaded = this.magazine; }
+    if (e.trapped > 0) {
+      if (this.perk('h_skin')) { g.coins += 4; g.ui.combatText('+4 เหรียญ', 'info'); }
+      if (this.perk('h_feast')) { this.cool = 0; this.reloadT = 0; this.loaded = this.magazine; p.hp = Math.min(p.maxHp, p.hp + 10); g.ui.combatText('งานเลี้ยง! +10', 'parry'); }
+    }
+  }
+
+  onDodge() { if (this.perk('h_kite')) { this.reloadT = 0; this.loaded = this.magazine; } }
+
+  // G: a steel trap in front of you (or three, thrown in a fan)
+  skill() {
+    if (this.cool > 0) { this.combat.say(`กับดักยังไม่พร้อม (${Math.ceil(this.cool)})`); return; }
+    const g = this.g, p = g.player, f = p.forwardVec;
+    const angles = this.perk('h_field') ? [-0.45, 0, 0.45] : [0];
+    for (const a of angles) {
+      const dist = this.perk('h_field') ? 4 : 1.8;
+      const dx = f.x * Math.cos(a) - f.z * Math.sin(a), dz = f.x * Math.sin(a) + f.z * Math.cos(a);
+      const x = p.pos.x + dx * dist, z = p.pos.z + dz * dist;
+      this.placeTrap(x, z);
+    }
+    this.cool = this.perk('h_trapper') ? 14 : 18;
+    g.audio.burst({ dur: 0.18, freq: 1500, q: 4, gain: 0.15 });
+    g.audio.burst({ dur: 0.25, freq: 300, q: 2, gain: 0.15 });
+  }
+
+  placeTrap(x, z) {
+    const g = this.g;
+    for (const t of this.traps) if (t.spent) this.removeWorld(t.m);
+    this.traps = this.traps.filter((t) => !t.spent);
+    while (this.traps.length >= this.maxTraps) { const old = this.traps.shift(); this.removeWorld(old.m); }
+    const y = Math.max(g.terrain.getHeight(x, z), g.collision.groundAt?.(x, z, g.player.pos.y + 1, 0.3) ?? -1e9);
+    const m = new THREE.Group();
+    const iron = C(0.4, 0.38, 0.36);
+    m.add(new THREE.Mesh(mergeGeometries([
+      part(new THREE.TorusGeometry(0.32, 0.025, 4, 12), iron, { rot: [Math.PI / 2, 0, 0] }),
+      part(new THREE.BoxGeometry(0.64, 0.02, 0.04), iron),
+      part(new THREE.CylinderGeometry(0.08, 0.08, 0.03, 8), C(0.3, 0.28, 0.26)),
+      ...Array.from({ length: 8 }, (_, i) => part(new THREE.ConeGeometry(0.025, 0.09, 4), iron, { pos: [Math.cos(i / 8 * Math.PI * 2) * 0.3, 0.04, Math.sin(i / 8 * Math.PI * 2) * 0.3] })),
+    ]), this.trapMat));
+    m.position.set(x, y + 0.02, z);
+    this.addWorld(m);
+    this.traps.push({ m, x, z, armed: true, rearm: this.perk('h_rearm') ? 1 : 0, t: 0 });
+  }
+
+  spring(T, e) {
+    const g = this.g, c = this.combat;
+    const hold = this.perk('h_jaws') ? 5 : 3, dmg = 1.5 * (this.perk('h_snare') ? 1.5 : 1);
+    const victims = this.perk('h_net') ? c.enemies.filter((o) => o.alive && o.state !== 'dying' && !o.def.fly && Math.hypot(o.pos.x - T.x, o.pos.z - T.z) < 2.5) : [e];
+    for (const v of victims) {
+      V.set(v.pos.x - T.x, 0, v.pos.z - T.z).normalize();
+      c.damageEnemy(v, true, V, dmg);
+      if (!v.alive || v.state === 'dying') continue;
+      if (v.def.boss || v.storyBoss || v.moba) c.debuff(v, 'slow', hold, 0.4);
+      else { v.state = 'stagger'; v.t = Math.max(v.t, hold); }
+      v.trapped = hold;
+      if (this.perk('h_rust')) { v.dots = v.dots || {}; v.dots.bleed = { dps: 0.35, t: 6 }; }
+    }
+    if (this.perk('h_blast')) {
+      areaStrike(g, { range: 3, dmg: 2, at: new THREE.Vector3(T.x, 0, T.z), heavy: true, skip: e });
+      g.particles.burst(new THREE.Vector3(T.x, T.m.position.y + 0.4, T.z), 22, 5, 0.7);
+      g.audio.burst({ dur: 0.5, freq: 160, q: 0.8, gain: 0.35 });
+    }
+    g.audio.burst({ dur: 0.15, freq: 1200, q: 3, gain: 0.3, pos: e.pos });
+    g.ui.combatText('ติดกับ!', 'parry');
+    T.m.scale.set(1, 1, 0.35);           // the jaws snapped shut
+    T.armed = false;
+    if (T.rearm > 0) { T.rearm--; T.t = -2; }          // it winds itself back in two seconds
+    else T.spent = true;                               // the snapped jaws lie there a while
+  }
+
+  update(dt) {
+    const g = this.g, c = this.combat, T = g.terrain, p = g.player;
+    this.cool = Math.max(0, this.cool - dt);
+    if (this.reloadT > 0) {
+      this.reloadT -= dt;
+      if (this.reloadT <= 0) { this.loaded = this.magazine; g.audio.burst({ dur: 0.1, freq: 1800, q: 5, gain: 0.12 }); }
+    }
+    // standing still steadies the next shot
+    this.still = Math.hypot(p.vel?.x || 0, p.vel?.z || 0) < 0.3 ? this.still + dt : 0;
+    // the aim: the view narrows while a held shot is drawn
+    const aiming = c.charging && this.canShoot;
+    const fov = this.baseFov * (aiming ? (c.heavyReady ? 0.55 : 0.8) : 1);
+    if (Math.abs(g.camera.fov - fov) > 0.05) { g.camera.fov += (fov - g.camera.fov) * Math.min(1, dt * 10); g.camera.updateProjectionMatrix(); }
+    // bolts in flight: swept against every body along the way
+    const A = new THREE.Vector3(), B = new THREE.Vector3(), Q = new THREE.Vector3();
+    for (const b of this.bolts) {
+      b.t += dt;
+      if (b.state === 'stuck') {
+        if (p.pos.distanceTo(b.pos) < 1.6 && g.bag.add('bolt', 1) === 0) { b.done = true; g.ui.combatText('+1 ลูกดอก', 'info'); g.audio.ui?.(); }
+        else if (b.t > (this.perk('h_salvage') ? 120 : 45)) b.done = true;
+        continue;
+      }
+      A.copy(b.pos);
+      b.vel.y -= BOLT_G * dt;
+      b.pos.addScaledVector(b.vel, dt);
+      B.copy(b.pos);
+      const seg = B.clone().sub(A), L2 = seg.lengthSq() || 1;
+      for (const e of c.enemies) {
+        if (!e.alive || e.state === 'dying' || !e.obj.visible || b.hit.has(e)) continue;
+        const cy = e.pos.y + (e.def.fly ? 0 : e.def.height * 0.55);
+        Q.set(e.pos.x, cy, e.pos.z);
+        const k = clamp(Q.clone().sub(A).dot(seg) / L2, 0, 1), P = A.clone().addScaledVector(seg, k);
+        // a body from its feet to the top of its head (a flier: a ball round its middle)
+        const lo = e.def.fly ? cy - e.def.radius - 0.3 : e.pos.y - 0.1, hi = e.def.fly ? cy + e.def.radius + 0.3 : e.pos.y + e.def.height + 0.05;
+        if (Math.hypot(P.x - Q.x, P.z - Q.z) < e.def.radius + 0.25 && P.y > lo && P.y < hi) {
+          this.hitBolt(b, e, P);
+          if (b.hit.size >= b.pierce) { b.done = true; break; }
+        }
+      }
+      if (b.done) continue;
+      const ground = T.getHeight(b.pos.x, b.pos.z);
+      if (b.pos.y < ground + 0.05) {
+        // it sticks in the mud, to be picked up again
+        b.pos.y = ground + 0.12;
+        b.state = 'stuck'; b.t = 0;
+        b.m.position.copy(b.pos);
+        b.m.lookAt(b.pos.clone().add(b.vel));
+        b.m.rotateX(-0.5);
+        continue;
+      }
+      if (b.t > b.life) { b.done = true; continue; }
+      b.m.position.copy(b.pos);
+      b.m.lookAt(b.pos.clone().sub(b.vel));
+    }
+    for (const b of this.bolts) if (b.done) this.removeWorld(b.m);
+    this.bolts = this.bolts.filter((b) => !b.done);
+    // traps
+    for (const t of this.traps) {
+      t.t += dt;
+      if (t.spent) { if (t.t > 8) t.done = true; continue; }
+      if (!t.armed) {
+        if (t.t >= 0) { t.armed = true; t.m.scale.set(1, 1, 1); }
+        continue;
+      }
+      if (t.t > 120) { t.done = true; continue; }
+      for (const e of c.enemies) {
+        if (!e.alive || e.state === 'dying' || e.def.fly || !e.obj.visible) continue;
+        if (Math.hypot(e.pos.x - t.x, e.pos.z - t.z) < 0.55 + e.def.radius) { this.spring(t, e); break; }
+      }
+    }
+    for (const e of c.enemies) if (e.trapped > 0) e.trapped -= dt;
+    for (const t of this.traps) if (t.done) this.removeWorld(t.m);
+    this.traps = this.traps.filter((t) => !t.done);
+  }
+
+  animateWeapon(w, dt) {
+    this.kick = Math.max(0, this.kick - dt * 6);
+    w.position.z += this.kick * 0.08;
+    w.rotation.x += this.kick * 0.25;
+    // winding the string back: the bow tips down, the string slides home
+    const r = this.reloadT > 0 ? Math.sin(Math.min(1, 1 - this.reloadT / this.reloadTime) * Math.PI) : 0;
+    w.rotation.x -= r * 0.55;
+    w.position.y -= r * 0.06;
+    const pull = this.loaded > 0 ? -0.07 : -0.39;
+    this.strings.forEach((m, i) => {
+      const tx = (i ? 1 : -1) * 0.3, tz = -0.4, dx = -tx, dz = pull - tz, len = Math.hypot(dx, dz);
+      m.position.set(tx + dx / 2, 0.04, tz + dz / 2);
+      m.rotation.set(0, -Math.atan2(dz, dx), 0);
+      m.scale.set(len, 1, 1);
+    });
+    this.nocked.visible = this.loaded > 0 && this.quiver > 0;
+    // the knife comes forward when it is the knife's turn
+    const knifeUp = !this.canShoot && !!this.combat.swing;
+    this.knife.position.z = knifeUp ? -0.35 : 0.1;
+  }
+
+  label() { return `${super.label()} · ${this.quiver} ดอก`; }
+
+  chips() {
+    const state = this.quiver <= 0 ? 'ลูกดอกหมด — ใช้มีด' : this.reloadT > 0 ? `กำลังบรรจุ ${this.reloadT.toFixed(1)}s` : `พร้อมยิง${this.loaded > 1 ? ` ×${this.loaded}` : ''}`;
+    return [`ลูกดอก ${this.quiver} · ${state}`, this.cool > 0 ? `กับดัก ${Math.ceil(this.cool)}s` : `กับดัก [G] ✓ (${this.traps.filter((t) => t.armed).length}/${this.maxTraps})`];
+  }
+
+  drawIcon(ctx, flash) {
+    const px = pix(ctx);
+    px(10, 6, 30, 3, '#7a5434'); px(10, 6, 30, 1, '#9a7048'); px(4, 5, 7, 5, '#4a3020');
+    px(34, 1, 3, 12, flash ? '#ffffff' : '#9aa0a8'); px(35, 1, 1, 12, '#c8ced4');
+    px(24, 2, 1, 10, '#d8d0c0');
+    px(12, 4, 30, 1, '#c8b090'); px(42, 3, 4, 3, '#c0c8d0');
+  }
+
+  dispose() {
+    const cam = this.g.camera;
+    cam.fov = this.baseFov; cam.updateProjectionMatrix();
+    // bolts still lying about go back in the quiver
+    const left = this.bolts.filter((b) => b.state === 'stuck').length;
+    if (left) this.g.bag.add('bolt', left);
+    this.bolts = []; this.traps = [];
+    super.dispose();
+  }
+}
+
+const KITS = { wanderer: Wanderer, bell: Bellwright, leech: LeechDoctor, coffin: CoffinBearer, wick: WickBearer, hunter: Hunter };
 
 export function createKit(id, game) {
   const K = KITS[id] || Wanderer;
@@ -1386,5 +1739,5 @@ export function createKit(id, game) {
 }
 
 // one-time things a class gets when you first take up its path
-export const STARTING_GEAR = { leech: [['leech_live', 5]] };
+export const STARTING_GEAR = { leech: [['leech_live', 5]], hunter: [['bolt', 24]] };
 

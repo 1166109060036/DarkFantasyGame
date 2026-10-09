@@ -267,6 +267,7 @@ export class Combat {
         this.charging = false;
         this.spend(COST.dodge * (g.kit.dodgeCostMul ?? 1));
         p.roll = -s * 0.12;
+        g.kit.onDodge?.();
         g.audio.dodge();
       }
     }

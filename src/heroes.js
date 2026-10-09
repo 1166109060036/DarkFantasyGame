@@ -205,6 +205,35 @@ const HEROES = {
     kit.grip = { pos: [0, -0.07, 0.03], rot: [0.9, 0, 0] };
   },
 
+  // the crossbow hunter: wide hat, hunting coat (team), quiver of bolts on the back, crossbow
+  hunter(kit) {
+    const skin = C(0.66, 0.5, 0.4), leather = C(0.38, 0.26, 0.17), dark = C(0.17, 0.15, 0.13);
+    human(kit, { trousers: dark, boots: C(0.3, 0.2, 0.13), bootTop: 0.5, skin, torso: leather, sleeve: C(0.86, 0.86, 0.86), sleeveMat: 'team', fore: leather, hand: C(0.25, 0.18, 0.12) });
+    face(kit, { skin, beard: C(0.3, 0.22, 0.16) });
+    // the hunting coat to the knees, open at the front, and a short shoulder cape
+    kit.add('team', 'spine', skirt({ top: 1.38, bottom: 0.5, rTop: 0.2, rBot: 0.33, from: Math.PI * 0.2, arc: Math.PI * 1.6, ragged: 0.08, seed: 41, col: C(0.84, 0.84, 0.84) }));
+    kit.add('team', 'chest', skirt({ top: 1.62, bottom: 1.36, rTop: 0.15, rBot: 0.31, ragged: 0.04, seed: 42, col: C(0.72, 0.72, 0.72) }));
+    // belt, knife sheath, pouches
+    kit.add('plain', 'hips', cyl(0, 0.98, 0, 0.175, 0.175, 0.06, C(0.22, 0.14, 0.09), [0, 0, 0], 10));
+    kit.add('plain', 'hips', box(0.15, 0.85, 0.1, 0.04, 0.2, 0.05, C(0.18, 0.12, 0.08), [0, 0, 0.2]));
+    kit.add('plain', 'hips', box(-0.13, 0.92, 0.12, 0.1, 0.09, 0.06, leather));
+    // the quiver across the back, bolts fletched pale
+    kit.add('plain', 'chest', cyl(0.08, 1.3, -0.2, 0.06, 0.06, 0.5, C(0.32, 0.2, 0.12), [0, 0, -0.45], 7));
+    for (let i = 0; i < 5; i++) kit.add('plain', 'chest', box(0.2 + (i % 3) * 0.02, 1.58 + (i % 2) * 0.02, -0.2 + (i - 2) * 0.015, 0.012, 0.1, 0.012, C(0.88, 0.85, 0.78), [0, 0, -0.45]));
+    // the wide-brimmed hat
+    kit.add('plain', 'head', cyl(0, 1.9, 0.02, 0.27, 0.27, 0.02, dark, [0, 0, 0], 12));
+    kit.add('plain', 'head', cyl(0, 1.98, 0.02, 0.12, 0.14, 0.15, dark, [0, 0, 0], 10));
+    kit.add('team', 'head', cyl(0, 1.93, 0.02, 0.142, 0.142, 0.03, C(0.9, 0.9, 0.9), [0, 0, 0], 10));
+    // the crossbow, held out forward from the right hand
+    const wood = C(0.42, 0.28, 0.17), iron = C(0.45, 0.45, 0.48);
+    kit.wpn('wood', box(0, 0.02, 0.18, 0.05, 0.06, 0.62, wood));
+    kit.wpn('wood', box(0, -0.03, -0.12, 0.06, 0.1, 0.14, C(0.2, 0.14, 0.1)));
+    kit.wpn('metal', box(0, 0.05, 0.45, 0.6, 0.025, 0.035, iron));
+    kit.wpn('plain', box(0, 0.07, 0.3, 0.58, 0.006, 0.006, C(0.85, 0.82, 0.74)));
+    kit.wpn('plain', box(0, 0.08, 0.32, 0.014, 0.014, 0.36, C(0.55, 0.42, 0.28)));
+    kit.grip = { pos: [0, -0.07, 0.04], rot: [1.45, 0, 0] };
+  },
+
   // the coffin-bearer: huge, top hat, sleeveless coat (team), bare arms, the coffin
   coffin(kit) {
     const skin = C(0.66, 0.48, 0.36), mud = C(0.28, 0.2, 0.14);
@@ -512,6 +541,10 @@ export function animateHero(obj, dt, s) {
   if (kind === 'coffin') { b.shR.rotation.z = -0.22; b.elR.rotation.x = -0.1; }
   if (kind === 'wick') { b.shR.rotation.x -= 0.15; b.elR.rotation.x = -0.9; }      // the censer held out in front
   if (kind === 'leech') { b.spine.rotation.x += 0.12; b.neck.rotation.x = 0.15; }   // the stoop
+  if (kind === 'hunter') {           // the crossbow held across the body, both hands on it
+    b.shR.rotation.x = -0.75 - sw * 0.1 * mm; b.shR.rotation.z = 0.15; b.elR.rotation.x = -0.75;
+    b.shL.rotation.x = -0.95; b.shL.rotation.z = -0.35; b.elL.rotation.x = -0.6;
+  }
 
   // a blow: wind up, then cut through
   if (s.action === 1 || s.action === 2) { if (u.swing <= 0) { u.swing = 1; u.heavy = s.action === 2; } }
@@ -520,7 +553,13 @@ export function animateHero(obj, dt, s) {
     const p = 1 - u.swing, big = u.heavy ? 1.25 : 1;
     const up = p < 0.35 ? ease(p / 0.35) : 1 - ease(Math.min(1, (p - 0.35) / 0.35));
     const cut = p < 0.35 ? 0 : ease(Math.min(1, (p - 0.35) / 0.4));
-    if (kind === 'wick') {
+    if (kind === 'hunter') {
+      // a shot: the crossbow comes up to the eye, kicks, and comes down again
+      const aim = Math.min(1, p / 0.2), kick = p > 0.3 ? Math.max(0, 1 - (p - 0.3) / 0.3) : 0;
+      b.shR.rotation.x = -1.45 * aim + kick * 0.3; b.elR.rotation.x = -0.2;
+      b.shL.rotation.x = -1.4 * aim + kick * 0.3; b.shL.rotation.z = -0.45; b.elL.rotation.x = -0.4;
+      b.head.rotation.x = 0.1 * aim;
+    } else if (kind === 'wick') {
       // the censer whirls round on its chain
       b.shR.rotation.x = -1.5; b.shR.rotation.z = -0.3; b.elR.rotation.x = -0.1;
       b.chest.rotation.y = -p * Math.PI * 2 * (u.heavy ? 2 : 1);

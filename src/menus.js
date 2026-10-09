@@ -45,7 +45,9 @@ export const UPGRADES = {
 };
 
 const BAG_PRICES = [60, 150];
-const BUY = [['potion', 12], ['tonic', 18], ['moon_herb', 5], ['leech_live', 6]];
+const BOLT_FORGE = [{ n: 12, coins: 6, need: [['ore', 1]] }, { n: 4, coins: 2, need: [['claw', 1]] }];
+// [item, price, how many for the price]
+const BUY = [['potion', 12], ['tonic', 18], ['moon_herb', 5], ['leech_live', 6], ['bolt', 10, 6]];
 
 const $ = (id) => document.getElementById(id);
 
@@ -144,6 +146,15 @@ export class Menus {
     const g = this.g;
     $('svc-title').textContent = 'เตาหลอมของลุงทั่ง';
     $('svc-hint').textContent = 'เหล็กดีต้องตีตอนร้อน เอาของมา แล้วจ่ายค่าแรงข้าด้วย';
+    // bolts for the crossbow: a lump of ore makes a dozen, a pale claw a few
+    for (const b of BOLT_FORGE) {
+      const ok = this.has(b.need) && g.coins >= b.coins, fits = g.bag.canAdd('bolt', b.n);
+      this.row({
+        icon: itemIconURL('bolt'), title: `ตีลูกดอกหน้าไม้ ×${b.n}`, sub: ITEMS.bolt.desc, cost: this.costHTML(b.need, b.coins),
+        button: ok && !fits ? 'กระเป๋าเต็ม' : 'ตี', enabled: ok && fits,
+        onClick: () => { g.coins -= b.coins; b.need.forEach(([id, n]) => g.bag.remove(id, n)); g.bag.add('bolt', b.n); g.audio.anvil(); g.ui.toast(`ได้ลูกดอก ${b.n} ดอก`); },
+      });
+    }
     for (const [key, base] of Object.entries(UPGRADES)) {
       // the weapon line follows your path: sword, bell hammer, lancet, coffin or censer
       const up = key === 'sword' ? { ...base, name: g.kit.def.weapon } : base;
@@ -176,13 +187,13 @@ export class Menus {
     const g = this.g;
     $('svc-title').textContent = 'ร้านของเทียนหลอม';
     $('svc-hint').textContent = 'ซื้ออะไรดีล่ะ ผู้เดินทาง... หรือมีของมีค่าจะขาย?';
-    for (const [id, price] of BUY) {
+    for (const [id, price, n = 1] of BUY) {
       const def = ITEMS[id];
-      const fits = g.bag.canAdd(id, 1);
+      const fits = g.bag.canAdd(id, n);
       this.row({
-        icon: itemIconURL(id), title: def.name, sub: def.desc, cost: `<span class="cost ${g.coins >= price ? 'ok' : 'no'}">● ${price}</span>`,
+        icon: itemIconURL(id), title: n > 1 ? `${def.name} ×${n}` : def.name, sub: def.desc, cost: `<span class="cost ${g.coins >= price ? 'ok' : 'no'}">● ${price}</span>`,
         button: fits ? 'ซื้อ' : 'กระเป๋าเต็ม', enabled: fits && g.coins >= price,
-        onClick: () => { g.coins -= price; g.bag.add(id, 1); g.audio.coin(); },
+        onClick: () => { g.coins -= price; g.bag.add(id, n); g.audio.coin(); },
       });
     }
     const lvl = g.bag.level;
