@@ -208,6 +208,7 @@ button.ghost { background: transparent; font-size: 15px; color: var(--dim); }
 }
 .bag-item:hover, .bag-item.sel { border-color: #f0d890; background: rgba(110, 100, 60, 0.4); }
 .bag-item.k-treasure { background: rgba(90, 70, 20, 0.35); }
+.bag-item.k-weapon, .bag-item.k-armour { background: rgba(70, 76, 90, 0.4); }
 .bag-item.k-use { background: rgba(90, 30, 30, 0.3); }
 .bag-item img { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); image-rendering: pixelated; pointer-events: none; }
 .bag-item .count { position: absolute; right: 3px; bottom: 1px; font-size: 13px; color: #fff; text-shadow: 0 1px 2px #000, 0 0 3px #000; pointer-events: none; }
@@ -219,7 +220,7 @@ button.ghost { background: transparent; font-size: 15px; color: var(--dim); }
 .bag-side { width: 230px; display: flex; flex-direction: column; gap: 10px; color: var(--ink); }
 #bag-info { min-height: 92px; padding: 8px 10px; background: rgba(0, 0, 0, 0.35); border: 1px solid #5a4230; }
 #bag-info .name { color: var(--gold); font-size: 16px; margin-bottom: 4px; }
-#bag-info .desc { font-size: 13px; color: #c8bca8; line-height: 1.45; }
+#bag-info .desc { font-size: 13px; color: #c8bca8; line-height: 1.45; white-space: pre-line; }
 #bag-pending { padding: 8px; border: 1px dashed #f0d890; background: rgba(80, 60, 20, 0.3); animation: blink 1.2s infinite; }
 #bag-pending .lbl { font-size: 12px; color: #f0d890; margin-bottom: 6px; }
 #bag-pending-slot { min-height: 40px; cursor: grab; }

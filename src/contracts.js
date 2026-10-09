@@ -13,6 +13,7 @@
 import * as THREE from 'three';
 import { part, mergeGeometries } from './util.js';
 import { ITEMS } from './items.js';
+import { pathWeapons } from './equipment.js';
 import { ENEMY_TYPES } from './combat.js';
 import { TAVERN } from './layout.js';
 import { L } from './i18n.js';
@@ -33,14 +34,14 @@ const CONTRACTS = [
     id: 'brood_mother', type: 'crawler', affix: 'brood', name: L('แม่ร่างคลานใต้ซี่โครง', 'Brood-Mother Beneath the Ribs'), time: 'night',
     giver: L('ชาวประมงในบึง', 'A marsh fisherman'), title: L('ลูกชายข้าหายไปใต้ซี่โครงยักษ์', 'My son vanished beneath the great ribs'),
     text: L('ลูกชายข้าไปวางอวนแถวกระดูกยักษ์แล้วไม่กลับมา ได้ยินเสียงอะไรกุกกักใต้ซี่โครงทุกคืน ใครช่วยข้าได้ ข้ามีเงินเก็บอยู่บ้าง', 'My son went to set his nets by the giant bones and never came back. Every night something scrabbles beneath the ribs. Whoever can help me, I have a little coin put by.'),
-    scene: [-14, 160], lair: [-38, 192], coins: 90, items: [['claw', 4]],
+    scene: [-14, 160], lair: [-38, 192], coins: 90, items: [['claw', 4]], gear: ['arm_leather'],
     clues: [L('อวนขาดเป็นริ้ว... รอยเล็บเล็ก ๆ นับสิบรอยมุ่งไปทางเดียวกัน ไม่ใช่ตัวเดียวแน่', 'A net torn to ribbons... dozens of small claw marks, all heading one way. This was no lone beast.'), L('เปลือกไข่สีซีดขนาดเท่ากำปั้น... มีอะไรวางไข่อยู่แถวนี้', 'Pale eggshells the size of a fist... something is laying eggs nearby.'), L('รอยลากยาวเข้าไปในพงหญ้าทางตะวันตกเฉียงเหนือ กลิ่นคาวคลุ้ง รังของมันอยู่ไม่ไกล', 'A long drag mark into the reeds to the north-west, reeking of rot. Its nest is not far.')],
   },
   {
     id: 'old_tusk', type: 'wolf', affix: 'frenzy', name: L('เขี้ยวเฒ่า จ่าฝูงเงา', 'Old Fang, Leader of the Shadow Pack'), time: 'always',
     giver: L('คนตัดฟืน', 'A woodcutter'), title: L('หมาป่าตาเดียวกินม้าข้า', 'A one-eyed wolf ate my horse'),
     text: L('มันตัวใหญ่กว่าหมาป่าตัวอื่นครึ่งเท่า ตาข้างหนึ่งบอด กัดม้าข้าตายต่อหน้า ข้าตั้งค่าหัวมัน', 'Half again the size of any other wolf, and blind in one eye. It tore my horse apart before me. I put a price on its head.'),
-    scene: [-110, 0], lair: [-150, -95], coins: 70, items: [['fang', 4]],
+    scene: [-110, 0], lair: [-150, -95], coins: 70, items: [['fang', 4]], gear: ['path:1'],
     clues: [L('ซากม้า... รอยกัดที่คอกว้างกว่าฝ่ามือ ตัวนี้ไม่ใช่หมาป่าธรรมดา', "The horse's carcass... a bite at the throat wider than a palm. No common wolf did this."), L('ขนสีดำปนขาวติดกิ่งไม้ แก่มากแล้ว แต่ตัวที่แก่ที่สุดมักคลั่งที่สุดเวลาบาดเจ็บ', 'Black fur shot with white, caught on a branch. Very old. But the oldest ones rage the worst when wounded.'), L('รอยตีนมุ่งลงใต้ไปทางป่าทึบใกล้หัวราชาหิน มันคงกลับรัง', "Pawprints lead south into the thick woods near the Stone King's head. It has gone back to its den.")],
   },
   {
@@ -61,7 +62,7 @@ const CONTRACTS = [
     id: 'canyon_eater', type: 'gaunt', affix: 'regen', name: L('ผู้กินศพแห่งหุบผา', 'Corpse-Eater of the Gorge'), time: 'night',
     giver: L('นักขุดแร่', 'A miner'), title: L('หลุมศพที่หุบผาถูกขุด', 'The graves at the gorge are dug up'),
     text: L('หลุมศพคนงานเหมืองที่เชิงหุบผาถูกขุดคุ้ยทุกคืน กระดูกกระจายเต็มไปหมด ข้าไม่กล้าขึ้นไปขุดแร่อีกแล้ว', "Every night the miners' graves at the foot of the gorge are dug up, bones strewn everywhere. I dare not go up to mine any more."),
-    scene: [-2, -140], lair: [14, -118], coins: 85, items: [['ore', 2]],
+    scene: [-2, -140], lair: [14, -118], coins: 85, items: [['ore', 2]], gear: ['path:2'],
     clues: [L('ดินถูกขุดด้วยมือ... เล็บยาวมาก รอยเล็บซ้อนกันหลายชั้นเหมือนขุดทุกคืน', 'Earth dug by hand... very long nails, the scratches layered deep, as if it digs every night.'), L('กระดูกถูกแทะจนเกลี้ยง มันกินแล้วแผลสมาน เป็นร่างซูบที่ฟื้นตัวได้ — ไฟหรือแผลเลือดไหลเท่านั้นที่หยุดมันได้', 'Bones gnawed clean. It feeds, and its wounds close: a Gaunt that mends itself — only fire or bleeding wounds will stop it.'), L('รอยเท้าเปลือยมุ่งลงทางตะวันออกเฉียงใต้ ไปซ่อนในหลืบหิน', 'Bare footprints lead south-east, into a cleft in the rocks.')],
   },
   {
@@ -75,14 +76,14 @@ const CONTRACTS = [
     id: 'shepherd_bane', type: 'brute', affix: 'stone', name: L('ยักษ์ผู้กินแกะ', 'Sheep-Devouring Brute'), time: 'always',
     giver: L('โกวัก (ผู้เลี้ยงแกะ)', 'Kowak (the shepherd)'), title: L('แกะหายไปทีละสามตัว', 'Sheep vanish three at a time'),
     text: L('กาาา! ทุกสามวันแกะข้าหายสามตัว เหลือแต่ขนกับรอยเท้าใหญ่เท่าเกวียน มันเดินมาจากทะเลสาบใต้ปราสาท', 'Caaaw! Every three days, three of my sheep vanish. Only wool is left, and footprints big as a cart. It comes up from the lake beneath the castle.'),
-    scene: [150, 120], lair: [125, 188], coins: 150, items: [['pale_heart', 1]],
+    scene: [150, 120], lair: [125, 188], coins: 150, items: [['pale_heart', 1]], gear: ['arm_briar'],
     clues: [L('รอยเท้าลึกครึ่งศอก... หนักเท่าวัวสามตัว', 'Footprints half a forearm deep... as heavy as three oxen.'), L('ก้อนหินที่มันพิงไว้แตกร้าว ผิวมันแข็งยิ่งกว่าหิน ฟันเบาไม่มีผล ต้องฟันหนักหรือทุบ', 'The rock it leaned on is cracked. Its hide is harder than stone; light attacks do nothing. Strike heavy, or crush it.'), L('ขนแกะติดอยู่ตามทางไปริมทะเลสาบใต้ปราสาทลอยฟ้า', 'Tufts of wool mark the way to the shore of the lake beneath Sky-Hung Castle.')],
   },
   {
     id: 'grey_widow', type: 'weeper', affix: 'frenzy', name: L('แม่ม่ายผมเทา', 'Grey-Haired Widow'), time: 'night',
     giver: L('เทียนหลอม (เจ้าของโรงเตี๊ยม)', 'Tallow (the innkeeper)'), title: L('เสียงร้องไห้ในซากโบสถ์ตะวันตก', 'Weeping in the western chapel ruins'),
     text: L('ลูกค้าข้าสามคนหายไปหลังได้ยินเสียงผู้หญิงร้องไห้ใกล้ซากโบสถ์ ข้ารู้จักเสียงนั้น... นางเคยเป็นคนของหมู่บ้านนี้ ช่วยให้นางได้พักเสียที', 'Three of my guests vanished after hearing a woman weeping near the chapel ruins. I know that voice... she was once of this village. Let her rest at last.'),
-    scene: [-130, -88], lair: [-150, -112], coins: 130, items: [['locket', 1]],
+    scene: [-130, -88], lair: [-150, -112], coins: 130, items: [['locket', 1]], gear: ['path:3'],
     clues: [L('ผ้าคลุมไหล่ลายลูกไม้... เป็นของคนในหมู่บ้านเมื่อนานมาแล้ว', 'A lace shawl... it belonged to someone of the village, long ago.'), L('ผมสีเทายาวพันอยู่กับหนาม นางจะไม่ขยับถ้าเรามองนาง แต่ถ้าเจ็บหนักนางจะคลั่งจนไม่สนอะไร', 'Long grey hair tangled in the thorns. She will not move while you watch her, but badly hurt, she will rage past all heeding.'), L('เสียงสะอื้นแว่วมาจากซากกำแพงทางใต้ นางรออยู่ตรงนั้น', 'Sobbing drifts from the ruined walls to the south. She waits there.')],
   },
 ];
@@ -366,6 +367,8 @@ export class Contracts {
     g.bag.remove('trophy', 1);
     g.coins += c.coins;
     for (const [id, n] of c.items) { const left = g.bag.add(id, n); if (left) g.loot.dropNearPlayer(id, left); }
+    // a piece of gear for the harder hunts ('path:n' is your path's n-th weapon)
+    if (c.gear) g.equipment.reward(c.gear.map((id) => (id.startsWith('path:') ? pathWeapons(g.kit.id)[+id.slice(5)]?.id : id)));
     this.done.add(c.id);
     this.clearClues(a);
     this.active = this.active.filter((x) => x !== a);

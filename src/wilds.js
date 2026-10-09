@@ -514,16 +514,16 @@ function shrines(B, Cw, T, scene, M, fx) {
 export function wildChests() {
   const nave = frame(DROWNED.x + 34, DROWNED.z - 52, 0.15);
   return [
-    ['belfry', BELLTOWER.x, BELLTOWER.z, [['star_shard', 1], ['potion_big', 1]], 19],
-    ['stones', STONES.x + 3, STONES.z + 2.5, [['moonstone', 1], ['essence', 3]]],
+    ['belfry', BELLTOWER.x, BELLTOWER.z, [['star_shard', 1], ['potion_big', 1], ['wpn_b_funeral', 1]], 19],
+    ['stones', STONES.x + 3, STONES.z + 2.5, [['moonstone', 1], ['essence', 3], ['wpn_k_black', 1]]],
     ['windmill', WINDMILL.x - 7, WINDMILL.z + 6, [['token', 2], ['tonic', 1]]],
     ['farmhouse', FARMS.x - 22, FARMS.z - 18, [['watch', 1], ['potion', 1]]],
     ['barn', FARMS.x + 18, FARMS.z - 26, [['straw', 3], ['oil', 1]]],
     ['pier', PIER.x - 3, PIER.z - 7, [['pearl', 1], ['slime', 2]]],
     ['drowned-tower', DROWNED.x + 7.5, DROWNED.z - 7.5, [['locket', 1], ['candlestick', 1]], 2],
-    ['cathedral', ...nave(12, 0), [['idol', 1], ['potion_big', 1]], 2],
+    ['cathedral', ...nave(12, 0), [['idol', 1], ['potion_big', 1], ['wpn_c_drowned', 1]], 2],
     ['hangtree', HANGTREE.x + 4.5, HANGTREE.z - 5, [['blood_amber', 2], ['potion', 1]]],
-    ['hunter', HUNTER.x + 2, HUNTER.z - 6.5, [['fang', 4], ['tonic', 1], ['sight', 1]]],
+    ['hunter', HUNTER.x + 2, HUNTER.z - 6.5, [['fang', 4], ['tonic', 1], ['sight', 1], ['wpn_h_light', 1]]],
   ];
 }
 

@@ -1,6 +1,7 @@
 // Every item in the game: its footprint in the bag grid (w x h cells, Resident Evil 4 style),
 // how many fit in one stack, what it sells for, and a procedurally painted pixel-art icon.
 import { L } from './i18n.js';
+import { WEAPONS, ARMOURS } from './equipment.js';
 
 export const ITEMS = {
   // consumables (one per slot, like RE4 sprays)
@@ -36,6 +37,14 @@ export const ITEMS = {
   hand_crown: { name: L('มงกุฎหนามราชันร้อยกร', 'Thorn Crown of the Hundred Hands'), desc: L('สมบัติ · มงกุฎหนามจากหัวของราชันร้อยกร ยังอุ่นและสั่นอยู่ในมือ ไม่มีใครในโรงเตี๊ยมกล้าแตะ แต่ก็ไม่มีใครกล้าไม่ซื้อ', 'Treasure · A crown of thorns from the brow of the King of a Hundred Hands, still warm and trembling in your grip. No one at the inn dares touch it; no one dares refuse it.'), w: 2, h: 1, stack: 1, kind: 'treasure', value: 160 },
   idol: { name: L('รูปเคารพราชาหิน', 'Idol of the Stone King'), desc: L('สมบัติ · รูปปั้นทองคำขนาดฝ่ามือ', 'Treasure · A golden statue the size of a palm.'), w: 2, h: 2, stack: 1, kind: 'treasure', value: 85 },
 };
+
+// weapons (one per path, 1×3 or 2×2 by kind) and suits of armour (2×2) are bag items too
+const WEAPON_SIZE = { wanderer: [1, 3], bell: [1, 3], leech: [1, 2], coffin: [2, 3], wick: [1, 3], hunter: [2, 2] };
+for (const w of Object.values(WEAPONS)) {
+  const [ww, hh] = WEAPON_SIZE[w.cls];
+  ITEMS[w.id] = { name: w.name, desc: w.desc, w: ww, h: hh, stack: 1, kind: 'weapon', cls: w.cls, value: w.value };
+}
+for (const a of Object.values(ARMOURS)) ITEMS[a.id] = { name: a.name, desc: a.desc, w: 2, h: 2, stack: 1, kind: 'armour', value: a.value };
 
 export const itemName = (id) => ITEMS[id]?.name ?? id;
 
@@ -199,6 +208,31 @@ const DRAW = {
   },
 };
 
+// weapon icons: the path's weapon shape, in the weapon's own colour
+function drawWeapon(w) {
+  const tint = w.tint || '#b8bcc4', glow = w.value >= 160;
+  return (d, W, H) => {
+    if (glow) { d.r(1, 1, W - 2, H - 2, 'rgba(160,200,255,0.12)'); }
+    const cx = Math.floor(W / 2);
+    if (w.cls === 'wanderer') { d.r(cx - 1, 2, 3, H - 16, tint); d.r(cx, 3, 1, H - 18, '#ffffff'); d.r(cx - 5, H - 14, 11, 2, '#8a6a3a'); d.r(cx - 1, H - 12, 3, 8, '#4a3020'); d.r(cx - 2, H - 4, 5, 3, '#c8a050'); }
+    if (w.cls === 'bell') { d.r(cx - 1, 14, 3, H - 16, '#5a3a22'); d.r(cx - 6, 4, 13, 10, tint); d.r(cx - 5, 5, 4, 8, '#ffffff40'); d.r(cx - 7, 13, 15, 2, '#3a3a3a'); }
+    if (w.cls === 'leech') { d.r(cx - 1, 2, 3, H - 12, tint); d.p(cx, 3, '#ffffff'); d.r(cx - 2, H - 10, 5, 8, '#c8bca0'); d.r(cx - 1, 6, 1, 6, '#8a1a12'); }
+    if (w.cls === 'coffin') { d.r(6, 3, W - 12, H - 6, tint); d.r(8, 5, W - 16, H - 10, '#3a2a1a'); d.r(cx - 1, 8, 3, 14, tint); d.r(cx - 5, 12, 11, 3, tint); }
+    if (w.cls === 'wick') { d.r(cx, 2, 1, 14, '#6a6a6a'); d.r(cx - 6, 16, 13, 12, tint); d.r(cx - 4, 18, 9, 6, '#ff9a3a'); d.r(cx - 2, 19, 5, 3, '#ffe0a0'); d.r(cx - 7, 28, 15, 2, '#3a3020'); }
+    if (w.cls === 'hunter') { d.r(4, 14, W - 8, 3, '#6a4a2a'); d.r(W - 8, 4, 3, 24, tint); d.r(W - 9, 15, 1, 1, '#ffffff'); d.r(6, 15, W - 14, 1, '#d8d0c0'); d.r(2, 12, 6, 7, '#4a3020'); }
+  };
+}
+// armour icons: a tunic or a breastplate in the suit's colour
+function drawArmour(a) {
+  return (d) => {
+    const c = a.col;
+    d.r(9, 3, 14, 4, c); d.r(5, 6, 22, 6, c); d.r(8, 12, 16, 16, c); d.r(4, 6, 4, 12, c); d.r(24, 6, 4, 12, c);
+    d.r(14, 3, 4, 5, '#1a1410'); d.r(9, 12, 14, 1, '#00000040'); d.r(10, 20, 12, 2, '#3a2a1a');
+    if (a.armour >= 0.15) { d.r(10, 8, 12, 9, '#c8ccd0'); d.r(11, 9, 3, 7, '#ffffff'); }
+    if (a.value >= 200) { d.r(15, 14, 2, 2, '#e0f0ff'); d.p(16, 13, '#ffffff'); }
+  };
+}
+
 // Icon canvas for an item; rotated items are drawn sideways by the caller (CSS rotate)
 export function itemIcon(id) {
   if (cache.has(id)) return cache.get(id);
@@ -206,7 +240,7 @@ export function itemIcon(id) {
   const c = document.createElement('canvas');
   c.width = def.w * P; c.height = def.h * P;
   const ctx = c.getContext('2d');
-  (DRAW[id] || ((d) => d.r(2, 2, 12, 12, '#888')))(painter(ctx), c.width, c.height);
+  (DRAW[id] || (def.kind === 'weapon' ? drawWeapon(WEAPONS[id]) : def.kind === 'armour' ? drawArmour(ARMOURS[id]) : null) || ((d) => d.r(2, 2, 12, 12, '#888')))(painter(ctx), c.width, c.height);
   cache.set(id, c);
   return c;
 }

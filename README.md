@@ -139,7 +139,7 @@ Press `I` or `Tab` to open the bag. The game pauses while it is open. Each item 
 | Where | What |
 |---|---|
 | **Granny Toad** (cauldron) | Healing Draught · Great Healing Draught · Stamina Tonic (stamina recovers ×2) · Glowing Blade Oil (×1.5 damage) · Cat's-Eye Potion (see at night) |
-| **Old Anvil, the smith** (village) | Sword, 4 tiers (+20%/tier) · Cloak, 4 tiers (8% less damage/tier) · Lantern, 3 tiers (brighter and farther) |
+| **Old Anvil, the smith** (village) | Sword, 4 tiers (+20%/tier) · Cloak, 4 tiers (8% less damage/tier) · Lantern, 3 tiers (brighter and farther) · **forges weapons and armour** (see below) |
 | **Tallow** (the inn) | Buy draughts/herbs · buy bigger bags · sell treasure and materials |
 
 Draughts with lasting effects show their time left in the bottom-left corner. Upgrade and draught effects show in the weapon slot of the status bar.
@@ -156,6 +156,34 @@ Each path has its own weapon and changes how the whole game plays, not just the 
 | **Coffin-Bearer** | Coffin | Slow but heavy swings; hold = wide ground slam · **raise the coffin as a wall** that stops everything from the front, even ground slams (but it can't parry) · enemies you kill leave a corpse — `G` near a corpse = **take it into the coffin** (4 slots) and gain its power: Gaunt = sprinting costs no stamina, Crawler = climb steep slopes, Weeping Woman = **an enemy you stare at cannot move**, Brute = wider ground slam, wolf = faster swings, Strawman = take less damage · `G` anywhere else = **bury a corpse**; it becomes a grave you respawn at + restores 40 health |
 | **Crossbow Hunter** | Crossbow + Hunting Knife | **Ranged attacks** · click = fire 1 bolt, then **reload for 1.2 s** · **hold = zoom and aim**, release for a ×2 shot that **pierces up to 3 enemies** · **headshots** deal ×1.5 · while reloading or out of bolts, click = **knife stab** · `G` **sets a steel jaw trap** (up to 2, 18 s cooldown); an enemy that steps in is stuck for 3 s (bosses only slow down) · **bolts are limited**: you start with 24, buy them at the inn (6 bolts for 10 coins) or have the smith make them (1 ore = 12 bolts, 1 Pale Claw = 4 bolts). Missed bolts stick in the ground and can be picked up; bolts stuck in an enemy are 60% recoverable when it dies |
 | **Wick-Bearer** | Censer on a chain | **Your health is candle wax that keeps melting.** Stand near a fire to recast it · long-reach swings set enemies on fire; the longer you keep hitting, the hotter the flame, but you melt faster · hold = spin · **hold right click = shield the flame**: the screen goes dark, enemies can't see you and give up the chase (but you can't block) · `G` **plants a candle** (up to 3). The Pale Ones and spirits can't enter its light. Standing near a candle slowly recasts your wax |
+
+## Weapons and armour
+
+Every path has **4 weapons of its own kind** — the one it starts with, a quick one, a heavy one and a rare one with a power — and **one suit of armour** that any path can wear. Both are bag items: open the bag, click the piece and choose **Equip**; the old one goes back into the bag. Each path keeps its own weapon when you change paths at the inn. Smith upgrades (+1…+4) stay on your hand, so a new weapon never undoes them.
+
+A weapon bends the blows its path already throws: light/heavy damage, swing time (for the crossbow: reload time), stamina per blow, reach, and one effect on each hit — **bleed**, **fire**, **frost** (slows), **drain** (heals you), **concussion** (heavy blows stagger), **precision** (15% chance of ×2), **moonlight** (×1.4 against the Pale Ones).
+
+| Path | Quick (40) | Heavy (90) | Rare (160) |
+|---|---|---|---|
+| Wanderer (Old Sword) | Marsh Rapier — bleed | Stone Greatsword — concussion, +0.5 m | Moonlight Blade — moonlight |
+| Bellwright (Bell Hammer) | Silver Chime Mallet — frost | Tower Clapper — concussion | Funeral Bell — drain |
+| Leech-Doctor (Lancet) | Bone Scalpel — precision | Butcher's Cleaver — bleed | Bloodletter's Saw — drain |
+| Coffin-Bearer (Pauper's Coffin) | Child's Coffin | Iron Sarcophagus — concussion | Coffin of the Drowned — frost |
+| Wick-Bearer (Censer) | Thurible of Ash — precision | Bronze Brazier — fire, +0.4 m | Black Wax Lantern — moonlight |
+| Crossbow Hunter (Hunting Crossbow) | Light Crossbow — fast reload | Arbalest — concussion | Moonsilver Crossbow — frost |
+
+| Armour | Effect | Where |
+|---|---|---|
+| Traveller's Rags | nothing | you start in it |
+| Hunter's Leathers | −8% damage, dodge costs −15% | smith · bounty "Brood-Mother" |
+| Rusted Mail | −15% damage, a little slower, stamina −10% | smith |
+| Pilgrim's Robe | −5% damage, faster healing | smith |
+| Briar Coat | −10% damage, returns 30% of melee damage | smith · bounty "Sheep-Devouring Brute" |
+| Gravedigger's Shroud | −6% damage, foes notice you 35% closer | chest at the far-west ruin |
+| Guard's Plate | −28% damage, never staggered, slower, dodge costs more | the Last Guard |
+| Moonlit Raiment | −18% damage, stamina +25%, faster healing | the King of a Hundred Hands |
+
+**Where weapons come from:** the smith forges your path's quick and heavy weapons (coins + materials) · the Stone Knight gives your path's heavy weapon, the King of a Hundred Hands its rare one · Oren drops the Moonsilver Crossbow · bounties "Old Fang" (quick), "Corpse-Eater" (heavy) and "Grey-Haired Widow" (rare) give your path's weapon · chests: Marsh Rapier (north ruin), Bloodletter's Saw (swamp ruin), Funeral Bell (belfry), Black Wax Lantern (standing stones), Coffin of the Drowned (sunken cathedral), Light Crossbow (lost hunter's camp). A piece you already own is never given twice.
 
 ## Each path's skill tree (press K)
 
@@ -444,6 +472,7 @@ src/
   ui.js             compass, quests, dialogue, map
   hud.js            Doom-style status bar (face, pixel digits, weapon icon)
   items.js          every item (slot size, stacking, price) + pixel icons
+  equipment.js      weapons (4 per path) and armour: stats, effects, equipping
   inventory.js      grid bag logic (place, rotate, stack, auto-sort, save)
   bagui.js          RE4-style bag screen (drag and drop, item menu, waiting slot)
   loot.js           enemy drops, regrowing herbs/mushrooms/ore, treasure chests

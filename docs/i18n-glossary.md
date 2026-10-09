@@ -88,3 +88,17 @@ Use these names everywhere so every screen agrees. Tone: terse, old-fashioned da
 | ยาฟื้นพลัง | Healing Draught |
 | ศึกราชาจันทรา (โหมดออนไลน์) | War of the Moon Kings |
 | ครีป | creeps |
+
+## Weapons and armour (src/equipment.js)
+| Thai | English |
+|---|---|
+| อาวุธ / ชุดเกราะ | weapon / armour |
+| สวมใส่ | Equip |
+| ตี (ที่ช่างตีเหล็ก) | Forge |
+| เลือดไหล | Bleed |
+| ไฟ | Fire |
+| เยือกแข็ง | Frost |
+| ดูดเลือด | Drain |
+| กระแทก | Concussion |
+| จุดตาย | Precision |
+| แสงจันทร์ (ผลของอาวุธ) | Moonlight |

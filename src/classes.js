@@ -118,7 +118,8 @@ class Kit {
   animateWeapon() {}
   label() {
     const g = this.g, lv = g.gear.sword, kingly = g.combat.swordMul > 1;
-    return `${kingly ? L(`${this.def.weapon}ราชาหิน`, `Stone King's ${this.def.weapon}`) : this.def.weapon}${lv ? ` +${lv}` : ''} ×${g.damageMul.toFixed(1)}`;
+    const name = g.equipment?.weapon.name || this.def.weapon;
+    return `${kingly ? L(`${name}ราชาหิน`, `Stone King's ${name}`) : name}${lv ? ` +${lv}` : ''} ×${g.damageMul.toFixed(1)}`;
   }
   chips() { return []; }
   drawIcon(ctx, flash) { ctx.clearRect(0, 0, 48, 14); }
@@ -1466,7 +1467,7 @@ class Hunter extends Kit {
   refresh() { this.apply(); }
 
   get magazine() { return this.perk('h_twin') ? 2 : 1; }
-  get reloadTime() { return RELOAD * (this.perk('h_load') ? 0.85 : 1) * (this.perk('h_quick') ? 0.75 : 1); }
+  get reloadTime() { return RELOAD * (this.perk('h_load') ? 0.85 : 1) * (this.perk('h_quick') ? 0.75 : 1) * (this.g.equipment?.weapon.speed || 1); }
   get maxTraps() { return this.perk('h_snare') ? 3 : 2; }
   get hpBonus() { return this.perk('h_hide') ? 10 : 0; }
   get quiver() { return this.g.bag.count('bolt'); }
@@ -1491,7 +1492,7 @@ class Hunter extends Kit {
     this.loaded--;
     if (this.loaded <= 0) this.reloadT = this.reloadTime;
     c.spend(aimed ? 10 : 5);
-    let dmg = aimed ? 4 : 2;
+    let dmg = (aimed ? 4 : 2) * ((aimed ? this.g.equipment?.weapon.heavy : this.g.equipment?.weapon.light) || 1);
     if (!aimed && this.perk('h_sure')) dmg *= 1.1;
     if (aimed && this.perk('h_eye')) dmg *= 1.2;
     if (this.perk('h_still') && this.still >= 1.5) { dmg *= 1.4; g.ui.combatText(L('นิ่ง...', 'Still...'), 'info'); }
@@ -1524,6 +1525,7 @@ class Hunter extends Kit {
     this.lastShotAimed = b.aimed;
     e.boltsIn = (e.boltsIn || 0) + 1;          // counted first: the bolt that kills comes out of the body too
     c.damageEnemy(e, b.aimed, V, dmg);
+    g.equipment?.onHit(e, b.aimed);
     if (this.perk('h_barb') && e.alive) { e.dots = e.dots || {}; e.dots.bleed = { dps: 0.3, t: 4 }; }
     if (this.perk('h_iron') && e.alive && e.state !== 'dying' && !e.def.boss && !e.moba && !e.storyBoss) { e.state = 'stagger'; e.t = Math.max(e.t, 0.6); }
     g.particles.burst(point.clone(), 4, 2, 0.3);

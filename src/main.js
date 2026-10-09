@@ -41,6 +41,7 @@ import { PASTURE, FENCE_R, TOAD, TEMPLE, SPAWN, LOST_SHEEP, LOCATIONS, TAVERN, C
 import { DayNight } from './daynight.js';
 import { clamp } from './util.js';
 import { LANG, setLang, applyHtml, L } from './i18n.js';
+import { Equipment } from './equipment.js';
 
 const SAVE_KEY = 'moonmire-save-v1';
 const SETTINGS_KEY = 'moonmire-settings-v1';
@@ -72,6 +73,7 @@ class Game {
     this.time = 0;
     this.coins = 0;
     this.gear = { sword: 0, cloak: 0, lantern: 0 };
+    this.equipment = new Equipment(this);
     this.buffs = { tonic: 0, oil: 0, sight: 0 };
     this.checkpoint = { x: SPAWN.x, z: SPAWN.z };
     this.endingBeam = null;
@@ -490,7 +492,7 @@ class Game {
     if (this.state === 'title' || this.state === 'loading' || this.moba) return;   // online matches never touch the story save
     store.set(SAVE_KEY, {
       quests: this.quests.serialize(), combat: this.combat.serialize(), coins: this.coins, hp: this.player.hp,
-      bag: this.bag.serialize(), gear: this.gear, loot: this.loot.serialize(),
+      bag: this.bag.serialize(), gear: this.gear, equip: this.equipment.serialize(), loot: this.loot.serialize(),
       pos: { x: this.player.pos.x, z: this.player.pos.z }, yaw: this.player.yaw, checkpoint: this.checkpoint,
       time: this.dayNight.t, discovered: [...this.discovered],
       cls: this.kit.id, kit: this.kit.serialize(), classGear: [...this.classGear], events: this.events.serialize(), contracts: this.contracts.serialize(),
@@ -506,6 +508,7 @@ class Game {
     if (d.bag) this.bag.load(d.bag);
     else { this.bag.items = []; this.bag.add('potion', Math.max(0, d.potions ?? 1)); }   // saves from before the bag existed
     Object.assign(this.gear, d.gear || {});
+    this.equipment.load(d.equip);
     this.loot.load(d.loot);
     this.onGearChanged();
     this.checkpoint = d.checkpoint || this.checkpoint;
@@ -551,6 +554,7 @@ class Game {
       this.classGear.add(id);
       for (const [item, n] of STARTING_GEAR[id] || []) this.bag.add(item, n);
     }
+    this.equipment.apply();       // the weapon in hand for this path
     this.hud.keys = {};          // repaint the weapon panel and face
     this.combat.swing = null;
   }
@@ -647,6 +651,7 @@ class Game {
   // max health and the like follow the path's upgrades
   applyKitStats() {
     const p = this.player, max = 100 + (this.kit?.hpBonus || 0);
+    p.regenBonus = this.equipment?.regenMul ?? 1;
     if (p.maxHp !== max) { p.hp = Math.min(max, p.hp + Math.max(0, max - p.maxHp)); p.maxHp = max; }
   }
 
@@ -817,7 +822,8 @@ class Game {
   // damage multiplier for the player's blows, and the share of incoming damage that gets through
   get damageMul() { return this.combat.swordMul * (1 + this.gear.sword * 0.2) * (this.buffs.oil > 0 ? 1.5 : 1) * (this.quests?.guardForged ? 1.25 : 1); }
 
-  get armorMul() { return 1 - this.gear.cloak * 0.08; }
+  get armorMul() { return (1 - this.gear.cloak * 0.08) * this.equipment.armourMul; }
+  pathName(cls) { return CLASSES[cls]?.name || cls; }
 
   onGearChanged() {
     const lv = this.gear.lantern;

@@ -5,6 +5,7 @@ import { BAG_SIZES } from './inventory.js';
 import { AFFIXES } from './contracts.js';
 import { BUILDINGS, CREEPS, SEATS, costText, canPay } from './moba.js';
 import { L } from './i18n.js';
+import { WEAPONS, ARMOURS, pathWeapons, statLine } from './equipment.js';
 
 export const RECIPES = [
   { out: 'potion', n: 1, need: [['moon_herb', 2]] },
@@ -46,6 +47,14 @@ export const UPGRADES = {
 };
 
 const BAG_PRICES = [60, 150];
+// what the smith can make: the quick and the heavy weapon of your path, and four suits
+const WEAPON_FORGE = [{ coins: 60, need: [['fang', 2], ['ore', 1]] }, { coins: 120, need: [['ore', 3], ['claw', 2]] }];
+const ARMOUR_FORGE = [
+  ['arm_leather', 40, [['fang', 3], ['straw', 2]]],
+  ['arm_mail', 80, [['ore', 3]]],
+  ['arm_robe', 70, [['straw', 3], ['essence', 2]]],
+  ['arm_briar', 110, [['claw', 3], ['slime', 2]]],
+];
 const BOLT_FORGE = [{ n: 12, coins: 6, need: [['ore', 1]] }, { n: 4, coins: 2, need: [['claw', 1]] }];
 // [item, price, how many for the price]
 const BUY = [['potion', 12], ['tonic', 18], ['moon_herb', 5], ['leech_live', 6], ['bolt', 10, 6]];
@@ -154,6 +163,20 @@ export class Menus {
         icon: itemIconURL('bolt'), title: L(`ตีลูกดอกหน้าไม้ ×${b.n}`, `Forge crossbow bolts ×${b.n}`), sub: ITEMS.bolt.desc, cost: this.costHTML(b.need, b.coins),
         button: ok && !fits ? L('กระเป๋าเต็ม', 'Bag full') : L('ตี', 'Forge'), enabled: ok && fits,
         onClick: () => { g.coins -= b.coins; b.need.forEach(([id, n]) => g.bag.remove(id, n)); g.bag.add('bolt', b.n); g.audio.anvil(); g.ui.toast(L(`ได้ลูกดอก ${b.n} ดอก`, `${b.n} bolts forged`)); },
+      });
+    }
+    // new weapons for your path, and suits of armour
+    const forged = pathWeapons(g.kit.id).slice(1, 3).map((w, i) => [w.id, WEAPON_FORGE[i].coins, WEAPON_FORGE[i].need]);
+    for (const [id, coins, need] of [...forged, ...ARMOUR_FORGE]) {
+      const def = WEAPONS[id] || ARMOURS[id];
+      const owned = g.equipment.owns(id), ok = this.has(need) && g.coins >= coins, fits = g.bag.canAdd(id, 1);
+      this.row({
+        icon: itemIconURL(id), title: def.name, sub: `${def.desc}<br><i>${statLine(id)}</i>`, cost: owned ? '' : this.costHTML(need, coins),
+        button: owned ? L('มีแล้ว', 'Owned') : ok && !fits ? L('กระเป๋าเต็ม', 'Bag full') : L('ตี', 'Forge'), enabled: !owned && ok && fits,
+        onClick: () => {
+          g.coins -= coins; need.forEach(([nid, n]) => g.bag.remove(nid, n)); g.bag.add(id, 1); g.audio.anvil();
+          g.ui.toast(L(`ได้${def.name} — เปิดกระเป๋าแล้วกดสวมใส่`, `${def.name} forged — equip it from your bag`));
+        },
       });
     }
     for (const [key, base] of Object.entries(UPGRADES)) {

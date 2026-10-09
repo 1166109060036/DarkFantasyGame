@@ -13,6 +13,7 @@ import { createHandKing, updateHandKing } from './handking.js';
 import { clamp, lerp, wrapAngle } from './util.js';
 import { rng } from './noise.js';
 import { L } from './i18n.js';
+import { pathWeapons } from './equipment.js';
 import { SWORD_POSE } from './classes.js';
 import { ARENA_CAMPS, ARENA_BASES } from './arena.js';
 
@@ -222,7 +223,7 @@ export class Combat {
 
   playerMods() {
     return {
-      speedMul: (this.blocking && !this.g.kit.speedBoost ? this.g.kit.blockSpeed ?? 0.45 : this.charging ? 0.6 : 1) * this.g.kit.speedMul,
+      speedMul: (this.blocking && !this.g.kit.speedBoost ? this.g.kit.blockSpeed ?? 0.45 : this.charging ? 0.6 : 1) * this.g.kit.speedMul * (this.g.equipment?.speedMul ?? 1),
       sprintOk: !this.exhausted && !this.blocking,
       dodgeVel: this.dodgeT > 0 ? this.dodgeVel : null,
       locked: this.staggerT > 0,
@@ -238,7 +239,7 @@ export class Combat {
     this.targetT = Math.max(0, this.targetT - dt);
 
     if (p.sprinting && g.kit.sprintCost) this.spend(13 * dt * g.kit.sprintCost);
-    if (t - this.lastUse > 0.9) this.stamina = Math.min(this.maxStamina, this.stamina + (this.blocking ? g.kit.blockRegen ?? 12 : 32) * (g.buffs.tonic > 0 ? 2 : 1) * dt);
+    if (t - this.lastUse > 0.9) this.stamina = Math.min(this.maxStamina, this.stamina + (this.blocking ? g.kit.blockRegen ?? 12 : 32) * (g.buffs.tonic > 0 ? 2 : 1) * (g.equipment?.staminaMul ?? 1) * dt);
     if (this.exhausted && this.stamina > 35) this.exhausted = false;
 
     if (frozen) { this.blocking = false; this.charging = false; return; }
@@ -266,7 +267,7 @@ export class Combat {
         this.iframes = 0.3;
         this.blocking = false;
         this.charging = false;
-        this.spend(COST.dodge * (g.kit.dodgeCostMul ?? 1));
+        this.spend(COST.dodge * (g.kit.dodgeCostMul ?? 1) * (g.equipment?.dodgeMul ?? 1));
         p.roll = -s * 0.12;
         g.kit.onDodge?.();
         g.audio.dodge();
@@ -296,7 +297,7 @@ export class Combat {
   // the kit decides what a blow is: timing, cost, reach, arc (or a spin / ground slam), damage
   startSwing(kind) {
     if (this.stamina <= 0) { this.say(L('เหนื่อย!', 'Exhausted!')); return; }
-    const spec = this.g.kit.swing(kind);
+    const spec = this.g.equipment ? this.g.equipment.shape(this.g.kit.swing(kind), kind) : this.g.kit.swing(kind);
     if (!spec) return;                       // handled by the kit (e.g. a thrown leech)
     this.swing = { kind, t: 0, dur: spec.dur, hit: false, spec };
     this.swingN = (this.swingN || 0) + 1;       // online: other players see each new blow
@@ -337,12 +338,13 @@ export class Combat {
       V.normalize();
       this.damageEnemy(e, spec.heavy, V, spec.dmg);
       if (e.alive) g.kit.onHit(e, kind);
+      g.equipment?.onHit(e, kind === 'heavy');
     }
   }
 
   damageEnemy(e, heavy, dir, base = heavy ? 3 : 1) {
     const g = this.g, def = e.def;
-    let dmg = base * g.damageMul * g.kit.targetMul(e);
+    let dmg = base * g.damageMul * g.kit.targetMul(e) * (g.equipment && !e.moba ? g.equipment.hitMul(e) : 1);
     if (e.moba) {
       // an online creep: your own are safe, everyone else's hit goes to the host
       if (e.moba.owner === g.moba.me) return;
@@ -438,6 +440,7 @@ export class Combat {
       for (const f of e.ai?.fx || []) f.update(99);           // clear its marks and hands
       g.ui.banner(L('ชนะ', 'Victory'), L(`${def.name} พ่ายแพ้`, `${def.name} has fallen`));
       g.music?.sting('victory');
+      g.equipment.reward(['arm_moon', pathWeapons(g.kit.id)[3]?.id]);
       if (g.quests) setTimeout(() => g.quests.onBossDefeated(), 1600);
       g.save();
     } else if (def.boss) {
@@ -445,6 +448,7 @@ export class Combat {
       this.swordMul = 1.6;
       g.ui.banner(L('ชนะ', 'Victory'), L(`${def.name} พ่ายแพ้`, `${def.name} has fallen`));
       setTimeout(() => g.ui.toast(L('ได้รับ ดาบแห่งราชาหิน — พลังโจมตี ×1.6', 'Received: Sword of the Stone King — attack ×1.6')), 1800);
+      setTimeout(() => g.equipment.reward([pathWeapons(g.kit.id)[2]?.id]), 3600);
       g.music?.sting('victory');
       g.save();
     }
@@ -481,7 +485,7 @@ export class Combat {
       p.vel.x += dx / d * 2 * push; p.vel.z += dz / d * 2 * push;
       g.kit.onWallBlock(e, dmg);
       if (this.stamina > 0 || g.kit.holdFirm?.()) return;
-      dmg *= 0.5; this.staggerT = 0.8; this.blocking = false; g.ui.combatText(L('การ์ดแตก!', 'Guard broken!'), 'bad');
+      dmg *= 0.5; this.staggerT = g.equipment?.poise ? 0 : 0.8; this.blocking = false; g.ui.combatText(L('การ์ดแตก!', 'Guard broken!'), 'bad');
     } else if (this.blocking && facingEnemy && !slam) {
       if (g.time - this.blockStart < PARRY_WINDOW + g.kit.parryBonus) {
         e.state = 'stagger';
@@ -503,10 +507,11 @@ export class Combat {
       p.shake = Math.max(p.shake, 0.12);
       p.vel.x += dx / d * 3; p.vel.z += dz / d * 3;
       if (this.stamina > 0) dmg *= 0.12 * (g.kit.blockLeak ?? 1);
-      else { dmg *= 0.6; this.staggerT = 0.7; this.blocking = false; g.ui.combatText(L('การ์ดแตก!', 'Guard broken!'), 'bad'); }
+      else { dmg *= 0.6; this.staggerT = g.equipment?.poise ? 0 : 0.7; this.blocking = false; g.ui.combatText(L('การ์ดแตก!', 'Guard broken!'), 'bad'); }
     }
     dmg = g.kit.onHurt(dmg * g.armorMul * g.kit.armorMul, e);
     p.hurt(dmg, g.time);
+    g.equipment?.onHurt(dmg, e);
     g.mount?.onRiderHurt(dmg);
     // the status-bar face flinches toward whoever landed the blow
     const rightDot = (-dx * Math.cos(p.yaw) + dz * Math.sin(p.yaw)) / Math.max(d, 1e-3);
@@ -530,7 +535,7 @@ export class Combat {
         this.spend(dmg * 0.6 * (g.kit.wallCostMul ?? 1)); g.audio.block();
         g.kit.onWallBlock(null, dmg, by);
         if (this.stamina > 0 || g.kit.holdFirm?.()) return;
-        dmg *= 0.5; this.staggerT = 0.8; this.blocking = false;
+        dmg *= 0.5; this.staggerT = g.equipment?.poise ? 0 : 0.8; this.blocking = false;
       } else if (g.time - this.blockStart < PARRY_WINDOW + g.kit.parryBonus) {
         this.stamina = Math.min(this.maxStamina, this.stamina + 15);
         g.audio.parry(); g.ui.combatText(L('ปัดสำเร็จ!', 'Parried!'), 'parry'); g.hud.grin();
@@ -539,7 +544,7 @@ export class Combat {
       } else {
         this.spend(dmg * 1.2); g.audio.block();
         if (this.stamina > 0) dmg *= 0.12 * (g.kit.blockLeak ?? 1);
-        else { dmg *= 0.6; this.staggerT = 0.7; this.blocking = false; g.ui.combatText(L('การ์ดแตก!', 'Guard broken!'), 'bad'); }
+        else { dmg *= 0.6; this.staggerT = g.equipment?.poise ? 0 : 0.7; this.blocking = false; g.ui.combatText(L('การ์ดแตก!', 'Guard broken!'), 'bad'); }
       }
     }
     dmg = g.kit.onHurt(dmg * g.armorMul * g.kit.armorMul, null);
@@ -688,7 +693,7 @@ export class Combat {
             const wd = Math.hypot(e.wander.x - e.pos.x, e.wander.z - e.pos.z);
             if (wd > 0.6) { moveSpeed = def.speed * 0.3; moveAngle = Math.atan2(e.wander.x - e.pos.x, e.wander.z - e.pos.z); }
           }
-          if (active && playerOk && dist < def.aggro * (g.events?.aggroMul ?? 1) && !g.kit.hidden) {
+          if (active && playerOk && dist < def.aggro * (g.events?.aggroMul ?? 1) * (g.equipment?.aggroMul ?? 1) && !g.kit.hidden) {
             e.state = 'chase';
             g.audio.enemyCue(e.type, 'aggro', e.pos);
             if (!this.hintShown) {
@@ -717,7 +722,7 @@ export class Combat {
           moveSpeed = def.speed * 0.8;
           moveAngle = Math.atan2(e.home.x - e.pos.x, e.home.z - e.pos.z);
           if (fromHome < 1) { e.state = 'idle'; e.hp = def.hp; e.t = 2; }
-          if (active && playerOk && dist < def.aggro * 0.6 && fromHome < def.leash * 0.7 && !g.kit.hidden) e.state = 'chase';
+          if (active && playerOk && dist < def.aggro * 0.6 * (g.equipment?.aggroMul ?? 1) && fromHome < def.leash * 0.7 && !g.kit.hidden) e.state = 'chase';
           break;
         }
         case 'windup':

@@ -133,7 +133,7 @@ export class Player {
     this.camera.rotation.set(this.pitch, this.yaw, this.roll, 'YXZ');
 
     // health regen
-    if (time - this.lastHurt > 6 && this.hp > 0) this.hp = Math.min(this.maxHp, this.hp + 2.5 * this.regenMul * dt);
+    if (time - this.lastHurt > 6 && this.hp > 0) this.hp = Math.min(this.maxHp, this.hp + 2.5 * this.regenMul * (this.regenBonus ?? 1) * dt);
   }
 
   hurt(amount, time) {

@@ -32,7 +32,7 @@ const NODE_TYPES = {
   ore: { item: 'ore', count: [1, 1], regrow: 600, label: L('ขุดแร่เหล็กมืด', `Mine ${ITEMS.ore.name}`) },
 };
 
-const KIND_GLOW = { use: C(0.5, 0.18, 0.16), mat: C(0.22, 0.32, 0.5), treasure: C(0.55, 0.42, 0.14) };
+const KIND_GLOW = { use: C(0.5, 0.18, 0.16), mat: C(0.22, 0.32, 0.5), treasure: C(0.55, 0.42, 0.14), weapon: C(0.6, 0.6, 0.66), armour: C(0.6, 0.6, 0.66) };
 
 function chestGeometry() {
   const wood = C(0.62, 0.45, 0.32), band = C(0.55, 0.55, 0.6);
@@ -290,7 +290,7 @@ export class Loot {
     const end = rail[rail.length - 1];
     const list = [
       ['ruin-west', -112, -14, [['token', 2], ['moon_herb', 2]]],
-      ['ruin-swamp', -54, 260, [['pearl', 1], ['potion', 1]]],
+      ['ruin-swamp', -54, 260, [['pearl', 1], ['potion', 1], ['wpn_l_saw', 1]]],
       ['ribcage', RIBCAGE.x - 16, RIBCAGE.z - 30, [['watch', 1], ['ore', 1]]],
       ['castle-shore', CASTLE.x - 92, CASTLE.z - 10, [['candlestick', 1], ['essence', 2]]],
       ['king-hand', HEAD.x + 4, HEAD.z + 46, [['idol', 1]]],
@@ -299,8 +299,8 @@ export class Loot {
       ['station', end.x - 6, end.z + 6, [['token', 3], ['tonic', 1]]],
       ['toad', TOAD.x - 5, TOAD.z - 3, [['sight', 1], ['mushroom', 2]]],
       ['ruin-east', 76, 136, [['candlestick', 1]]],
-      ['ruin-far-west', -204, 126, [['ore', 1], ['fang', 3]]],
-      ['ruin-north', -144, -106, [['moonstone', 1], ['oil', 1]]],
+      ['ruin-far-west', -204, 126, [['ore', 1], ['fang', 3], ['arm_shroud', 1]]],
+      ['ruin-north', -144, -106, [['moonstone', 1], ['oil', 1], ['wpn_w_rapier', 1]]],
       ['ruin-south', 66, -70, [['token', 2], ['potion', 1]]],
       ['ruin-far-east', 244, 46, [['watch', 1]]],
       ...wildChests(),

@@ -4,6 +4,7 @@
 //  - click an item for a menu: use / move / rotate / drop
 //  - when the case is full, a new pickup waits in the side tray until you make room
 import { ITEMS, itemIconURL } from './items.js';
+import { statLine } from './equipment.js';
 import { Inventory } from './inventory.js';
 import { L } from './i18n.js';
 
@@ -133,7 +134,7 @@ export class BagUI {
     const def = it ? ITEMS[it.id] : this.held ? ITEMS[this.held.id] : this.pending ? ITEMS[this.pending.id] : null;
     this.info.querySelector('.name').textContent = def ? def.name : L('กระเป๋าเดินทาง', 'Travelling Case');
     this.info.querySelector('.desc').textContent = def
-      ? `${def.desc}${def.value ? L(` · ขายได้ ${def.value} เหรียญ`, ` · Sells for ${def.value} coins`) : ''}`
+      ? `${def.desc}${def.kind === 'weapon' || def.kind === 'armour' ? `\n${def.kind === 'weapon' ? `${L('สำหรับ', 'For')} ${this.g.pathName(def.cls)} · ` : ''}${statLine(it ? it.id : (this.held || this.pending).id)}` : ''}${def.value ? L(` · ขายได้ ${def.value} เหรียญ`, ` · Sells for ${def.value} coins`) : ''}`
       : L('ลากของเพื่อจัดเรียง · คลิกของเพื่อใช้หรือทิ้ง · R หรือคลิกขวาเพื่อหมุน', 'Drag to arrange · Click to use or discard · R or right-click to rotate');
   }
 
@@ -360,6 +361,7 @@ export class BagUI {
       m.appendChild(b);
     };
     if (def.kind === 'use') add(L('ใช้', 'Use'), () => { if (this.g.useItem(it)) this.render(); });
+    if (def.kind === 'weapon' || def.kind === 'armour') add(L('สวมใส่', 'Equip'), () => { if (this.g.equipment.equip(it)) { this.select(null); this.render(); } });
     add(L('ย้าย', 'Move'), () => { this.mouse = { x: e.clientX, y: e.clientY }; this.pickUp(it, 0, 0, false); });
     if (def.w !== def.h) add(L('หมุน', 'Rotate'), () => {
       if (this.inv.move(it, it.x, it.y, !it.rot)) this.render();

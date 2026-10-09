@@ -290,6 +290,8 @@ export class Quests {
     const g = this.g, left = g.combat.enemies.some((o) => o !== e && o.storyTag === e.storyTag && o.alive && o.state !== 'dying');
     if (e.storyTag === 'stones' && !left && this.bell === 3) this.step('bell', 4);
     if (e.storyTag === 'guard' && this.lake === 2) this.step('lake', 3);
+    if (e.storyTag === 'guard' && !left) g.equipment.reward(['arm_plate']);
+    if (e.storyTag === 'oren') g.equipment.reward(['wpn_h_moon']);
     if (e.storyTag === 'oren' && this.hunt === 1) {
       g.ui.openDialogue({ lines: [
         [L('นายพรานโอเรน', 'Oren the Hunter'), L('...โอเรน... ชื่อข้า... โอเรน', '...Oren... my name... is Oren.')],
