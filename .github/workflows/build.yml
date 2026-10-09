@@ -1,0 +1,103 @@
+name: Build Windows and Linux apps
+
+on:
+  push:
+    branches: [main, 'claude/**']
+    paths-ignore: ['docs/**', '**.md']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build portable .exe and installer
+        run: npx electron-builder --win portable nsis --x64 --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/*.exe
+          if-no-files-found: error
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build AppImage and tar.gz
+        run: npx electron-builder --linux AppImage tar.gz --x64 --publish never
+      - name: Arch Linux PKGBUILD for this version
+        run: |
+          v=$(node -p "require('./package.json').version")
+          sum=$(sha256sum "dist/Moonmire-$v-linux-x64.tar.gz" | cut -d' ' -f1)
+          sed -e "s/@VERSION@/$v/" -e "s/@BUILD@/${{ github.run_number }}/" -e "s/@SHA256@/$sum/" packaging/arch/PKGBUILD > dist/PKGBUILD
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            dist/*.AppImage
+            dist/*.tar.gz
+            dist/PKGBUILD
+          if-no-files-found: error
+
+  release:
+    needs: [windows, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - id: ver
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.version }}-build.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: Moonmire ${{ steps.ver.outputs.version }} (build ${{ github.run_number }})
+          files: out/*
+          make_latest: true
+          body: |
+            ## Download and play · ดาวน์โหลดแล้วเล่นได้เลย
+
+            The game is in **English and Thai** — switch on the title screen or in the pause menu.
+            เกมมี **ภาษาไทยและอังกฤษ** สลับได้ที่หน้าแรกหรือเมนูหยุดเกม
+
+            ### Windows 10/11 (64-bit)
+            - **Moonmire-Portable-${{ steps.ver.outputs.version }}.exe** — no install, just run it · ไม่ต้องติดตั้ง ดับเบิลคลิกแล้วเล่น
+            - **Moonmire-Setup-${{ steps.ver.outputs.version }}.exe** — installer with desktop and Start menu shortcuts · ตัวติดตั้ง
+
+            Windows may show "Windows protected your PC" because the file is not code-signed: click **More info → Run anyway**.
+            ถ้าขึ้นหน้าต่างเตือน ให้กด **More info** แล้วกด **Run anyway**
+
+            ### Linux (x86_64)
+            - **Arch Linux / Manjaro / EndeavourOS:** download **PKGBUILD** into an empty folder, then run `makepkg -si` (installs to /opt/moonmire, adds a menu entry and the `moonmire` command)
+            - **Any distro — AppImage:** `chmod +x Moonmire-${{ steps.ver.outputs.version }}-x86_64.AppImage && ./Moonmire-${{ steps.ver.outputs.version }}-x86_64.AppImage` (needs `fuse2` — on Arch: `sudo pacman -S fuse2`)
+            - **Any distro — tar.gz:** extract and run `./moonmire`
+
+            Linux: ใช้ไฟล์ **PKGBUILD** กับคำสั่ง `makepkg -si` บน Arch หรือเปิดไฟล์ **AppImage** ได้ทุก distro
+
+            F11 fullscreen · Esc pause · autosave · controllers supported
+            F11 สลับเต็มจอ · Esc หยุดเกม · เซฟอัตโนมัติ · รองรับจอยเกม
+
+            Built from commit ${{ github.sha }}

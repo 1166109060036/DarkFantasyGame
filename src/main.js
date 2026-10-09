@@ -40,6 +40,7 @@ import { ClassPreview } from './classpreview.js';
 import { PASTURE, FENCE_R, TOAD, TEMPLE, SPAWN, LOST_SHEEP, LOCATIONS, TAVERN, CASTLE, HEAD, RIBCAGE, FARMS, PIER } from './layout.js';
 import { DayNight } from './daynight.js';
 import { clamp } from './util.js';
+import { LANG, setLang, applyHtml, L } from './i18n.js';
 
 const SAVE_KEY = 'moonmire-save-v1';
 const SETTINGS_KEY = 'moonmire-settings-v1';
@@ -53,6 +54,8 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage unavailable */ } },
   del(k) { try { localStorage.removeItem(k); } catch { /* storage unavailable */ } },
 };
+
+applyHtml();
 
 class Game {
   constructor() {
@@ -143,7 +146,7 @@ class Game {
     this.player = new Player(this.camera, this.terrain, this.collision);
     this.player.onStep = (wet) => this.audio.step(this.stepSurface(wet));
     this.ui = new UI();
-    if (ARENA) document.querySelector('#map h2').textContent = 'แผนที่สนามศึก';
+    if (ARENA) document.querySelector('#map h2').textContent = L('แผนที่สนามศึก', 'Map of the Battlefield');
     this.ui.buildMap(this.terrain, this.terrain.rail.pts, this.terrain.roads, ARENA ? 215 : undefined);
     this.quests = new Quests(this);
     this.combat = new Combat(this);
@@ -165,7 +168,7 @@ class Game {
     if (ARENA) this.contracts = { chips: () => [], markers: () => [], update() {}, onKill() {}, serialize: () => ({}), load() {} };
     else {
       this.contracts = new Contracts(this);
-      this.interactables.push({ id: 'board', pos: this.contracts.boardPos, r: 3.2, label: 'อ่านใบประกาศล่าค่าหัว', checkpoint: { x: TAVERN.x, z: TAVERN.z - 8 } });
+      this.interactables.push({ id: 'board', pos: this.contracts.boardPos, r: 3.2, label: L('อ่านใบประกาศล่าค่าหัว', 'Read the bounty board'), checkpoint: { x: TAVERN.x, z: TAVERN.z - 8 } });
     }
     // a private copy of the blade material so oil / the king's sword can make it glow
     const blade = this.view.userData.sword.children[0];
@@ -245,10 +248,10 @@ class Game {
     this.collision.addCircle(crowPos.x, crowPos.z, 0.5);
     this.collision.addCircle(toadPos.x, toadPos.z, 0.9);
     this.npcs = {
-      crow: { obj: crow, pos: crowPos, name: 'โกวัก ผู้เลี้ยงแกะ' },
-      toad: { obj: toad, pos: toadPos, name: 'ยายคางคก' },
-      keeper: { obj: this.village.keeper.obj, pos: this.village.keeper.pos, name: 'เทียนหลอม' },
-      smith: { obj: this.village.smith.obj, pos: this.village.smith.pos, name: 'ลุงทั่ง' },
+      crow: { obj: crow, pos: crowPos, name: L('โกวัก ผู้เลี้ยงแกะ', 'Kowak the Shepherd') },
+      toad: { obj: toad, pos: toadPos, name: L('ยายคางคก', 'Granny Toad') },
+      keeper: { obj: this.village.keeper.obj, pos: this.village.keeper.pos, name: L('เทียนหลอม', 'Tallow') },
+      smith: { obj: this.village.smith.obj, pos: this.village.smith.pos, name: L('ลุงทั่ง', 'Old Anvil') },
     };
 
     // crow-headed guardian statues at the temple
@@ -277,15 +280,15 @@ class Game {
     ferry.add(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 3.4, 5), M.wood).translateX(0.45).translateY(1.4));
     scene.add(min, ferry);
     this.collision.addCircle(S.ferryman.x, S.ferryman.z, 0.45, S.ferryman.y - 1, S.ferryman.y + 2);
-    this.npcs.min = { obj: min, pos: S.min, name: 'มิ้น' };
-    this.npcs.ferryman = { obj: ferry, pos: S.ferryman, name: 'คนแจวเรือไร้หน้า' };
+    this.npcs.min = { obj: min, pos: S.min, name: L('มิ้น', 'Min') };
+    this.npcs.ferryman = { obj: ferry, pos: S.ferryman, name: L('คนแจวเรือไร้หน้า', 'the Faceless Ferryman') };
 
     this.interactables = [
-      { id: 'crow', pos: crowPos, r: 3.6, label: 'คุยกับโกวัก' },
-      { id: 'toad', pos: toadPos, r: 3.8, label: 'คุยกับยายคางคก' },
-      { id: 'altar', pos: this.altar, r: 3.2, label: 'ตรวจดูแท่นบูชา', checkpoint: { x: TEMPLE.x, z: TEMPLE.z + 14 } },
-      { id: 'keeper', pos: this.village.keeper.pos, r: 3.0, label: 'คุยกับเทียนหลอม เจ้าของโรงเตี๊ยม', checkpoint: { x: TAVERN.x, z: TAVERN.z - 8 } },
-      { id: 'smith', pos: this.village.smith.pos, r: 3.2, label: 'คุยกับลุงทั่ง ช่างตีเหล็ก' },
+      { id: 'crow', pos: crowPos, r: 3.6, label: L('คุยกับโกวัก', 'Speak with Kowak') },
+      { id: 'toad', pos: toadPos, r: 3.8, label: L('คุยกับยายคางคก', 'Speak with Granny Toad') },
+      { id: 'altar', pos: this.altar, r: 3.2, label: L('ตรวจดูแท่นบูชา', 'Examine the altar'), checkpoint: { x: TEMPLE.x, z: TEMPLE.z + 14 } },
+      { id: 'keeper', pos: this.village.keeper.pos, r: 3.0, label: L('คุยกับเทียนหลอม เจ้าของโรงเตี๊ยม', 'Speak with Tallow, the innkeeper'), checkpoint: { x: TAVERN.x, z: TAVERN.z - 8 } },
+      { id: 'smith', pos: this.village.smith.pos, r: 3.2, label: L('คุยกับลุงทั่ง ช่างตีเหล็ก', 'Speak with Old Anvil, the smith') },
     ];
   }
 
@@ -319,6 +322,14 @@ class Game {
     on('lobby-back', () => { this.lobby.leave(); page(false); });
     on('mobaover-back', () => page(true));
     on('btn-resume', () => this.resume());
+    // language: Thai or English (the game reloads into the other; a story in progress is saved first)
+    document.querySelectorAll('#lang-switch [data-lang]').forEach((b) => {
+      b.classList.toggle('on', b.dataset.lang === LANG);
+      b.addEventListener('click', () => setLang(b.dataset.lang));
+    });
+    const langSel = document.getElementById('set-lang');
+    langSel.value = LANG;
+    langSel.addEventListener('change', () => { this.save(); setLang(langSel.value); });
     // the gothic menus answer the arrow keys: up / down walk the choices, Enter takes one
     addEventListener('keydown', (e) => {
       if (this.state === 'play' || this.classPreviewOpen || (e.code !== 'ArrowUp' && e.code !== 'ArrowDown')) return;
@@ -350,13 +361,17 @@ class Game {
     // the controls page, and the first-steps drill again
     document.getElementById('controls-list').innerHTML = CONTROLS.map(([head, rows]) => `<div class="ctl-group"><h3>${head}</h3>${
       rows.map(([k, pad, what]) => `<div class="ctl-row"><span class="k">${k}</span>${pad ? `<span class="k pad">🎮 ${pad}</span>` : '<span></span>'}<span>${what}</span></div>`).join('')}</div>`).join('')
-      + '<p class="small ctl-pad">🎮 ในเมนู: สติ๊กซ้ายเลื่อนลูกศร · A เลือก · B ย้อนกลับ · LB / RB ปรับค่าตั้งค่า · สติ๊กขวาเลื่อนหน้า</p>';
+      + L('<p class="small ctl-pad">🎮 ในเมนู: สติ๊กซ้ายเลื่อนลูกศร · A เลือก · B ย้อนกลับ · LB / RB ปรับค่าตั้งค่า · สติ๊กขวาเลื่อนหน้า</p>', '<p class="small ctl-pad">🎮 In menus: left stick moves the cursor · A select · B back · LB / RB change a setting · right stick scrolls</p>');
     document.getElementById('controls-pad').innerHTML = padDiagram()
-      + `<div class="pad-notes">
+      + L(`<div class="pad-notes">
         <p><b>ในเมนูทุกหน้า</b> (หน้าแรก กระเป๋า ร้านค้า ต้นไม้สกิล เมนูหยุดเกม) จะมีลูกศรขึ้นบนจอ: สติ๊กซ้ายเลื่อนลูกศร · <b>A</b> เลือก / กดค้างเพื่อลากของ · <b>B</b> ย้อนกลับ · <b>Y</b> หมุนของในกระเป๋า · <b>LB / RB</b> ปรับค่าตั้งค่า · สติ๊กขวาเลื่อนหน้า</p>
         <p><b>ในบทสนทนา</b>: ขึ้น / ลง เลือกคำตอบ · <b>A</b> ตอบ</p>
         <p class="small">จอย PlayStation: A = ✕ · B = ○ · X = □ · Y = △ · LB / RB = L1 / R1 · LT / RT = L2 / R2 · Back / Start = Share / Options · เสียบจอยแล้วเล่นได้เลย กดคีย์บอร์ดหรือขยับเมาส์เมื่อไรก็สลับกลับ</p>
-      </div>`;
+      </div>`, `<div class="pad-notes">
+        <p><b>In every menu</b> (title, bag, shop, skill tree, pause menu) a cursor appears on screen: left stick moves it · <b>A</b> select / hold to drag an item · <b>B</b> back · <b>Y</b> rotate an item in the bag · <b>LB / RB</b> change a setting · right stick scrolls</p>
+        <p><b>In dialogue</b>: up / down to choose a reply · <b>A</b> answer</p>
+        <p class="small">PlayStation controller: A = ✕ · B = ○ · X = □ · Y = △ · LB / RB = L1 / R1 · LT / RT = L2 / R2 · Back / Start = Share / Options · Plug in a controller and play; touch the keyboard or mouse at any time to switch back</p>
+      </div>`);
     const tab = (which) => {
       document.querySelectorAll('.ctl-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.ctl === which));
       document.querySelectorAll('[data-ctl-page]').forEach((p) => p.classList.toggle('hidden', p.dataset.ctlPage !== which));
@@ -364,7 +379,7 @@ class Game {
     document.querySelectorAll('.ctl-tabs button').forEach((b) => b.addEventListener('click', () => tab(b.dataset.ctl)));
     const howto = () => { tab(this.gamepads.active ? 'pad' : 'keys'); this.ui.show('controls'); };
     on('btn-howto', howto);
-    addEventListener('gamepadconnected', () => this.ui.toast('พบจอยเกม 🎮 — ดูปุ่มได้ที่ "วิธีเล่น" (หน้าแรก หรือกด Start ในเกม)'));
+    addEventListener('gamepadconnected', () => this.ui.toast(L('พบจอยเกม 🎮 — ดูปุ่มได้ที่ "วิธีเล่น" (หน้าแรก หรือกด Start ในเกม)', 'Controller found 🎮 — see its buttons under "How to Play" (title screen, or Start in game)')));
     on('btn-controls', howto);
     on('btn-controls-close', () => this.ui.show('controls', false));
     on('btn-tutorial', () => { this.resume(); this.tutorial.start(); });
@@ -503,7 +518,7 @@ class Game {
     this.kit.load(d.kit || {});
     if (this.progress.refunded) {
       this.progress.refunded = false;
-      setTimeout(() => this.ui.banner('ต้นไม้สกิลใหม่', 'เลเวลแยกตามวิถีแล้ว · คืนแต้มทั้งหมดให้เลือกใหม่ (กด K)'), 1500);
+      setTimeout(() => this.ui.banner(L('ต้นไม้สกิลใหม่', 'A New Skill Tree'), L('เลเวลแยกตามวิถีแล้ว · คืนแต้มทั้งหมดให้เลือกใหม่ (กด K)', 'Each path now levels on its own · all points returned to spend anew (press K)')), 1500);
     }
     this.events.load(d.events || {});
     this.contracts.load(d.contracts || {});
@@ -551,7 +566,7 @@ class Game {
       const id = ids[sel], c = CLASSES[id];
       [...list.children].forEach((li, k) => li.classList.toggle('on', k === sel));
       $('cp-name').textContent = `${c.icon}  ${c.name}`;
-      $('cp-weapon').textContent = `อาวุธ: ${c.weapon}` + (id === current ? ' · วิถีปัจจุบัน' : '');
+      $('cp-weapon').textContent = L(`อาวุธ: ${c.weapon}`, `Weapon: ${c.weapon}`) + (id === current ? L(' · วิถีปัจจุบัน', ' · current path') : '');
       $('cp-blurb').textContent = c.blurb;
       $('cp-lines').innerHTML = c.lines.map((l) => `<li>${l}</li>`).join('');
       this.classPreview.show(id);
@@ -574,7 +589,7 @@ class Game {
     });
     $('cp-choose').onclick = choose;
     $('classpick-cancel').onclick = () => { close(); done(null); };
-    $('classpick-title').textContent = current ? 'เปลี่ยนวิถี' : 'เลือกวิถีของเจ้า';
+    $('classpick-title').textContent = current ? L('เปลี่ยนวิถี', 'Change Your Path') : L('เลือกวิถีของเจ้า', 'Choose Your Path');
     el.classList.remove('hidden');
     document.activeElement?.blur?.();          // the title's button keeps no focus behind the picker
     this.classPreviewOpen = true;
@@ -589,7 +604,7 @@ class Game {
     this.pickClass((id) => {
       if (id && id !== this.kit.id) {
         this.setClass(id);
-        this.ui.banner(CLASSES[id].name, `อาวุธใหม่: ${CLASSES[id].weapon}`);
+        this.ui.banner(CLASSES[id].name, L(`อาวุธใหม่: ${CLASSES[id].weapon}`, `New weapon: ${CLASSES[id].weapon}`));
         this.audio.discover();
       }
       this.resumePlay();
@@ -599,7 +614,7 @@ class Game {
   addCoins(n) {
     this.coins += n;
     this.audio.coin();
-    this.ui.toast(`+${n} เหรียญทอง`);
+    this.ui.toast(L(`+${n} เหรียญทอง`, `+${n} gold coins`));
     this.updateHud();
   }
 
@@ -614,12 +629,12 @@ class Game {
     if (this.kit) pr.setClass(this.kit.id);
     pr.onChange = (what, n, cls) => {
       if (what === 'xp' && n > 0) {
-        this.ui.banner(`${CLASSES[cls]?.name ?? ''} เลเวล ${pr.levelOf(cls)}!`, `ได้แต้มสกิล +${n} · กด K เพื่อเปิดต้นไม้สกิล`);
+        this.ui.banner(L(`${CLASSES[cls]?.name ?? ''} เลเวล ${pr.levelOf(cls)}!`, `${CLASSES[cls]?.name ?? ''} level ${pr.levelOf(cls)}!`), L(`ได้แต้มสกิล +${n} · กด K เพื่อเปิดต้นไม้สกิล`, `+${n} skill points · press K to open the skill tree`));
         this.audio?.discover();
       }
       if (what === 'token' && cls === this.kit?.id) {
         const t = TREES[cls].token;
-        this.ui.toast(`ได้${t.name} ${t.icon} +${n} (มี ${pr.tokens[cls]})`);
+        this.ui.toast(L(`ได้${t.name} ${t.icon} +${n} (มี ${pr.tokens[cls]})`, `Gained ${t.name} ${t.icon} +${n} (held: ${pr.tokens[cls]})`));
         this.audio?.chime();
       }
       this.updateXPBar();
@@ -644,7 +659,7 @@ class Game {
     document.getElementById('xp-lv').textContent = `Lv ${pr.level}`;
     document.getElementById('xp-fill').style.width = `${maxed ? 100 : (pr.xp / pr.need() * 100).toFixed(1)}%`;
     const el = document.getElementById('xp-pts');
-    el.textContent = pts > 0 ? `+${pts} แต้ม [K]` : '';
+    el.textContent = pts > 0 ? L(`+${pts} แต้ม [K]`, `+${pts} points [K]`) : '';
     el.classList.toggle('pulse', pts > 0);
   }
 
@@ -704,8 +719,8 @@ class Game {
       if (t < 14) requestAnimationFrame(rise); else lights.forEach((s) => scene.remove(s));
     };
     rise();
-    setTimeout(() => this.ui.banner('รังไหมแตกออกทีละใบ', 'แสงสีฟ้าลอยขึ้นสู่ฟ้า... ดวงจันทร์หายใจออก'), 2500);
-    setTimeout(() => this.ui.banner('', '"ลูกข้า... ในที่สุดเจ้าก็แบมือ"'), 7500);
+    setTimeout(() => this.ui.banner(L('รังไหมแตกออกทีละใบ', 'One by one, the cocoons split'), L('แสงสีฟ้าลอยขึ้นสู่ฟ้า... ดวงจันทร์หายใจออก', 'Blue light rises to the sky... the moon breathes out')), 2500);
+    setTimeout(() => this.ui.banner('', L('"ลูกข้า... ในที่สุดเจ้าก็แบมือ"', '"My child... at last, thou openest thy hand."')), 7500);
     setTimeout(() => { this.chapterAftermath(); this.audio.discover(); }, 9000);
     setTimeout(() => {
       this.state = 'paused';
@@ -776,15 +791,15 @@ class Game {
   useItem(it) {
     const def = ITEMS[it.id], p = this.player;
     if (def.heal) {
-      if (p.hp >= p.maxHp) { this.ui.toast('เลือดเต็มอยู่แล้ว'); return false; }
+      if (p.hp >= p.maxHp) { this.ui.toast(L('เลือดเต็มอยู่แล้ว', 'Your health is already full')); return false; }
       p.hp = Math.min(p.maxHp, p.hp + def.heal);
-      this.ui.toast(`ดื่ม${def.name}`);
+      this.ui.toast(L(`ดื่ม${def.name}`, `Drank ${def.name}`));
     } else if (def.special) {
       return this.quests.useSpecial(def.special);   // not used up
     } else if (def.buff) {
       const [name, secs] = def.buff;
       this.buffs[name] = secs;
-      this.ui.toast(`${def.name} — ${secs} วินาที`);
+      this.ui.toast(L(`${def.name} — ${secs} วินาที`, `${def.name} — ${secs} seconds`));
     } else return false;
     this.audio.drink();
     if (it.count > 1) { it.count--; this.bag.changed(); } else this.bag.removeItem(it);
@@ -794,7 +809,7 @@ class Game {
 
   quickHeal() {
     const it = this.bag.items.filter((i) => i.id === 'potion').concat(this.bag.items.filter((i) => i.id === 'potion_big'))[0];
-    if (!it) { this.ui.toast('ไม่มียาฟื้นพลัง — ปรุงได้ที่ยายคางคก หรือซื้อที่โรงเตี๊ยม'); return; }
+    if (!it) { this.ui.toast(L('ไม่มียาฟื้นพลัง — ปรุงได้ที่ยายคางคก หรือซื้อที่โรงเตี๊ยม', 'No Healing Draught — Granny Toad brews them, or buy one at the inn')); return; }
     this.useItem(it);
   }
 
@@ -812,7 +827,7 @@ class Game {
 
   updateBuffs(dt) {
     let html = '';
-    const names = { tonic: 'ยาบำรุงแรง', oil: 'น้ำมันดาบ', sight: 'ตาแมว' };
+    const names = { tonic: L('ยาบำรุงแรง', 'Stamina Tonic'), oil: L('น้ำมันดาบ', 'Blade Oil'), sight: L('ตาแมว', 'Cat\'s Eye') };
     for (const k of Object.keys(this.buffs)) {
       if (this.buffs[k] <= 0) continue;
       this.buffs[k] = Math.max(0, this.buffs[k] - dt);
@@ -855,10 +870,10 @@ class Game {
     this.state = 'play';
     this.input.enabled = true;
     this.input.requestLock();
-    this.ui.banner('ศึกราชาจันทรา', `เจ้าคือฐาน${SEATS[me].name} — ปกป้องราชาของเจ้า`);
-    setTimeout(() => this.ui.toast('ตัดไม้/ทุบหินด้วย [E] · ฆ่าสัตว์ป่าที่แคมป์ได้วิญญาณ · [B] สร้างและซัมม่อนครีป · [M] แผนที่ถนน'), 2500);
-    setTimeout(() => this.ui.toast('ถนนทุกสายมีตะเกียงและป้ายบอกทาง — เดินตามถนนไปถึงทุกฐาน'), 6500);
-    setTimeout(() => this.ui.toast('กด H ผิวปากเรียกแมลงสาบยักษ์ ขี่ไปฐานอื่นได้เร็วขึ้นมาก'), 10500);
+    this.ui.banner(L('ศึกราชาจันทรา', 'War of the Moon Kings'), L(`เจ้าคือฐาน${SEATS[me].name} — ปกป้องราชาของเจ้า`, `Thou art the ${SEATS[me].name} base — guard thy king`));
+    setTimeout(() => this.ui.toast(L('ตัดไม้/ทุบหินด้วย [E] · ฆ่าสัตว์ป่าที่แคมป์ได้วิญญาณ · [B] สร้างและซัมม่อนครีป · [M] แผนที่ถนน', 'Fell wood / break stone with [E] · slay beasts at the camps for souls · [B] build and summon creeps · [M] road map')), 2500);
+    setTimeout(() => this.ui.toast(L('ถนนทุกสายมีตะเกียงและป้ายบอกทาง — เดินตามถนนไปถึงทุกฐาน', 'Every road has lanterns and signposts — follow the roads to every base')), 6500);
+    setTimeout(() => this.ui.toast(L('กด H ผิวปากเรียกแมลงสาบยักษ์ ขี่ไปฐานอื่นได้เร็วขึ้นมาก', 'Press H to whistle for the giant cockroach — ride it to reach other bases far faster')), 10500);
   }
 
   // building placement: a ghost of the building follows your gaze; click to build, right-click to cancel
@@ -867,7 +882,7 @@ class Game {
     ghost.traverse((o) => { if (o.material) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.55; } });
     this.scene.add(ghost);
     this.placing = { type, ghost, ry: 0 };
-    this.ui.toast('คลิกซ้ายเพื่อสร้าง · คลิกขวาเพื่อยกเลิก · T หมุน');
+    this.ui.toast(L('คลิกซ้ายเพื่อสร้าง · คลิกขวาเพื่อยกเลิก · T หมุน', 'Left click to build · right click to cancel · T to rotate'));
   }
 
   updatePlacing(input) {
@@ -879,7 +894,7 @@ class Game {
     pl.ghost.rotation.y = p.yaw + pl.ry;
     const bad = this.moba.canPlace(pl.type, this.moba.me, x, z);
     pl.ghost.traverse((o) => { if (o.material?.color && o.isMesh) o.material.emissive?.setRGB(bad ? 0.5 : 0, bad ? 0 : 0.35, 0); });
-    this.ui.setPrompt(bad ? `✕ ${bad}` : `[คลิก] สร้าง${BUILDINGS[pl.type].name}`);
+    this.ui.setPrompt(bad ? `✕ ${bad}` : L(`[คลิก] สร้าง${BUILDINGS[pl.type].name}`, `[Click] Build ${BUILDINGS[pl.type].name}`));
     const done = () => { this.scene.remove(pl.ghost); this.placing = null; this.ui.setPrompt(null); };
     if (input.consume('attack')) { if (this.moba.requestBuild(pl.type, x, z, p.yaw + pl.ry)) done(); }
     else if (input.blockHeld || input.consume('build')) { done(); input.mouseBlock = false; }
@@ -888,8 +903,8 @@ class Game {
 
   mobaOver(win, seat, name) {
     const el = document.getElementById('mobaover');
-    document.getElementById('mobaover-title').textContent = win == null ? 'การเชื่อมต่อขาด' : win ? 'ชัยชนะ!' : 'จบเกม';
-    document.getElementById('mobaover-text').textContent = win == null ? 'โฮสต์ออกจากเกมไปแล้ว' : win ? 'ราชาของเจ้าคือราชาองค์สุดท้ายแห่งบึงจันทรา' : `ผู้ชนะคือฐาน${seat} (${name})`;
+    document.getElementById('mobaover-title').textContent = win == null ? L('การเชื่อมต่อขาด', 'Connection Lost') : win ? L('ชัยชนะ!', 'Victory!') : L('จบเกม', 'Defeat');
+    document.getElementById('mobaover-text').textContent = win == null ? L('โฮสต์ออกจากเกมไปแล้ว', 'The host has left the game') : win ? L('ราชาของเจ้าคือราชาองค์สุดท้ายแห่งบึงจันทรา', 'Thy king is the last king of the Moonmire') : L(`ผู้ชนะคือฐาน${seat} (${name})`, `The victor: the ${seat} base (${name})`);
     if (document.pointerLockElement) document.exitPointerLock();
     this.state = 'paused';
     el.classList.remove('hidden');
@@ -918,7 +933,7 @@ class Game {
 
   // the drill is over: the story's first words
   onTutorialDone() {
-    setTimeout(() => this.ui.toast('ฝนเย็นเยียบตกลงบนบึง... เดินตามรางรถไฟขึ้นไปทางเหนือ'), 400);
+    setTimeout(() => this.ui.toast(L('ฝนเย็นเยียบตกลงบนบึง... เดินตามรางรถไฟขึ้นไปทางเหนือ', 'Cold rain falls on the marsh... follow the railway north')), 400);
   }
 
   // Rest at the inn: fade to black, skip to the chosen hour, wake fully healed.
@@ -1047,7 +1062,7 @@ class Game {
     if (this.moba) {
       const by = this.combat.lastHitBy;
       if (!this.moba.host) this.moba.net.send({ t: 'died', by });
-      else if (by != null && by !== this.moba.me) this.moba.reward(by, { soul: 3, xp: 40 }, `ฆ่า ${this.moba.P[this.moba.me].name}`);
+      else if (by != null && by !== this.moba.me) this.moba.reward(by, { soul: 3, xp: 40 }, `ฆ่า ${this.moba.P[this.moba.me].name}`, `Slew ${this.moba.P[this.moba.me].name}`);
     }
     this.audio.hurt();
     this.audio.death();
@@ -1102,7 +1117,7 @@ class Game {
         if (s.mode === 'lost' && Math.hypot(s.x - p.pos.x, s.z - p.pos.z) < 3.5 && this.quests.onSheepFound(i)) {
           this.flock.sendHome(s);
           this.audio.bleat({ x: s.x, y: p.pos.y, z: s.z });
-          this.ui.toast(`พบแกะดำ ${this.quests.sheepCount}/3 — มันวิ่งกลับไปหาฝูงแล้ว`);
+          this.ui.toast(L(`พบแกะดำ ${this.quests.sheepCount}/3 — มันวิ่งกลับไปหาฝูงแล้ว`, `Black sheep found ${this.quests.sheepCount}/3 — it runs back to the flock`));
         }
       });
     }
@@ -1163,7 +1178,7 @@ class Game {
       }
       if (this.sleepT > 2.2) {
         this.state = 'play';
-        this.ui.toast(`ตื่นขึ้นมาตอน ${this.dayNight.clockText()}`);
+        this.ui.toast(L(`ตื่นขึ้นมาตอน ${this.dayNight.clockText()}`, `You wake at ${this.dayNight.clockText()}`));
         this.save();
       }
     } else if (this.state === 'dead') {
@@ -1178,7 +1193,7 @@ class Game {
         const lost = this.moba ? 0 : Math.floor(this.coins * 0.25);
         this.coins -= lost;
         this.state = 'play';
-        this.ui.toast(lost ? `เจ้าฟื้นขึ้นมาอีกครั้ง... ทำเหรียญหล่นหาย ${lost} เหรียญ` : 'เจ้าฟื้นขึ้นมาอีกครั้ง...');
+        this.ui.toast(lost ? L(`เจ้าฟื้นขึ้นมาอีกครั้ง... ทำเหรียญหล่นหาย ${lost} เหรียญ`, `You rise once more... ${lost} coins lost`) : L('เจ้าฟื้นขึ้นมาอีกครั้ง...', 'You rise once more...'));
       }
     }
     // an online match never stops for one player's menu, bag, pause or death
@@ -1245,7 +1260,7 @@ class Game {
     if (this.clockTimer <= 0) {
       this.clockTimer = 0.5;
       this.ui.setClock(this.dayNight.clockText());
-      this.ui.setQuest(this.moba ? { title: 'ศึกราชาจันทรา', text: 'ปกป้องราชาของเจ้า และสังหารราชาของผู้อื่น' } : this.quests.objective());
+      this.ui.setQuest(this.moba ? { title: L('ศึกราชาจันทรา', 'War of the Moon Kings'), text: L('ปกป้องราชาของเจ้า และสังหารราชาของผู้อื่น', 'Guard thy king, and slay the kings of others') } : this.quests.objective());
     }
     if (this.state === 'play' || halted) {
       this.ui.updateCompass(wrapHeading(-p.yaw), p.pos.x, p.pos.z, this.allMarkers());
@@ -1274,6 +1289,6 @@ requestAnimationFrame(() => setTimeout(() => {
     game.init();
   } catch (e) {
     console.error(e);
-    document.getElementById('loading').textContent = 'เกิดข้อผิดพลาด: ' + e.message;
+    document.getElementById('loading').textContent = L('เกิดข้อผิดพลาด: ', 'An error occurred: ') + e.message;
   }
 }, 30));

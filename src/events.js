@@ -11,22 +11,23 @@ import * as THREE from 'three';
 import { part, mergeGeometries, clamp } from './util.js';
 import { createPatron } from './characters.js';
 import { ITEMS } from './items.js';
+import { L } from './i18n.js';
 
 const C = (r, g, b) => new THREE.Color(r, g, b);
 const DUSK = 0.78, DAWN = 0.27;
 const PALE = new Set(['gaunt', 'crawler', 'weeper', 'brute']);
 
 export const EVENT_INFO = {
-  bloodmoon: { name: 'คืนจันทร์เลือด', sub: 'ร่างซีดคลั่งและออกมามากกว่าเดิม · ของดรอปเพิ่มเป็นสองเท่า' },
-  merchant: { name: 'พ่อค้าเร่มาเยือน', sub: 'ได้ยินเสียงกระดิ่งแว่วมาตามทาง... อยู่ถึงรุ่งสางพรุ่งนี้' },
-  fog: { name: 'หมอกหนาลงจัด', sub: 'มองไม่เห็นไกล — ศัตรูก็มองไม่เห็นเจ้าเช่นกัน' },
-  star: { name: 'ดาวตก!', sub: 'เศษดาวตกลงมาไม่ไกล ไปเก็บก่อนแสงมันจะดับ' },
+  bloodmoon: { name: L('คืนจันทร์เลือด', 'Night of the Blood Moon'), sub: L('ร่างซีดคลั่งและออกมามากกว่าเดิม · ของดรอปเพิ่มเป็นสองเท่า', 'The Pale Ones run mad and crawl forth in greater number · Twice the spoils') },
+  merchant: { name: L('พ่อค้าเร่มาเยือน', 'A Wandering Pedlar'), sub: L('ได้ยินเสียงกระดิ่งแว่วมาตามทาง... อยู่ถึงรุ่งสางพรุ่งนี้', 'A small bell rings faintly down the road... He stays until tomorrow\'s dawn') },
+  fog: { name: L('หมอกหนาลงจัด', 'A Heavy Fog Descends'), sub: L('มองไม่เห็นไกล — ศัตรูก็มองไม่เห็นเจ้าเช่นกัน', 'You cannot see far — nor can anything hunting you') },
+  star: { name: L('ดาวตก!', 'A Falling Star!'), sub: L('เศษดาวตกลงมาไม่ไกล ไปเก็บก่อนแสงมันจะดับ', 'A shard has fallen not far off. Claim it before its light dies') },
 };
 
 // where the pedlar sets up: by the roads, the railway and the ruins
 const MERCHANT_SPOTS = [
-  [-60, 28, 'ทางแยกกลางป่า'], [-4, -95, 'ทางขึ้นหุบผา'], [104, 30, 'ข้างสถานีร้าง'],
-  [-150, 40, 'หน้าเห็ดยักษ์'], [0, 150, 'ริมรางรถไฟในบึง'], [150, -60, 'เชิงเนินจันทร์'],
+  [-60, 28, L('ทางแยกกลางป่า', 'the crossroads in the woods')], [-4, -95, L('ทางขึ้นหุบผา', 'the path up to Archway Gorge')], [104, 30, L('ข้างสถานีร้าง', 'the abandoned station')],
+  [-150, 40, L('หน้าเห็ดยักษ์', 'the foot of the Giant Mushroom')], [0, 150, L('ริมรางรถไฟในบึง', 'the railway through the marsh')], [150, -60, L('เชิงเนินจันทร์', 'the foot of Moon Hill')],
 ];
 
 // what the pedlar might carry: [item, price, max qty]
@@ -140,7 +141,7 @@ export class WorldEvents {
 
   endBloodMoon() {
     this.bloodMoon = false;
-    this.g.ui.toast('รุ่งสางแล้ว... ดวงจันทร์กลับเป็นสีขาวซีด');
+    this.g.ui.toast(L('รุ่งสางแล้ว... ดวงจันทร์กลับเป็นสีขาวซีด', 'Dawn breaks... the moon fades back to bone-white'));
   }
 
   // ---------------------------------------------------------------- fog
@@ -181,10 +182,10 @@ export class WorldEvents {
     stock.push({ id: 'map', price: MAP_PRICE, left: 1 });
     const pos = new THREE.Vector3(x, y, z);
     this.merchant = { spot: i, where, obj, pos, stock, until: this.now + 0.98 };
-    g.interactables.push({ id: 'merchant', pos, r: 3.2, label: 'คุยกับพ่อค้าเร่', checkpoint: { x: x + 2, z: z + 2 } });
+    g.interactables.push({ id: 'merchant', pos, r: 3.2, label: L('คุยกับพ่อค้าเร่', 'Speak with the pedlar'), checkpoint: { x: x + 2, z: z + 2 } });
     if (quiet) return;
     this.announce('merchant');
-    setTimeout(() => g.ui.toast(`พ่อค้าเร่ตั้งแผงอยู่ที่${where} (ดูเข็มทิศ)`), 1500);
+    setTimeout(() => g.ui.toast(L(`พ่อค้าเร่ตั้งแผงอยู่ที่${where} (ดูเข็มทิศ)`, `A pedlar has set out his wares at ${where} (see compass)`)), 1500);
   }
 
   merchantLeaves() {
@@ -192,7 +193,7 @@ export class WorldEvents {
     g.scene.remove(this.merchant.obj);
     g.interactables = g.interactables.filter((it) => it.id !== 'merchant');
     this.merchant = null;
-    g.ui.toast('พ่อค้าเร่เก็บแผงเดินทางต่อไปแล้ว');
+    g.ui.toast(L('พ่อค้าเร่เก็บแผงเดินทางต่อไปแล้ว', 'The pedlar has packed his wares and moved on'));
   }
 
   updateMerchant(dt) {
@@ -209,29 +210,29 @@ export class WorldEvents {
   }
 
   talk() {
-    const g = this.g, m = this.merchant, P = 'พ่อค้าเร่';
+    const g = this.g, m = this.merchant, P = L('พ่อค้าเร่', 'Pedlar');
     const lines = g.dayNight.isNight
-      ? [[P, 'ชู่ว... เดินเบา ๆ หน่อยสหาย คืนนี้มีของดีแต่ไม่มีเวลาต่อราคานะ']]
-      : [[P, 'อ้า! ลูกค้าคนแรกของวัน ของจากทั่วสารทิศ ราคามิตรภาพ!'], [P, 'ข้าอยู่ถึงรุ่งสางพรุ่งนี้เท่านั้นนะ แล้วข้าก็จะไปที่อื่นต่อ']];
+      ? [[P, L('ชู่ว... เดินเบา ๆ หน่อยสหาย คืนนี้มีของดีแต่ไม่มีเวลาต่อราคานะ', 'Shh... tread softly, friend. Fine wares tonight, but no time for haggling.')]]
+      : [[P, L('อ้า! ลูกค้าคนแรกของวัน ของจากทั่วสารทิศ ราคามิตรภาพ!', 'Ah! First customer of the day. Wares from every corner of the land, at a friend\'s price!')], [P, L('ข้าอยู่ถึงรุ่งสางพรุ่งนี้เท่านั้นนะ แล้วข้าก็จะไปที่อื่นต่อ', 'I stay only until tomorrow\'s dawn. Then I am off elsewhere.')]];
     return {
       lines,
       options: [
-        { label: 'ดูสินค้า / ขายสมบัติ', fn: () => g.openMenu('merchant') },
-        { label: 'มีข่าวลืออะไรบ้างไหม', keepOpen: true, fn: () => g.ui.openDialogue({ lines: [[P, this.rumour()]], options: [{ label: 'ขอบใจ', fn: () => {} }] }) },
-        { label: 'ลาก่อน', fn: () => {} },
+        { label: L('ดูสินค้า / ขายสมบัติ', 'Browse wares / Sell treasure'), fn: () => g.openMenu('merchant') },
+        { label: L('มีข่าวลืออะไรบ้างไหม', 'Heard any rumours?'), keepOpen: true, fn: () => g.ui.openDialogue({ lines: [[P, this.rumour()]], options: [{ label: L('ขอบใจ', 'My thanks'), fn: () => {} }] }) },
+        { label: L('ลาก่อน', 'Farewell'), fn: () => {} },
       ],
       where: m.where,
     };
   }
 
   rumour() {
-    if (this.bloodMoon) return 'จันทร์แดงแบบนี้ พวกร่างซีดจะคลั่งไปทั้งคืน... แต่คนกล้าจะได้ของดีจากพวกมันเพียบ';
+    if (this.bloodMoon) return L('จันทร์แดงแบบนี้ พวกร่างซีดจะคลั่งไปทั้งคืน... แต่คนกล้าจะได้ของดีจากพวกมันเพียบ', 'Under a red moon like this, the Pale Ones rage all night... but the bold will strip fine things from their corpses.');
     return [
-      'ได้ยินว่าใต้ซี่โครงยักษ์มีบางอย่างร้องไห้ทุกคืน ถ้าได้ยินเสียงสะอื้นข้างหลัง... อย่าหันไปช้า ๆ ล่ะ',
-      'ดาวตกบนบึงนี่ไม่ใช่ดาวธรรมดานะ เศษของมันขายได้ราคาดีกับข้า',
-      'บางเช้าหมอกลงหนาจนพวกมันมองไม่เห็นเรา... เป็นเวลาดีสำหรับคนที่อยากเดินผ่านป่าตะวันตก',
-      'ข้ามีแผนที่ขุมทรัพย์ที่ซื้อจากคนตายมา... สนใจไหมล่ะ',
-      'เทียนหลอมที่โรงเตี๊ยมนั่นน่ะ เขาว่าไม่เคยนอนเลยมาร้อยปีแล้ว',
+      L('ได้ยินว่าใต้ซี่โครงยักษ์มีบางอย่างร้องไห้ทุกคืน ถ้าได้ยินเสียงสะอื้นข้างหลัง... อย่าหันไปช้า ๆ ล่ะ', 'They say something weeps beneath the great ribcage every night. If you hear sobbing behind you... don\'t turn slowly.'),
+      L('ดาวตกบนบึงนี่ไม่ใช่ดาวธรรมดานะ เศษของมันขายได้ราคาดีกับข้า', 'The stars that fall on this marsh are no common stars. I pay well for their shards.'),
+      L('บางเช้าหมอกลงหนาจนพวกมันมองไม่เห็นเรา... เป็นเวลาดีสำหรับคนที่อยากเดินผ่านป่าตะวันตก', 'Some mornings the fog lies so thick they cannot see us... a good hour to slip through the western woods.'),
+      L('ข้ามีแผนที่ขุมทรัพย์ที่ซื้อจากคนตายมา... สนใจไหมล่ะ', 'I have a treasure map, bought off a dead man... interested?'),
+      L('เทียนหลอมที่โรงเตี๊ยมนั่นน่ะ เขาว่าไม่เคยนอนเลยมาร้อยปีแล้ว', 'Tallow, the one at the inn? They say he hasn\'t slept in a hundred years.'),
     ][Math.floor(Math.random() * 5)];
   }
 
@@ -243,7 +244,7 @@ export class WorldEvents {
     closed.sort((a, b) => a.pos.distanceTo(p) - b.pos.distanceTo(p));
     const ch = closed[Math.floor(Math.random() * Math.min(3, closed.length))];
     this.chestHint = { id: ch.id, x: ch.pos.x, z: ch.pos.z };
-    g.ui.toast('แผนที่ขุมทรัพย์: มีหีบสมบัติที่ยังไม่มีใครเปิด (ดูเข็มทิศ)');
+    g.ui.toast(L('แผนที่ขุมทรัพย์: มีหีบสมบัติที่ยังไม่มีใครเปิด (ดูเข็มทิศ)', 'Treasure map: a chest no one has yet opened (see compass)'));
     return true;
   }
 
@@ -295,7 +296,7 @@ export class WorldEvents {
       if (!gone) g.loot.removePickup(s.pk);
       g.scene.remove(s.beam);
       this.star = null;
-      if (!gone) g.ui.toast('แสงของเศษดาวดับลงแล้ว...');
+      if (!gone) g.ui.toast(L('แสงของเศษดาวดับลงแล้ว...', 'The star shard\'s light has died...'));
     }
   }
 
@@ -320,11 +321,11 @@ export class WorldEvents {
   // ---------------------------------------------------------------- HUD & compass
   markers() {
     const out = [];
-    if (this.merchant) out.push({ x: this.merchant.pos.x, z: this.merchant.pos.z, label: 'พ่อค้า', kind: 'event' });
-    if (this.star?.landed) out.push({ x: this.star.land.x, z: this.star.land.z, label: 'ดาว', kind: 'event' });
+    if (this.merchant) out.push({ x: this.merchant.pos.x, z: this.merchant.pos.z, label: L('พ่อค้า', 'Pedlar'), kind: 'event' });
+    if (this.star?.landed) out.push({ x: this.star.land.x, z: this.star.land.z, label: L('ดาว', 'Star'), kind: 'event' });
     if (this.chestHint) {
       const ch = this.g.loot.chests.find((c) => c.id === this.chestHint.id);
-      if (ch && !ch.open) out.push({ x: ch.pos.x, z: ch.pos.z, label: 'หีบ', kind: 'event' });
+      if (ch && !ch.open) out.push({ x: ch.pos.x, z: ch.pos.z, label: L('หีบ', 'Chest'), kind: 'event' });
       else this.chestHint = null;
     }
     return out;
@@ -332,9 +333,9 @@ export class WorldEvents {
 
   chips() {
     const out = [];
-    if (this.bloodMoon) out.push('🌑 จันทร์เลือด — ร่างซีดคลั่ง · ดรอป ×2');
-    if (this.fogActive) out.push('🌫 หมอกหนา — ศัตรูเห็นเจ้าได้ใกล้ลง');
-    if (this.merchant) out.push(`🔔 พ่อค้าเร่ที่${this.merchant.where}`);
+    if (this.bloodMoon) out.push(L('🌑 จันทร์เลือด — ร่างซีดคลั่ง · ดรอป ×2', '🌑 Blood Moon — the Pale Ones rage · Drops ×2'));
+    if (this.fogActive) out.push(L('🌫 หมอกหนา — ศัตรูเห็นเจ้าได้ใกล้ลง', '🌫 Heavy fog — foes see you only up close'));
+    if (this.merchant) out.push(L(`🔔 พ่อค้าเร่ที่${this.merchant.where}`, `🔔 Pedlar at ${this.merchant.where}`));
     return out;
   }
 

@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { fbm } from './noise.js';
 import { clamp, lerp, smoothstep, part, mergeGeometries } from './util.js';
+import { L } from './i18n.js';
 // the arena keeps the old 640 m world's grid
 const HALF = 320, SEG = 256, STEP = (HALF * 2) / SEG;
 
@@ -13,7 +14,7 @@ const C = (r, g, b) => new THREE.Color(r, g, b);
 
 // seat order matches moba.js SEATS: red, blue, green, gold
 export const ARENA_BASES = [[-150, -150], [150, -150], [-150, 150], [150, 150]];
-export const ARENA_NAMES = ['แดง', 'ฟ้า', 'เขียว', 'ทอง'];
+export const ARENA_NAMES = [L('แดง', 'Red'), L('ฟ้า', 'Blue'), L('เขียว', 'Green'), L('ทอง', 'Gold')];
 export const PLAZA_R = 34;
 export const STATUE_R = 8;
 
@@ -31,15 +32,15 @@ export const ARENA_ROADS = [
 
 // wild camps between the roads: they pay out souls (and respawn)
 export const ARENA_CAMPS = [
-  { x: 0, z: -102, types: ['wolf', 'wolf', 'wolf'], name: 'ถ้ำหมาป่าเหนือ' },
-  { x: 102, z: 0, types: ['gaunt', 'gaunt', 'crawler'], name: 'ซากโบสถ์ตะวันออก' },
-  { x: 0, z: 102, types: ['wolf', 'wolf', 'wolf'], name: 'ถ้ำหมาป่าใต้' },
-  { x: -102, z: 0, types: ['gaunt', 'gaunt', 'crawler'], name: 'ซากโบสถ์ตะวันตก' },
+  { x: 0, z: -102, types: ['wolf', 'wolf', 'wolf'], name: L('ถ้ำหมาป่าเหนือ', 'Northern Wolf Den') },
+  { x: 102, z: 0, types: ['gaunt', 'gaunt', 'crawler'], name: L('ซากโบสถ์ตะวันออก', 'Eastern Chapel Ruin') },
+  { x: 0, z: 102, types: ['wolf', 'wolf', 'wolf'], name: L('ถ้ำหมาป่าใต้', 'Southern Wolf Den') },
+  { x: -102, z: 0, types: ['gaunt', 'gaunt', 'crawler'], name: L('ซากโบสถ์ตะวันตก', 'Western Chapel Ruin') },
 ];
 
 export const ARENA_LOCATIONS = [
-  ...ARENA_BASES.map(([x, z], i) => ({ id: `base${i}`, name: `ฐาน${ARENA_NAMES[i]}`, x, z, r: 30 })),
-  { id: 'plaza', name: 'ลานราชาคุกเข่า', x: 0, z: 0, r: PLAZA_R },
+  ...ARENA_BASES.map(([x, z], i) => ({ id: `base${i}`, name: L(`ฐาน${ARENA_NAMES[i]}`, `${ARENA_NAMES[i]} Base`), x, z, r: 30 })),
+  { id: 'plaza', name: L('ลานราชาคุกเข่า', 'Court of the Kneeling King'), x: 0, z: 0, r: PLAZA_R },
   ...ARENA_CAMPS.map((c, i) => ({ id: `camp${i}`, name: c.name, x: c.x, z: c.z, r: 14 })),
 ];
 
@@ -266,14 +267,14 @@ export function buildArena(scene, terrain, M, collision) {
       const [ux, uz] = roadOut(seat, to);
       const x = bx + ux * 36 - uz * 5.5, z = bz + uz * 36 + ux * 5.5;
       // the board faces travellers leaving the base
-      signPost(x, z, Math.atan2(-ux, -uz), to === 'c' ? [['ลานกลาง →', '#e8dcc0']] : [[`ฐาน${ARENA_NAMES[to]} →`, SEAT_CSS[to]]]);
+      signPost(x, z, Math.atan2(-ux, -uz), to === 'c' ? [[L('ลานกลาง →', 'The Court →'), '#e8dcc0']] : [[L(`ฐาน${ARENA_NAMES[to]} →`, `${ARENA_NAMES[to]} Base →`), SEAT_CSS[to]]]);
     }
   });
   for (let seat = 0; seat < 4; seat++) {
     // u points from the plaza out along the road to this base
     const [px, pz] = ARENA_ROADS.find(([a, b]) => a === seat && b === 'c')[2][2], d = Math.hypot(px, pz), ux = px / d, uz = pz / d;
     const x = ux * (PLAZA_R + 4) + uz * 5.5, z = uz * (PLAZA_R + 4) - ux * 5.5;
-    signPost(x, z, Math.atan2(-ux, -uz), [[`ฐาน${ARENA_NAMES[seat]} →`, SEAT_CSS[seat]]]);
+    signPost(x, z, Math.atan2(-ux, -uz), [[L(`ฐาน${ARENA_NAMES[seat]} →`, `${ARENA_NAMES[seat]} Base →`), SEAT_CSS[seat]]]);
   }
 
   // the plaza: a colossal king kneeling on his sword, a ring of broken pillars, braziers

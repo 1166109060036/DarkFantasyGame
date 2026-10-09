@@ -3,10 +3,11 @@
 import { Net } from './net.js';
 import { CLASSES } from './classes.js';
 import { SEATS } from './moba.js';
+import { L } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 const NAME_KEY = 'moonmire-name';
-const BOT_NAMES = ['ลอร์ดซากศพ', 'ท่านหญิงหมอกควัน', 'บารอนเขี้ยวเงิน', 'เจ้าหลุมฝังศพ'];
+const BOT_NAMES = [L('ลอร์ดซากศพ', 'Lord Carrion'), L('ท่านหญิงหมอกควัน', 'Lady Smokemist'), L('บารอนเขี้ยวเงิน', 'Baron Silverfang'), L('เจ้าหลุมฝังศพ', 'the Gravelord')];
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 export class Lobby {
@@ -24,11 +25,11 @@ export class Lobby {
     $('lobby-addbot').addEventListener('click', () => this.addBot());
     $('lobby-start').addEventListener('click', () => this.start());
     $('lobby-leave').addEventListener('click', () => this.leave());
-    $('lobby-copy').addEventListener('click', () => navigator.clipboard?.writeText(this.net?.code || '').then(() => this.status('คัดลอกรหัสแล้ว')).catch(() => {}));
+    $('lobby-copy').addEventListener('click', () => navigator.clipboard?.writeText(this.net?.code || '').then(() => this.status(L('คัดลอกรหัสแล้ว', 'Code copied.'))).catch(() => {}));
   }
 
   get name() {
-    const n = ($('lobby-name').value || '').trim().slice(0, 16) || 'ผู้เดินทาง';
+    const n = ($('lobby-name').value || '').trim().slice(0, 16) || L('ผู้เดินทาง', 'Traveller');
     try { localStorage.setItem(NAME_KEY, n); } catch { /* storage unavailable */ }
     return n;
   }
@@ -57,7 +58,7 @@ export class Lobby {
   // ---------------------------------------------------------------- host
   async hostRoom() {
     this.busy(true);
-    this.status('กำลังสร้างห้อง...');
+    this.status(L('กำลังสร้างห้อง...', 'Opening a room...'));
     this.net = new Net();
     try {
       const code = await this.net.host();
@@ -65,7 +66,7 @@ export class Lobby {
       this.net.on('message', (m, from) => this.onHostMessage(m, from)).on('leave', (peer) => this.dropPeer(peer));
       $('lobby-code').textContent = code;
       this.view('room');
-      this.status('ส่งรหัสห้องนี้ให้เพื่อน แล้วรอเพื่อนเข้าห้อง · เพิ่มบอทเพื่อเติมที่ว่างได้');
+      this.status(L('ส่งรหัสห้องนี้ให้เพื่อน แล้วรอเพื่อนเข้าห้อง · เพิ่มบอทเพื่อเติมที่ว่างได้', 'Send this code to your friends and wait for them · Bots may fill the empty seats'));
       this.render();
     } catch (e) {
       this.status(e.message, true);
@@ -80,7 +81,7 @@ export class Lobby {
     if (m.t !== 'hello') return;
     const slot = this.freeSlot();
     if (slot < 0) { this.net.sendTo(from, { t: 'full' }); return; }
-    this.roster.push({ slot, name: String(m.name || 'ผู้เดินทาง').slice(0, 16), cls: CLASSES[m.cls] ? m.cls : 'wanderer', bot: false, peer: from });
+    this.roster.push({ slot, name: String(m.name || L('ผู้เดินทาง', 'Traveller')).slice(0, 16), cls: CLASSES[m.cls] ? m.cls : 'wanderer', bot: false, peer: from });
     this.g.audio.ui();
     this.sync();
   }
@@ -114,7 +115,7 @@ export class Lobby {
   }
 
   start() {
-    if (this.roster.length < 2) { this.status('ต้องมีอย่างน้อย 2 ฝ่าย (เพื่อนหรือบอท)', true); return; }
+    if (this.roster.length < 2) { this.status(L('ต้องมีอย่างน้อย 2 ฝ่าย (เพื่อนหรือบอท)', 'At least 2 sides are needed (friends or bots).'), true); return; }
     this.roster.sort((a, b) => a.slot - b.slot);
     for (const r of this.roster) if (r.peer) this.net.sendTo(r.peer, { t: 'start', roster: this.roster, me: r.slot });
     this.launch(0);
@@ -123,17 +124,17 @@ export class Lobby {
   // ---------------------------------------------------------------- join
   async joinRoom() {
     const code = ($('lobby-code-in').value || '').trim().toUpperCase();
-    if (code.length !== 5) { this.status('รหัสห้องมี 5 ตัวอักษร', true); return; }
+    if (code.length !== 5) { this.status(L('รหัสห้องมี 5 ตัวอักษร', 'A room code has 5 letters.'), true); return; }
     this.busy(true);
-    this.status('กำลังเชื่อมต่อ...');
+    this.status(L('กำลังเชื่อมต่อ...', 'Connecting...'));
     this.net = new Net();
     try {
       await this.net.join(code);
-      this.net.on('message', (m) => this.onClientMessage(m)).on('hostLeft', () => { this.status('โฮสต์ปิดห้องไปแล้ว', true); this.view('menu'); this.net?.close(); this.net = null; });
+      this.net.on('message', (m) => this.onClientMessage(m)).on('hostLeft', () => { this.status(L('โฮสต์ปิดห้องไปแล้ว', 'The host has closed the room.'), true); this.view('menu'); this.net?.close(); this.net = null; });
       this.net.send({ t: 'hello', name: this.name, cls: this.cls });
       $('lobby-code').textContent = code;
       this.view('room');
-      this.status('เข้าห้องแล้ว — รอโฮสต์เริ่มเกม');
+      this.status(L('เข้าห้องแล้ว — รอโฮสต์เริ่มเกม', 'You are in — waiting for the host to begin.'));
     } catch (e) {
       this.status(e.message, true);
       this.net = null;
@@ -143,8 +144,8 @@ export class Lobby {
 
   onClientMessage(m) {
     if (m.t === 'lobby') { this.roster = m.roster; this.render(); }
-    if (m.t === 'full') { this.status('ห้องเต็มแล้ว (4 คน)', true); this.leave(); }
-    if (m.t === 'kicked') { this.status('โฮสต์เชิญเจ้าออกจากห้อง', true); this.leave(); }
+    if (m.t === 'full') { this.status(L('ห้องเต็มแล้ว (4 คน)', 'The room is full (4 players).'), true); this.leave(); }
+    if (m.t === 'kicked') { this.status(L('โฮสต์เชิญเจ้าออกจากห้อง', 'The host has sent you away.'), true); this.leave(); }
     if (m.t === 'start') { this.roster = m.roster; this.launch(m.me); }
   }
 
@@ -153,10 +154,10 @@ export class Lobby {
     const host = this.net?.isHost;
     $('lobby-list').innerHTML = [0, 1, 2, 3].map((slot) => {
       const r = this.roster.find((x) => x.slot === slot), s = SEATS[slot];
-      if (!r) return `<div class="lb-seat empty"><span class="lb-dot" style="background:${s.css}"></span>ฐาน${s.name} — ว่าง</div>`;
+      if (!r) return `<div class="lb-seat empty"><span class="lb-dot" style="background:${s.css}"></span>${L(`ฐาน${s.name} — ว่าง`, `${s.name} Base — empty`)}</div>`;
       const kick = host && slot !== 0 ? `<button class="ghost lb-kick" data-slot="${slot}">✕</button>` : '';
       return `<div class="lb-seat"><span class="lb-dot" style="background:${s.css}"></span><b>${esc(r.name)}</b>
-        <span class="lb-cls">${r.bot ? '🤖 ' : ''}${CLASSES[r.cls]?.icon || ''} ${CLASSES[r.cls]?.name || ''}</span>${slot === 0 ? '<span class="lb-host">โฮสต์</span>' : ''}${kick}</div>`;
+        <span class="lb-cls">${r.bot ? '🤖 ' : ''}${CLASSES[r.cls]?.icon || ''} ${CLASSES[r.cls]?.name || ''}</span>${slot === 0 ? `<span class="lb-host">${L('โฮสต์', 'Host')}</span>` : ''}${kick}</div>`;
     }).join('');
     $('lobby-list').querySelectorAll('.lb-kick').forEach((b) => b.addEventListener('click', () => this.kick(+b.dataset.slot)));
     $('lobby-addbot').classList.toggle('hidden', !host);

@@ -8,7 +8,8 @@
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --win portable nsis --x64",
-    "dist:dir": "electron-builder --dir"
+    "dist:dir": "electron-builder --dir",
+    "dist:linux": "electron-builder --linux AppImage tar.gz --x64"
   },
   "build": {
     "appId": "com.moonmire.game",
@@ -41,11 +42,42 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "shortcutName": "Moonmire"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "tar.gz"
+      ],
+      "icon": "build/icon.png",
+      "category": "Game",
+      "executableName": "moonmire",
+      "synopsis": "PS2-style open-world dark fantasy adventure",
+      "maintainer": "Moonmire",
+      "artifactName": "Moonmire-${version}-linux-${arch}.${ext}",
+      "desktop": {
+        "entry": {
+          "Name": "Moonmire",
+          "Comment": "PS2-style open-world dark fantasy adventure",
+          "Categories": "Game;AdventureGame;",
+          "StartupWMClass": "Moonmire"
+        }
+      },
+      "syncDesktopName": true,
+      "extraResources": [
+        {
+          "from": "build/icon.png",
+          "to": "icon.png"
+        }
+      ]
+    },
+    "appImage": {
+      "artifactName": "Moonmire-${version}-x86_64.AppImage"
     }
   },
   "devDependencies": {
     "electron": "^44.5.1",
     "electron-builder": "^26.15.3"
   },
-  "author": "Moonmire"
+  "author": "Moonmire",
+  "desktopName": "moonmire.desktop"
 }

@@ -2,6 +2,7 @@
 // Night is cold moonlight; dawn/dusk bleed rose-violet; day is an overcast, washed-out grey-green
 // under a veiled sun: still gloomy, but clearly brighter than the night.
 import * as THREE from 'three';
+import { L } from './i18n.js';
 
 const NIGHT = {
   fog: [0.05, 0.1, 0.27], density: 0.0115, zenith: [0.008, 0.02, 0.09],
@@ -46,7 +47,7 @@ function blend(a, b, k) {
 }
 
 export const PHASES = [
-  [0.2, 'กลางคืน'], [0.3, 'รุ่งสาง'], [0.7, 'กลางวัน'], [0.8, 'สนธยา'], [1.01, 'กลางคืน'],
+  [0.2, L('กลางคืน', 'Night')], [0.3, L('รุ่งสาง', 'Dawn')], [0.7, L('กลางวัน', 'Day')], [0.8, L('สนธยา', 'Dusk')], [1.01, L('กลางคืน', 'Night')],
 ];
 
 export class DayNight {

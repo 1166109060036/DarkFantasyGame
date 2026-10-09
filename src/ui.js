@@ -1,6 +1,7 @@
 // DOM HUD: compass, quest tracker, health, dialogue, toasts, world map.
 import { HALF } from './terrain.js';
 import { wrapAngle } from './util.js';
+import { L } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -111,7 +112,7 @@ export class UI {
     this._discoverAt = performance.now();
     const el = document.getElementById('discover');
     el.querySelector('.name').textContent = name;
-    el.querySelector('.count').textContent = `สถานที่ที่ค้นพบ ${n}/${total}`;
+    el.querySelector('.count').textContent = L(`สถานที่ที่ค้นพบ ${n}/${total}`, `Places found ${n}/${total}`);
     el.classList.remove('show');
     void el.offsetWidth;
     el.classList.add('show');
@@ -298,7 +299,7 @@ export class UI {
       ctx.fillStyle = found ? '#efe6c8' : 'rgba(200,210,255,0.55)';
       ctx.fillText(found ? loc.name : '?', mx * k, my * k);
     }
-    document.getElementById('map-count').textContent = `สถานที่ที่ค้นพบ ${discovered.size}/${locations.length}`;
+    document.getElementById('map-count').textContent = L(`สถานที่ที่ค้นพบ ${discovered.size}/${locations.length}`, `Places found ${discovered.size}/${locations.length}`);
     for (const m of markers) {
       const [mx, my] = this.mapToCanvas(m.x, m.z);
       if (m.color) {

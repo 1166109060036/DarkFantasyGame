@@ -1,0 +1,41 @@
+# Maintainer: Moonmire
+# Arch Linux package for Moonmire. The release workflow fills in the version, build number and
+# checksum; the file attached to each GitHub release is ready for `makepkg -si`.
+pkgname=moonmire-bin
+pkgver=@VERSION@
+_build=@BUILD@
+pkgrel=1
+pkgdesc='PS2-style open-world dark fantasy adventure (English / Thai)'
+arch=('x86_64')
+url='https://github.com/1166109060036/DarkFantasyGame'
+license=('custom')
+depends=('gtk3' 'nss' 'alsa-lib' 'libxss' 'libxtst' 'libsecret' 'mesa')
+optdepends=('vulkan-icd-loader: GPU acceleration on some drivers')
+provides=('moonmire')
+conflicts=('moonmire')
+options=('!strip' '!debug')
+source=("https://github.com/1166109060036/DarkFantasyGame/releases/download/v${pkgver}-build.${_build}/Moonmire-${pkgver}-linux-x64.tar.gz")
+sha256sums=('@SHA256@')
+
+package() {
+  local dir
+  dir=$(find "$srcdir" -maxdepth 1 -type d -name 'Moonmire-*' | head -n1)
+  install -d "$pkgdir/opt/moonmire"
+  cp -a "$dir/." "$pkgdir/opt/moonmire/"
+  # Chromium's sandbox helper must be setuid root to work without --no-sandbox
+  chmod 4755 "$pkgdir/opt/moonmire/chrome-sandbox"
+  install -d "$pkgdir/usr/bin"
+  ln -s /opt/moonmire/moonmire "$pkgdir/usr/bin/moonmire"
+  install -Dm644 "$pkgdir/opt/moonmire/resources/icon.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/moonmire.png"
+  install -Dm644 /dev/stdin "$pkgdir/usr/share/applications/moonmire.desktop" <<DESKTOP
+[Desktop Entry]
+Name=Moonmire
+Comment=PS2-style open-world dark fantasy adventure
+Exec=moonmire %U
+Icon=moonmire
+Terminal=false
+Type=Application
+Categories=Game;AdventureGame;
+StartupWMClass=Moonmire
+DESKTOP
+}

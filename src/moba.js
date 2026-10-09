@@ -19,15 +19,16 @@ import { CLASSES } from './classes.js';
 import { rng } from './noise.js';
 import { clearVegetation } from './vegetation.js';
 import { ARENA_BASES, ARENA_ROADS, PLAZA_R, adjacent, roadOut } from './arena.js';
+import { L } from './i18n.js';
 
 const C = (r, g, b) => new THREE.Color(r, g, b);
 const V = new THREE.Vector3();
 
 export const SEATS = [
-  { name: 'แดง', color: [0.85, 0.22, 0.18], css: '#e0533f', base: ARENA_BASES[0] },
-  { name: 'ฟ้า', color: [0.25, 0.48, 0.98], css: '#5a8cff', base: ARENA_BASES[1] },
-  { name: 'เขียว', color: [0.3, 0.78, 0.32], css: '#56cc56', base: ARENA_BASES[2] },
-  { name: 'ทอง', color: [0.98, 0.78, 0.22], css: '#f2c84a', base: ARENA_BASES[3] },
+  { name: L('แดง', 'Red'), th: 'แดง', en: 'Red', color: [0.85, 0.22, 0.18], css: '#e0533f', base: ARENA_BASES[0] },
+  { name: L('ฟ้า', 'Blue'), th: 'ฟ้า', en: 'Blue', color: [0.25, 0.48, 0.98], css: '#5a8cff', base: ARENA_BASES[1] },
+  { name: L('เขียว', 'Green'), th: 'เขียว', en: 'Green', color: [0.3, 0.78, 0.32], css: '#56cc56', base: ARENA_BASES[2] },
+  { name: L('ทอง', 'Gold'), th: 'ทอง', en: 'Gold', color: [0.98, 0.78, 0.22], css: '#f2c84a', base: ARENA_BASES[3] },
 ];
 const HUB = [0, 0];
 export const BASE_R = 30;
@@ -35,26 +36,26 @@ const PVP = 9;                 // a sword blow that takes 1 from a gaunt takes 9
 const UNIT = 1 / 8;            // creature damage (tuned against players) scaled to creatures/buildings
 const MAX_CREEPS = 14;
 
-export const RES = { wood: 'ไม้', ore: 'แร่', soul: 'วิญญาณ', xp: 'XP' };
+export const RES = { wood: L('ไม้', 'wood'), ore: L('แร่', 'ore'), soul: L('วิญญาณ', 'souls'), xp: 'XP' };
 const START_WALLET = { wood: 80, ore: 30, soul: 6 };
 
 export const BUILDINGS = {
-  tower: { name: 'หอคอยธนู', cost: { wood: 40, ore: 15 }, hp: 30, r: 1.5, time: 8, desc: 'ยิงธนูใส่ศัตรูในระยะ 24 เมตร' },
-  camp: { name: 'แคมป์ไฟฮีล', cost: { wood: 25 }, hp: 14, r: 1.3, time: 5, desc: 'ฟื้นเลือดเจ้าและครีปของเจ้าในรัศมี 9 เมตร' },
-  mine: { name: 'เหมืองและโรงเลื่อย', cost: { wood: 30 }, hp: 18, r: 1.6, time: 6, desc: 'ได้ +4 ไม้ +2 แร่ ทุก 8 วินาที' },
-  wall: { name: 'กำแพงไม้', cost: { wood: 12 }, hp: 26, r: 1.4, time: 3, desc: 'ขวางทางครีปศัตรู มันต้องพังก่อนถึงจะผ่าน' },
-  trap: { name: 'กับดักหนาม', cost: { wood: 8, ore: 6 }, hp: 6, r: 0.9, time: 2, desc: 'แทงศัตรูที่เหยียบ ใช้ได้ 4 ครั้ง' },
-  decoy: { name: 'หุ่นฟางล่อเป้า', cost: { wood: 15 }, hp: 22, r: 0.8, time: 3, desc: 'ครีปศัตรูที่เห็นจะหันมาตีหุ่นก่อนทุกอย่าง' },
-  bell: { name: 'หอระฆังเตือนภัย', cost: { ore: 20 }, hp: 14, r: 1.1, time: 5, desc: 'ตีระฆังเตือนเมื่อศัตรูบุกเข้าฐาน' },
-  nest: { name: 'รังเพาะร่างยักษ์', cost: { wood: 40, soul: 12 }, hp: 24, r: 2.0, time: 10, desc: 'ปลดล็อกร่างยักษ์ และครีปทุกตัวเลือด +25%' },
+  tower: { name: L('หอคอยธนู', 'Arrow Tower'), th: 'หอคอยธนู', en: 'Arrow Tower', cost: { wood: 40, ore: 15 }, hp: 30, r: 1.5, time: 8, desc: L('ยิงธนูใส่ศัตรูในระยะ 24 เมตร', 'Looses arrows at foes within 24 metres.') },
+  camp: { name: L('แคมป์ไฟฮีล', 'Healing Campfire'), th: 'แคมป์ไฟฮีล', en: 'Healing Campfire', cost: { wood: 25 }, hp: 14, r: 1.3, time: 5, desc: L('ฟื้นเลือดเจ้าและครีปของเจ้าในรัศมี 9 เมตร', 'Mends you and your creeps within 9 metres.') },
+  mine: { name: L('เหมืองและโรงเลื่อย', 'Mine and Sawmill'), th: 'เหมืองและโรงเลื่อย', en: 'Mine and Sawmill', cost: { wood: 30 }, hp: 18, r: 1.6, time: 6, desc: L('ได้ +4 ไม้ +2 แร่ ทุก 8 วินาที', '+4 wood and +2 ore every 8 seconds.') },
+  wall: { name: L('กำแพงไม้', 'Wooden Wall'), th: 'กำแพงไม้', en: 'Wooden Wall', cost: { wood: 12 }, hp: 26, r: 1.4, time: 3, desc: L('ขวางทางครีปศัตรู มันต้องพังก่อนถึงจะผ่าน', 'Bars the path of enemy creeps. They must break it to pass.') },
+  trap: { name: L('กับดักหนาม', 'Spike Trap'), th: 'กับดักหนาม', en: 'Spike Trap', cost: { wood: 8, ore: 6 }, hp: 6, r: 0.9, time: 2, desc: L('แทงศัตรูที่เหยียบ ใช้ได้ 4 ครั้ง', 'Pierces foes that tread on it. 4 uses.') },
+  decoy: { name: L('หุ่นฟางล่อเป้า', 'Straw Decoy'), th: 'หุ่นฟางล่อเป้า', en: 'Straw Decoy', cost: { wood: 15 }, hp: 22, r: 0.8, time: 3, desc: L('ครีปศัตรูที่เห็นจะหันมาตีหุ่นก่อนทุกอย่าง', 'Enemy creeps that see it strike it before all else.') },
+  bell: { name: L('หอระฆังเตือนภัย', 'Warning Bell Tower'), th: 'หอระฆังเตือนภัย', en: 'Warning Bell Tower', cost: { ore: 20 }, hp: 14, r: 1.1, time: 5, desc: L('ตีระฆังเตือนเมื่อศัตรูบุกเข้าฐาน', 'Tolls when foes breach your base.') },
+  nest: { name: L('รังเพาะร่างยักษ์', 'Brute Brood-Nest'), th: 'รังเพาะร่างยักษ์', en: 'Brute Brood-Nest', cost: { wood: 40, soul: 12 }, hp: 24, r: 2.0, time: 10, desc: L('ปลดล็อกร่างยักษ์ และครีปทุกตัวเลือด +25%', 'Unlocks the Brute, and every creep gains +25% health.') },
 };
 const BTYPES = Object.keys(BUILDINGS);
 
 export const CREEPS = {
-  gaunt: { name: 'ร่างซูบ', cost: { soul: 2, wood: 6 }, count: 3, desc: 'ทหารราบ 3 ตัว วิ่งเร็วเมื่อใกล้เป้า' },
-  crawler: { name: 'ร่างคลาน', cost: { soul: 2, ore: 4 }, count: 3, desc: 'คลานเร็ว 3 ตัว ตีเบาแต่ถี่' },
-  wolf: { name: 'หมาป่าเงา', cost: { soul: 3, wood: 8 }, count: 2, desc: 'หมาป่า 2 ตัว เร็วที่สุด' },
-  brute: { name: 'ร่างยักษ์', cost: { soul: 8, ore: 10 }, count: 1, needs: 'nest', desc: 'ยักษ์ถึก 1 ตัว ทุบอาคารแรงมาก (ต้องมีรังเพาะ)' },
+  gaunt: { name: L('ร่างซูบ', 'Gaunt'), cost: { soul: 2, wood: 6 }, count: 3, desc: L('ทหารราบ 3 ตัว วิ่งเร็วเมื่อใกล้เป้า', '3 foot soldiers. They quicken near their mark.') },
+  crawler: { name: L('ร่างคลาน', 'Crawler'), cost: { soul: 2, ore: 4 }, count: 3, desc: L('คลานเร็ว 3 ตัว ตีเบาแต่ถี่', '3 swift crawlers. Light blows, but many.') },
+  wolf: { name: L('หมาป่าเงา', 'Shadow Wolf'), cost: { soul: 3, wood: 8 }, count: 2, desc: L('หมาป่า 2 ตัว เร็วที่สุด', '2 wolves. The swiftest of all.') },
+  brute: { name: L('ร่างยักษ์', 'Brute'), cost: { soul: 8, ore: 10 }, count: 1, needs: 'nest', desc: L('ยักษ์ถึก 1 ตัว ทุบอาคารแรงมาก (ต้องมีรังเพาะ)', '1 hulking brute. Smashes buildings hard (needs a Brood-Nest).') },
 };
 const CTYPES = Object.keys(CREEPS);
 const STATES = ['chase', 'windup', 'strike', 'recover', 'stagger', 'dying'];
@@ -158,7 +159,7 @@ export class Moba {
   markers() {
     return this.P.filter(Boolean).map((p) => {
       const [x, z] = SEATS[p.slot].base, mine = p.slot === this.me;
-      return { x, z, label: mine ? 'ฐานเจ้า' : `ฐาน${SEATS[p.slot].name}${p.alive ? '' : ' ✝'}`, color: SEATS[p.slot].css, home: mine, dead: !p.alive };
+      return { x, z, label: mine ? L('ฐานเจ้า', 'Your Base') : L(`ฐาน${SEATS[p.slot].name}`, `${SEATS[p.slot].name} Base`) + (p.alive ? '' : ' ✝'), color: SEATS[p.slot].css, home: mine, dead: !p.alive };
     });
   }
 
@@ -248,7 +249,7 @@ export class Moba {
         g.scene.add(mesh);
         const node = { kind, mesh, pos: new THREE.Vector3(x, h, z), ready: true, t: 0, id: `node:${this.nodes.length}` };
         this.nodes.push(node);
-        g.interactables.push({ id: node.id, pos: node.pos, r: 2.6, label: kind === 'log' ? 'ตัดไม้ (+8 ไม้)' : 'ทุบหิน (+5 แร่)', checkpoint: false });
+        g.interactables.push({ id: node.id, pos: node.pos, r: 2.6, label: kind === 'log' ? L('ตัดไม้ (+8 ไม้)', 'Fell timber (+8 wood)') : L('ทุบหิน (+5 แร่)', 'Break stone (+5 ore)'), checkpoint: false });
         break;
       }
     }
@@ -273,12 +274,13 @@ export class Moba {
   }
 
   // a resource gain for any seat, wherever that player is
-  reward(slot, res, why) {
+  // (why: the reason in Thai, as the message has always carried it; whyEn: the same in English)
+  reward(slot, res, why, whyEn) {
     const p = this.P[slot];
     if (!p) return;
-    if (slot === this.me) this.earn(res, why);
+    if (slot === this.me) this.earn(res, L(why, whyEn));
     else if (p.bot) for (const [k, n] of Object.entries(res)) if (k !== 'xp') p.wallet[k] += n;
-    else this.net?.sendTo(p.peer, { t: 'res', res, why });
+    else this.net?.sendTo(p.peer, { t: 'res', res, why, whyEn });
   }
 
   // ---------------------------------------------------------------- buildings
@@ -347,14 +349,20 @@ export class Moba {
     this.S.delete(s.id);
   }
 
-  canPlace(type, slot, x, z) {
+  // why a building can't go here, as [thai, english] (null if it can)
+  placeError(type, slot, x, z) {
     const k = this.K[slot], def = BUILDINGS[type];
-    if (!k || !this.alive(slot)) return 'ฐานของเจ้าล่มสลายแล้ว';
-    if (Math.hypot(x - k.x, z - k.z) > BASE_R) return 'ต้องสร้างในเขตฐานของเจ้า (วงแหวนสี)';
-    if (Math.hypot(x - k.x, z - k.z) < 6) return 'ใกล้บัลลังก์เกินไป';
-    if (this.g.terrain.getHeight(x, z) < 0.3) return 'สร้างในน้ำไม่ได้';
-    for (const s of this.S.values()) if (Math.hypot(x - s.x, z - s.z) < def.r + BUILDINGS[s.type].r + 0.6) return 'ทับกับสิ่งก่อสร้างอื่น';
+    if (!k || !this.alive(slot)) return ['ฐานของเจ้าล่มสลายแล้ว', 'Your base has fallen.'];
+    if (Math.hypot(x - k.x, z - k.z) > BASE_R) return ['ต้องสร้างในเขตฐานของเจ้า (วงแหวนสี)', 'You must build within your base (the coloured ring).'];
+    if (Math.hypot(x - k.x, z - k.z) < 6) return ['ใกล้บัลลังก์เกินไป', 'Too near the throne.'];
+    if (this.g.terrain.getHeight(x, z) < 0.3) return ['สร้างในน้ำไม่ได้', 'You cannot build on water.'];
+    for (const s of this.S.values()) if (Math.hypot(x - s.x, z - s.z) < def.r + BUILDINGS[s.type].r + 0.6) return ['ทับกับสิ่งก่อสร้างอื่น', 'Another structure stands in the way.'];
     return null;
+  }
+
+  canPlace(type, slot, x, z) {
+    const e = this.placeError(type, slot, x, z);
+    return e && L(e[0], e[1]);
   }
 
   // ---------------------------------------------------------------- creeps
@@ -535,7 +543,7 @@ export class Moba {
     e.t = e.obj.userData.animate ? 2.6 : 0.9;
     e.hp = 0;
     this.g.audio.enemyDie(e.type, e.pos);
-    if (killer != null && killer !== e.moba.owner) this.reward(killer, { soul: 1, wood: 2, xp: 6 }, 'ฆ่าครีป');
+    if (killer != null && killer !== e.moba.owner) this.reward(killer, { soul: 1, wood: 2, xp: 6 }, 'ฆ่าครีป', 'creep slain');
   }
 
   damageStruct(s, dmg, by = null) {
@@ -547,8 +555,8 @@ export class Moba {
       this.g.particles.burst(new THREE.Vector3(s.x, s.y + 1, s.z), 20, 5, 1);
       this.g.audio.slam({ x: s.x, y: s.y, z: s.z });
       this.removeStruct(s);
-      if (by != null && by !== s.owner) this.reward(by, { xp: 20 }, `ทำลาย${BUILDINGS[s.type].name}`);
-      this.broadcast({ t: 'msg', text: `${BUILDINGS[s.type].name}ของ${SEATS[s.owner].name}ถูกทำลาย` });
+      if (by != null && by !== s.owner) this.reward(by, { xp: 20 }, `ทำลาย${BUILDINGS[s.type].th}`, `${BUILDINGS[s.type].en} destroyed`);
+      this.broadcast({ t: 'msg', text: `${BUILDINGS[s.type].th}ของ${SEATS[s.owner].th}ถูกทำลาย`, en: `The ${SEATS[s.owner].en} ${BUILDINGS[s.type].en} is destroyed.` });
     }
   }
 
@@ -577,9 +585,9 @@ export class Moba {
     if (this.g.time < p.alarmT) return;
     p.alarmT = this.g.time + 8;
     const bell = [...this.S.values()].some((s) => s.owner === slot && s.type === 'bell' && s.built >= 1);
-    const text = king ? 'ราชาของเจ้าถูกโจมตี!' : bell ? 'ระฆังดัง! ศัตรูบุกเข้าฐาน' : 'สิ่งก่อสร้างของเจ้าถูกโจมตี';
-    if (slot === this.me) this.onAlarm(text, bell || king);
-    else this.net?.sendTo(p.peer, { t: 'alarm', text, loud: bell || king });
+    const [text, en] = king ? ['ราชาของเจ้าถูกโจมตี!', 'Your king is under attack!'] : bell ? ['ระฆังดัง! ศัตรูบุกเข้าฐาน', 'The bell tolls! Foes have breached your base.'] : ['สิ่งก่อสร้างของเจ้าถูกโจมตี', 'Your structures are under attack.'];
+    if (slot === this.me) this.onAlarm(L(text, en), bell || king);
+    else this.net?.sendTo(p.peer, { t: 'alarm', text, en, loud: bell || king });
   }
 
   onAlarm(text, loud) {
@@ -607,9 +615,9 @@ export class Moba {
     k.king.rotation.x = -1.4;
     k.king.position.y = 0.6;
     this.g.audio.death();
-    const who = by != null && SEATS[by] ? ` โดย${SEATS[by].name}` : '';
-    if (slot === this.me) this.g.ui.banner('ราชาของเจ้าสิ้นพระชนม์', `เจ้าพ่ายแพ้${who} — ดูต่อได้จนจบเกม`);
-    else this.g.ui.banner(`ราชา${SEATS[slot].name}สิ้นพระชนม์`, `${this.P[slot]?.name || ''} ตกรอบ${who}`);
+    const who = by != null && SEATS[by] ? L(` โดย${SEATS[by].name}`, ` by ${SEATS[by].name}`) : '';
+    if (slot === this.me) this.g.ui.banner(L('ราชาของเจ้าสิ้นพระชนม์', 'Your King Has Fallen'), L(`เจ้าพ่ายแพ้${who} — ดูต่อได้จนจบเกม`, `You are defeated${who} — you may watch until the end.`));
+    else this.g.ui.banner(L(`ราชา${SEATS[slot].name}สิ้นพระชนม์`, `The ${SEATS[slot].name} King Has Fallen`), L(`${this.P[slot]?.name || ''} ตกรอบ${who}`, `${this.P[slot]?.name || ''} is out${who}`));
   }
 
   onOver({ winner }) {
@@ -648,7 +656,7 @@ export class Moba {
           else this.net?.sendTo(p.peer, { t: 'heal', n: 4 });
         }
       }
-      if (s.type === 'mine' && s.cool <= 0) { s.cool = 8; this.reward(s.owner, { wood: 4, ore: 2 }, 'เหมือง'); }
+      if (s.type === 'mine' && s.cool <= 0) { s.cool = 8; this.reward(s.owner, { wood: 4, ore: 2 }, 'เหมือง', 'mine'); }
       if (s.type === 'trap' && s.cool <= 0) {
         for (const e of this.Cr.values()) {
           if (e.moba.owner === s.owner || e.state === 'dying' || Math.hypot(e.pos.x - s.x, e.pos.z - s.z) > 1.3) continue;
@@ -770,7 +778,7 @@ export class Moba {
     p.hp = 0; p.dead = true;
     ai.respawn = BOT_HERO.respawn; ai.push = null; ai.hit = null;
     this.g.audio.hit(true, 'flesh', { x: p.x, y: p.y + 1, z: p.z });
-    if (by != null && by !== p.slot) this.reward(by, { soul: 3, xp: 40 }, `ฆ่า ${p.name}`);
+    if (by != null && by !== p.slot) this.reward(by, { soul: 3, xp: 40 }, `ฆ่า ${p.name}`, `slew ${p.name}`);
   }
 
   // the nearest thing of another seat around (x, z): creeps and heroes; buildings and the king only
@@ -913,25 +921,25 @@ export class Moba {
       if (m.t === 'st') Object.assign(p, { x: m.x, y: m.y, z: m.z, yaw: m.yaw, hp: m.hp, dead: !!m.dead, sw: m.sw | 0, sn: m.sn | 0, rd: m.rd | 0 });
       if (m.t === 'hit') this.applyHit(m, slot);
       if (m.t === 'build') {
-        const why = this.canPlace(m.type, slot, m.x, m.z);
-        if (why) this.net.sendTo(from, { t: 'refund', cost: BUILDINGS[m.type].cost, why });
+        const why = this.placeError(m.type, slot, m.x, m.z);
+        if (why) this.net.sendTo(from, { t: 'refund', cost: BUILDINGS[m.type].cost, why: why[0], whyEn: why[1] });
         else this.placeBuilding(m.type, slot, m.x, m.z, m.ry);
       }
       if (m.t === 'summon') {
         const n = this.summon(m.type, slot, m.target);
-        if (!n) this.net.sendTo(from, { t: 'refund', cost: CREEPS[m.type].cost, why: 'ซัมม่อนไม่ได้ (ครีปเต็มหรือเป้าหมายตกรอบแล้ว)' });
+        if (!n) this.net.sendTo(from, { t: 'refund', cost: CREEPS[m.type].cost, why: 'ซัมม่อนไม่ได้ (ครีปเต็มหรือเป้าหมายตกรอบแล้ว)', whyEn: 'Cannot summon (too many creeps, or the target has fallen).' });
       }
-      if (m.t === 'died' && m.by != null && m.by !== slot) this.reward(m.by, { soul: 3, xp: 40 }, `ฆ่า ${p.name}`);
+      if (m.t === 'died' && m.by != null && m.by !== slot) this.reward(m.by, { soul: 3, xp: 40 }, `ฆ่า ${p.name}`, `slew ${p.name}`);
       return;
     }
     // client side
     if (m.t === 'snap') this.applySnapshot(m);
     if (m.t === 'hurt') this.g.combat.takeHit(m.d, { x: m.x, z: m.z }, m.by);
     if (m.t === 'heal') this.g.player.hp = Math.min(this.g.player.maxHp, this.g.player.hp + m.n);
-    if (m.t === 'res') this.earn(m.res, m.why);
-    if (m.t === 'refund') { this.earn(m.cost); this.g.ui.toast(m.why); }
-    if (m.t === 'msg') this.g.ui.toast(m.text);
-    if (m.t === 'alarm') this.onAlarm(m.text, m.loud);
+    if (m.t === 'res') this.earn(m.res, L(m.why, m.whyEn));
+    if (m.t === 'refund') { this.earn(m.cost); this.g.ui.toast(L(m.why, m.whyEn)); }
+    if (m.t === 'msg') this.g.ui.toast(L(m.text, m.en));
+    if (m.t === 'alarm') this.onAlarm(L(m.text, m.en), m.loud);
     if (m.t === 'elim') this.onElim(m);
     if (m.t === 'over') this.onOver(m);
   }
@@ -959,14 +967,14 @@ export class Moba {
     const p = this.P[slot];
     p.bot = true; p.peer = null; p.wallet = { wood: 60, ore: 30, soul: 10 };
     this.removeAvatar(slot);
-    this.broadcast({ t: 'msg', text: `${p.name} ออกจากเกม — บอทรับช่วงฐาน${SEATS[slot].name}ต่อ` });
-    this.g.ui.toast(`${p.name} ออกจากเกม — บอทรับช่วงต่อ`);
+    this.broadcast({ t: 'msg', text: `${p.name} ออกจากเกม — บอทรับช่วงฐาน${SEATS[slot].th}ต่อ`, en: `${p.name} has left — a bot holds the ${SEATS[slot].en} Base.` });
+    this.g.ui.toast(L(`${p.name} ออกจากเกม — บอทรับช่วงต่อ`, `${p.name} has left — a bot takes their place.`));
   }
 
   onHostLeft() {
     if (this.over) return;
     this.over = true;
-    this.g.ui.banner('โฮสต์ออกจากเกม', 'การเชื่อมต่อขาด กำลังกลับหน้าหลัก...');
+    this.g.ui.banner(L('โฮสต์ออกจากเกม', 'The Host Has Left'), L('การเชื่อมต่อขาด กำลังกลับหน้าหลัก...', 'The bond is severed. Returning to the title...'));
     setTimeout(() => this.g.mobaOver(null), 3500);
   }
 
@@ -1125,24 +1133,24 @@ export class Moba {
     const def = BUILDINGS[type];
     const why = this.canPlace(type, this.me, x, z);
     if (why) { this.g.ui.toast(why); return false; }
-    if (!canPay(this.wallet, def.cost)) { this.g.ui.toast(`ทรัพยากรไม่พอ: ${costText(def.cost)}`); return false; }
+    if (!canPay(this.wallet, def.cost)) { this.g.ui.toast(L(`ทรัพยากรไม่พอ: ${costText(def.cost)}`, `Not enough: ${costText(def.cost)}`)); return false; }
     pay(this.wallet, def.cost);
     if (this.host) this.placeBuilding(type, this.me, x, z, ry);
     else this.net.send({ t: 'build', type, x, z, ry });
     this.g.audio.anvil();
-    this.g.ui.toast(`เริ่มสร้าง${def.name}`);
+    this.g.ui.toast(L(`เริ่มสร้าง${def.name}`, `Raising the ${def.name}`));
     return true;
   }
 
   requestSummon(type, target) {
     const c = CREEPS[type];
-    if (c.needs && ![...this.S.values()].some((s) => s.owner === this.me && s.type === c.needs && s.built >= 1)) { this.g.ui.toast(`ต้องมี${BUILDINGS[c.needs].name}ก่อน`); return false; }
-    if (!canPay(this.wallet, c.cost)) { this.g.ui.toast(`ทรัพยากรไม่พอ: ${costText(c.cost)}`); return false; }
+    if (c.needs && ![...this.S.values()].some((s) => s.owner === this.me && s.type === c.needs && s.built >= 1)) { this.g.ui.toast(L(`ต้องมี${BUILDINGS[c.needs].name}ก่อน`, `You need a ${BUILDINGS[c.needs].name} first.`)); return false; }
+    if (!canPay(this.wallet, c.cost)) { this.g.ui.toast(L(`ทรัพยากรไม่พอ: ${costText(c.cost)}`, `Not enough: ${costText(c.cost)}`)); return false; }
     pay(this.wallet, c.cost);
-    if (this.host) { if (!this.summon(type, this.me, target)) { this.earn(c.cost); this.g.ui.toast('ซัมม่อนไม่ได้ (ครีปเต็ม)'); return false; } }
+    if (this.host) { if (!this.summon(type, this.me, target)) { this.earn(c.cost); this.g.ui.toast(L('ซัมม่อนไม่ได้ (ครีปเต็ม)', 'Cannot summon (too many creeps).')); return false; } }
     else this.net.send({ t: 'summon', type, target });
     this.g.audio.enemyCue(type, 'aggro');
-    this.g.ui.toast(`ส่ง${c.name}ไปตีฐาน${SEATS[target].name}`);
+    this.g.ui.toast(L(`ส่ง${c.name}ไปตีฐาน${SEATS[target].name}`, `${c.name} sent against the ${SEATS[target].name} Base`));
     return true;
   }
 
@@ -1191,7 +1199,7 @@ export class Moba {
     for (const n of this.nodes) {
       if (n.ready) continue;
       n.t -= dt;
-      if (n.t <= 0) { n.ready = true; n.mesh.visible = true; g.interactables.push({ id: n.id, pos: n.pos, r: 2.6, label: n.kind === 'log' ? 'ตัดไม้ (+8 ไม้)' : 'ทุบหิน (+5 แร่)', checkpoint: false }); }
+      if (n.t <= 0) { n.ready = true; n.mesh.visible = true; g.interactables.push({ id: n.id, pos: n.pos, r: 2.6, label: n.kind === 'log' ? L('ตัดไม้ (+8 ไม้)', 'Fell timber (+8 wood)') : L('ทุบหิน (+5 แร่)', 'Break stone (+5 ore)'), checkpoint: false }); }
     }
     // buildings rise as they are built, shake when hit; kings swing
     for (const s of this.S.values()) {
@@ -1225,11 +1233,11 @@ export class Moba {
       const d = V.length();
       if (d < bd && V.normalize().dot(dir) > 0.96 - r / Math.max(d, 1) * 0.5) { bd = d; best = { def: { name: label, hp: max }, hp }; }
     };
-    for (const s of this.S.values()) test(s.x, s.y + 1.5, s.z, BUILDINGS[s.type].r, `${BUILDINGS[s.type].name} (${SEATS[s.owner].name})${s.built < 1 ? ` — กำลังสร้าง ${Math.round(s.built * 100)}%` : ''}`, s.hp, s.max);
+    for (const s of this.S.values()) test(s.x, s.y + 1.5, s.z, BUILDINGS[s.type].r, `${BUILDINGS[s.type].name} (${SEATS[s.owner].name})${s.built < 1 ? L(` — กำลังสร้าง ${Math.round(s.built * 100)}%`, ` — raising ${Math.round(s.built * 100)}%`) : ''}`, s.hp, s.max);
     for (const p of this.P) {
       if (!p) continue;
       const k = this.K[p.slot];
-      if (p.alive) test(k.x, k.y + 2.5, k.z, 2.5, `ราชา${SEATS[p.slot].name} (${p.name})`, k.hp, k.max);
+      if (p.alive) test(k.x, k.y + 2.5, k.z, 2.5, L(`ราชา${SEATS[p.slot].name} (${p.name})`, `${SEATS[p.slot].name} King (${p.name})`), k.hp, k.max);
     }
     return best;
   }
@@ -1239,7 +1247,7 @@ export class Moba {
     const w = this.wallet, k = this.K[this.me];
     const kings = this.P.filter(Boolean).map((p) => `<span class="mk ${p.alive ? '' : 'dead'}" style="color:${SEATS[p.slot].css}">♛ ${Math.max(0, Math.round(this.K[p.slot].hp))}</span>`).join('');
     const html = `<div class="mw"><span>🪵 ${Math.floor(w.wood)}</span><span>⛏ ${Math.floor(w.ore)}</span><span>✦ ${Math.floor(w.soul)}</span></div>
-      <div class="mk-row">${kings}</div><div class="mhint">[B] สร้าง / ซัมม่อน · ราชาของเจ้า: ${Math.max(0, Math.round(k.hp))}/${k.max}</div>`;
+      <div class="mk-row">${kings}</div><div class="mhint">${L('[B] สร้าง / ซัมม่อน · ราชาของเจ้า', '[B] Build / Summon · Your king')}: ${Math.max(0, Math.round(k.hp))}/${k.max}</div>`;
     if (html !== this._hud) { this._hud = html; el.innerHTML = html; }
     const t = this.lookedAt();
     if (t) this.g.ui.setTarget(t);

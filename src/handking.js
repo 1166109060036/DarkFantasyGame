@@ -16,6 +16,7 @@ import * as THREE from 'three';
 import { Rig, whenLoaded } from './rigpose.js';
 import { ps2ify } from './ps2.js';
 import { part, mergeGeometries, lerp, clamp, wrapAngle } from './util.js';
+import { L } from './i18n.js';
 
 const SCALE = 9;                       // the model is 1.1 units tall
 // its arms, root bone first (bones are matched by the digits in their names)
@@ -192,14 +193,14 @@ export function updateHandKing(e, dt, c, { dist, toPlayer, playerOk }) {
       if (g.quests && !g.quests.bossReady()) {
         if (playerOk && dist < WAKE && g.time > (ai.warnAt || 0)) {
           ai.warnAt = g.time + 25;
-          g.ui.toast(g.quests.huntOpen ? 'รากไม้หนาพันรอบร่างนั้นไว้... ต้องหาทางตัดรังไหมก่อน' : 'บางสิ่งหมอบอยู่ใต้รากไม้... ยังไม่ถึงเวลาของมัน');
+          g.ui.toast(g.quests.huntOpen ? L('รากไม้หนาพันรอบร่างนั้นไว้... ต้องหาทางตัดรังไหมก่อน', 'Thick roots coil about the thing... the cocoon must be cut first') : L('บางสิ่งหมอบอยู่ใต้รากไม้... ยังไม่ถึงเวลาของมัน', 'Something crouches beneath the roots... its hour has not yet come'));
         }
         break;
       }
       if (playerOk && (dist < WAKE || e.hp < def.hp)) {
         ai.mode = 'roar'; ai.t = 2.6;
         g.audio.enemyCue('handking', 'aggro', e.pos);
-        g.ui.banner(def.name, 'ตื่นขึ้นแล้ว');
+        g.ui.banner(def.name, L('ตื่นขึ้นแล้ว', 'has awoken'));
       }
       break;
     case 'roar':
@@ -227,7 +228,7 @@ export function updateHandKing(e, dt, c, { dist, toPlayer, playerOk }) {
       if (ai.phase === 1 && e.hp < def.hp * 0.5) {
         ai.phase = 2; ai.atk = null; ai.mode = 'roar'; ai.t = 2.4;
         g.audio.enemyCue('handking', 'aggro', e.pos);
-        g.ui.combatText('รังไหมแตกออก!', 'bad');
+        g.ui.combatText(L('รังไหมแตกออก!', 'The cocoon splits!'), 'bad');
         // the finger of grain: the cocoons are mostly empty now
         for (let i = 0; i < (g.quests?.has('grain') ? 1 : 3); i++) {
           const a = i * 2.1, x = e.home.x + Math.cos(a) * 9, z = e.home.z + Math.sin(a) * 9;
@@ -299,7 +300,7 @@ export function updateHandKing(e, dt, c, { dist, toPlayer, playerOk }) {
           if (direct) hit(42, at, true);
           ai.fx.push(shockwave(at, direct));                // the wave does not hit you twice
           e.weakT = 2.0;                                   // its arms are in the earth: now
-          g.ui.combatText('จังหวะโจมตี!', 'parry');
+          g.ui.combatText(L('จังหวะโจมตี!', 'Strike now!'), 'parry');
         }
       };
     } else if (kind === 'grab') {
@@ -314,10 +315,10 @@ export function updateHandKing(e, dt, c, { dist, toPlayer, playerOk }) {
           g.particles.burst(new THREE.Vector3(tx, T(tx, tz) + 0.5, tz), 24, 6, 1.4);
           if (Math.hypot(p.pos.x - tx, p.pos.z - tz) < 3.2 && c.iframes <= 0) {
             hit(44, { x: tx, z: tz }, true);
-            g.ui.combatText('ถูกคว้า!', 'bad');
+            g.ui.combatText(L('ถูกคว้า!', 'Seized!'), 'bad');
             c.staggerT = Math.max(c.staggerT, 1.0);
             p.vel.y = 7; p.onGround = false;
-          } else { e.weakT = 1.6; g.ui.combatText('จังหวะโจมตี!', 'parry'); }
+          } else { e.weakT = 1.6; g.ui.combatText(L('จังหวะโจมตี!', 'Strike now!'), 'parry'); }
         }
       };
     } else if (kind === 'hands') {

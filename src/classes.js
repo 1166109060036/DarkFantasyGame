@@ -16,6 +16,7 @@
 // owns any extra things it puts in the world (thrown leeches, candles, graves, echo marks).
 import * as THREE from 'three';
 import { part, mergeGeometries, clamp } from './util.js';
+import { L } from './i18n.js';
 
 const C = (r, g, b) => new THREE.Color(r, g, b);
 const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
@@ -24,34 +25,34 @@ const V = new THREE.Vector3();
 
 export const CLASSES = {
   wanderer: {
-    name: 'ผู้พเนจร', weapon: 'ดาบ', icon: '⚔',
-    blurb: 'นักดาบผู้เดินทางมาจากแดนไกล สมดุลทุกด้าน ไม่มีจุดอ่อน ไม่มีของแปลก',
-    lines: ['ฟันเบา / กดค้างฟันหนัก · ป้องกันและปัดได้', 'G: ตั้งหลัก — แรงกลับมาเต็มทันที (พัก 30 วินาที)', 'เลือดฟื้นเองตามปกติ'],
+    name: L('ผู้พเนจร', 'Wanderer'), weapon: L('ดาบ', 'Sword'), icon: '⚔',
+    blurb: L('นักดาบผู้เดินทางมาจากแดนไกล สมดุลทุกด้าน ไม่มีจุดอ่อน ไม่มีของแปลก', 'A swordsman come from far lands; balanced in all things, with no weakness and no strange gifts.'),
+    lines: [L('ฟันเบา / กดค้างฟันหนัก · ป้องกันและปัดได้', 'Light attack / hold for heavy · can block and parry'), L('G: ตั้งหลัก — แรงกลับมาเต็มทันที (พัก 30 วินาที)', 'G: Steady — stamina refills at once (30 s cooldown)'), L('เลือดฟื้นเองตามปกติ', 'Health regenerates as normal')],
   },
   bell: {
-    name: 'ผู้ตีระฆัง', weapon: 'ค้อนระฆัง', icon: '🔔',
-    blurb: 'ผู้ดูแลระฆังของวิหารที่จมน้ำ ได้ยินจังหวะในทุกสิ่ง แม้แต่ในเสียงหัวใจของศัตรู',
-    lines: ['ฟัน "ตรงจังหวะกลอง" ของเพลง = แรงขึ้นสูงสุด ×2.4 และสะสมพลังกังวาน', 'G (กังวานเต็ม): ตีระฆังใหญ่ ศัตรูรอบตัวมึนงงและกระเด็น', 'G (ยังไม่เต็ม): เคาะเบา ๆ — เสียงสะท้อนเผยตำแหน่งศัตรูทะลุความมืด'],
+    name: L('ผู้ตีระฆัง', 'Bellwright'), weapon: L('ค้อนระฆัง', 'Bell Hammer'), icon: '🔔',
+    blurb: L('ผู้ดูแลระฆังของวิหารที่จมน้ำ ได้ยินจังหวะในทุกสิ่ง แม้แต่ในเสียงหัวใจของศัตรู', 'Keeper of the bells of the Drowned Temple, who hears rhythm in all things, even in the hearts of foes.'),
+    lines: [L('ฟัน "ตรงจังหวะกลอง" ของเพลง = แรงขึ้นสูงสุด ×2.4 และสะสมพลังกังวาน', 'Strike "on the drumbeat" of the music = up to ×2.4 damage, and builds resonance'), L('G (กังวานเต็ม): ตีระฆังใหญ่ ศัตรูรอบตัวมึนงงและกระเด็น', 'G (full resonance): toll the great bell — foes around you are stunned and thrown back'), L('G (ยังไม่เต็ม): เคาะเบา ๆ — เสียงสะท้อนเผยตำแหน่งศัตรูทะลุความมืด', 'G (not full): a soft tap — the echo reveals foes through the dark')],
   },
   leech: {
-    name: 'หมอปลิง', weapon: 'มีดกรีด', icon: '🩸',
-    blurb: 'หมอเถื่อนจากบึงที่รักษาทุกโรคด้วยการเอาเลือดออก และไม่เคยให้ใครเอาเลือดตัวเองไปฟรี ๆ',
-    lines: ['เลือดไม่ฟื้นเอง · ยิ่งเลือดน้อย ยิ่งตีแรง (สูงสุด ×2.4)', 'ฟันเบา: กรีดให้เลือดไหล · กดค้างแล้วปล่อย: ปาปลิง (ใช้เลือด 4)', 'ปลิงดูดเลือดศัตรูแล้วคลานกลับมาเติมเลือดให้ · G: เรียกปลิงกลับทันที'],
+    name: L('หมอปลิง', 'Leech-Doctor'), weapon: L('มีดกรีด', 'Lancet'), icon: '🩸',
+    blurb: L('หมอเถื่อนจากบึงที่รักษาทุกโรคด้วยการเอาเลือดออก และไม่เคยให้ใครเอาเลือดตัวเองไปฟรี ๆ', 'A marsh quack who cures every ill by letting blood, and never lets their own go for free.'),
+    lines: [L('เลือดไม่ฟื้นเอง · ยิ่งเลือดน้อย ยิ่งตีแรง (สูงสุด ×2.4)', 'Blood does not return on its own · the less blood, the harder you hit (up to ×2.4)'), L('ฟันเบา: กรีดให้เลือดไหล · กดค้างแล้วปล่อย: ปาปลิง (ใช้เลือด 4)', 'Light attack: cut to bleed · hold and release: throw a leech (costs 4 blood)'), L('ปลิงดูดเลือดศัตรูแล้วคลานกลับมาเติมเลือดให้ · G: เรียกปลิงกลับทันที', 'Leeches drink from foes and crawl back to feed you · G: call the leeches home')],
   },
   coffin: {
-    name: 'สัปเหร่อแบกโลง', weapon: 'โลงศพ', icon: '⚰️',
-    blurb: 'สัปเหร่อที่ไม่มีใครจ้าง เดินเก็บศพที่ไม่มีใครฝัง และยืมพลังจากพวกมันระหว่างทาง',
-    lines: ['เหวี่ยงโลงช้าแต่หนัก · กดค้าง: ทุบพื้นวงกว้าง · ยกโลงเป็นกำแพงกันได้ทุกอย่าง (ปัดไม่ได้)', 'G ใกล้ศพ: เก็บศพเข้าโลง (4 ช่อง) ได้พลังของศพนั้นตราบที่ยังแบกอยู่', 'G ที่อื่น: ฝังศพ — กลายเป็นหลุมศพที่ใช้ฟื้นคืนชีพ และฟื้นเลือด'],
+    name: L('สัปเหร่อแบกโลง', 'Coffin-Bearer'), weapon: L('โลงศพ', 'Coffin'), icon: '⚰️',
+    blurb: L('สัปเหร่อที่ไม่มีใครจ้าง เดินเก็บศพที่ไม่มีใครฝัง และยืมพลังจากพวกมันระหว่างทาง', 'A gravedigger no one hired, gathering the dead no one buried, and borrowing their strength along the way.'),
+    lines: [L('เหวี่ยงโลงช้าแต่หนัก · กดค้าง: ทุบพื้นวงกว้าง · ยกโลงเป็นกำแพงกันได้ทุกอย่าง (ปัดไม่ได้)', 'Slow, heavy coffin swings · hold: a wide ground slam · raise the coffin as a wall that blocks all (no parry)'), L('G ใกล้ศพ: เก็บศพเข้าโลง (4 ช่อง) ได้พลังของศพนั้นตราบที่ยังแบกอยู่', 'G near a corpse: take it into the coffin (4 slots) and wield its power while you carry it'), L('G ที่อื่น: ฝังศพ — กลายเป็นหลุมศพที่ใช้ฟื้นคืนชีพ และฟื้นเลือด', 'G elsewhere: bury a corpse — the grave becomes your respawn point and restores health')],
   },
   hunter: {
-    name: 'นักล่าหน้าไม้', weapon: 'หน้าไม้', icon: '🏹',
-    blurb: 'นายพรานจากป่ามืดตะวันตก ล่าสัตว์ที่ไม่ควรมีชีวิตมาตั้งแต่ก่อนดวงจันทร์จะป่วย ยิงจากที่ไกล ไม่เคยให้อะไรเข้ามาถึงตัว',
-    lines: ['คลิก: ยิงหน้าไม้ (ใช้ลูกดอก 1 ดอก) แล้วบรรจุใหม่ 1.2 วินาที · ระหว่างบรรจุหรือลูกดอกหมด คลิก = แทงมีด', 'กดค้าง: เล็งซูม แล้วปล่อยยิงแรง ×2 ทะลุหลายตัว · ยิงโดนหัวแรงขึ้นอีก', 'G: วางกับดักเหล็กหนีบ ศัตรูเหยียบแล้วติดอยู่กับที่ · ลูกดอกมีจำกัด ซื้อ/ตีที่ช่าง และเก็บคืนจากพื้นและศพ'],
+    name: L('นักล่าหน้าไม้', 'Crossbow Hunter'), weapon: L('หน้าไม้', 'Crossbow'), icon: '🏹',
+    blurb: L('นายพรานจากป่ามืดตะวันตก ล่าสัตว์ที่ไม่ควรมีชีวิตมาตั้งแต่ก่อนดวงจันทร์จะป่วย ยิงจากที่ไกล ไม่เคยให้อะไรเข้ามาถึงตัว', 'A hunter of the Western Darkwood who has stalked things that should not live since before the moon fell sick; shoots from afar and lets nothing close.'),
+    lines: [L('คลิก: ยิงหน้าไม้ (ใช้ลูกดอก 1 ดอก) แล้วบรรจุใหม่ 1.2 วินาที · ระหว่างบรรจุหรือลูกดอกหมด คลิก = แทงมีด', 'Click: fire the crossbow (1 bolt), then reload for 1.2 s · while reloading or out of bolts, click = knife stab'), L('กดค้าง: เล็งซูม แล้วปล่อยยิงแรง ×2 ทะลุหลายตัว · ยิงโดนหัวแรงขึ้นอีก', 'Hold: aim and zoom, release for a ×2 shot that pierces many · headshots hit harder still'), L('G: วางกับดักเหล็กหนีบ ศัตรูเหยียบแล้วติดอยู่กับที่ · ลูกดอกมีจำกัด ซื้อ/ตีที่ช่าง และเก็บคืนจากพื้นและศพ', 'G: set an iron jaw-trap that holds fast whatever steps in · bolts are few: buy or forge them at the smith, and gather them back from the ground and the dead')],
   },
   wick: {
-    name: 'ผู้แบกไส้เทียน', weapon: 'กระถางไฟ', icon: '🕯️',
-    blurb: 'ญาติห่าง ๆ ของเจ้าของโรงเตี๊ยม หัวเป็นเทียนที่ไม่เคยดับ... แต่ละลายลงทุกลมหายใจ',
-    lines: ['เลือดคือไขเทียนที่ละลายลงเรื่อย ๆ · ยืนใกล้กองไฟเพื่อหล่อเทียนคืน', 'เหวี่ยงกระถางไฟระยะไกล ศัตรูติดไฟ · ยิ่งตีติดกันไฟยิ่งแรงแต่ละลายเร็ว · กดค้าง: หมุนรอบตัว', 'G: ปักเทียน (ร่างซีดเข้าไม่ได้) · คลิกขวาค้าง: ป้องไฟ — หายไปในความมืด'],
+    name: L('ผู้แบกไส้เทียน', 'Wick-Bearer'), weapon: L('กระถางไฟ', 'Censer'), icon: '🕯️',
+    blurb: L('ญาติห่าง ๆ ของเจ้าของโรงเตี๊ยม หัวเป็นเทียนที่ไม่เคยดับ... แต่ละลายลงทุกลมหายใจ', 'A distant kin of the innkeeper, whose head is a candle that never goes out... yet melts with every breath.'),
+    lines: [L('เลือดคือไขเทียนที่ละลายลงเรื่อย ๆ · ยืนใกล้กองไฟเพื่อหล่อเทียนคืน', 'Your health is wax, ever melting · stand by a fire to recast it'), L('เหวี่ยงกระถางไฟระยะไกล ศัตรูติดไฟ · ยิ่งตีติดกันไฟยิ่งแรงแต่ละลายเร็ว · กดค้าง: หมุนรอบตัว', 'Long censer swings set foes alight · chain hits to burn hotter, but melt faster · hold: spin'), L('G: ปักเทียน (ร่างซีดเข้าไม่ได้) · คลิกขวาค้าง: ป้องไฟ — หายไปในความมืด', 'G: plant a candle (the Pale Ones cannot pass) · hold right-click: shield the flame — vanish into the dark')],
   },
 };
 
@@ -117,7 +118,7 @@ class Kit {
   animateWeapon() {}
   label() {
     const g = this.g, lv = g.gear.sword, kingly = g.combat.swordMul > 1;
-    return `${this.def.weapon}${kingly ? 'ราชาหิน' : ''}${lv ? ` +${lv}` : ''} ×${g.damageMul.toFixed(1)}`;
+    return `${kingly ? L(`${this.def.weapon}ราชาหิน`, `Stone King's ${this.def.weapon}`) : this.def.weapon}${lv ? ` +${lv}` : ''} ×${g.damageMul.toFixed(1)}`;
   }
   chips() { return []; }
   drawIcon(ctx, flash) { ctx.clearRect(0, 0, 48, 14); }
@@ -236,10 +237,10 @@ class Wanderer extends Kit {
     if (this.perk('w_dance')) {
       this.dance = this.dance.filter((t) => g.time - t < 2);
       this.dance.push(g.time);
-      if (this.dance.length >= 3) { this.dance = []; again(0.6, 'ระบำดาบ!'); }
+      if (this.dance.length >= 3) { this.dance = []; again(0.6, L('ระบำดาบ!', 'Blade dance!')); }
     }
     // the shadow blade: every fourth light blow is struck twice
-    if (this.perk('w_twin') && ++this.lightHits % 4 === 0) again(1, 'ดาบเงา!');
+    if (this.perk('w_twin') && ++this.lightHits % 4 === 0) again(1, L('ดาบเงา!', 'Shadow blade!'));
   }
 
   onKill(e) {
@@ -263,7 +264,7 @@ class Wanderer extends Kit {
     if (e && e.alive && e.state !== 'dying') { V.set(e.pos.x - p.pos.x, 0, e.pos.z - p.pos.z).normalize(); c.damageEnemy(e, true, V, 3 * this.rage()); }
     else if (by != null) g.moba?.riposte(by, 3);
     g.audio.swing(true);
-    g.ui.combatText('สวนกลับ!', 'parry');
+    g.ui.combatText(L('สวนกลับ!', 'Riposte!'), 'parry');
   }
 
   // the last stand: once every two minutes, a killing blow leaves you standing
@@ -271,24 +272,24 @@ class Wanderer extends Kit {
     const p = this.g.player;
     if (this.perk('w_last') && p.hp - dmg <= 0 && p.hp > 1 && this.g.time >= (this.lastStandAt || 0)) {
       this.lastStandAt = this.g.time + 120;
-      this.g.ui.combatText('ไม่ยอมตาย!', 'parry');
+      this.g.ui.combatText(L('ไม่ยอมตาย!', 'Not yet!'), 'parry');
       return p.hp - 1;
     }
     return dmg;
   }
 
   skill() {
-    if (this.cool > 0) { this.combat.say(`ยังตั้งหลักไม่ได้ (${Math.ceil(this.cool)})`); return; }
+    if (this.cool > 0) { this.combat.say(L(`ยังตั้งหลักไม่ได้ (${Math.ceil(this.cool)})`, `Cannot steady yet (${Math.ceil(this.cool)})`)); return; }
     const sw = this.perk('secondwind');
     this.cool = 30 - (this.perk('w_focus') ? 6 : 0) - (sw ? 6 : 0);
     this.combat.stamina = this.combat.maxStamina;
     this.combat.exhausted = false;
     if (sw) { const p = this.g.player; p.hp = Math.min(p.maxHp, p.hp + 25); }
     this.g.audio.charge();
-    this.g.ui.combatText(sw ? 'ตั้งหลัก! +25 เลือด' : 'ตั้งหลัก!', 'parry');
+    this.g.ui.combatText(sw ? L('ตั้งหลัก! +25 เลือด', 'Steady! +25 health') : L('ตั้งหลัก!', 'Steady!'), 'parry');
   }
   update(dt) { this.cool = Math.max(0, this.cool - dt); }
-  chips() { return [this.cool > 0 ? `ตั้งหลัก ${Math.ceil(this.cool)}s` : 'ตั้งหลัก [G] ✓', ...(this.rage() > 1 ? [`เลือดร้อน ×${this.rage().toFixed(2)}`] : [])]; }
+  chips() { return [this.cool > 0 ? L(`ตั้งหลัก ${Math.ceil(this.cool)}s`, `Steady ${Math.ceil(this.cool)}s`) : L('ตั้งหลัก [G] ✓', 'Steady [G] ✓'), ...(this.rage() > 1 ? [L(`เลือดร้อน ×${this.rage().toFixed(2)}`, `Hot blood ×${this.rage().toFixed(2)}`)] : [])]; }
   drawIcon() {}   // the HUD keeps drawing the sword for the wanderer
   dispose() { this.weapon.visible = false; this.weapon = null; this.g.player.regenMul = 1; super.dispose(); }
 }
@@ -362,13 +363,13 @@ class Bellwright extends Kit {
     const on = !heavy && this.g.time - this.pressAt < 0.5 ? this.pressOnBeat : this.onBeat();
     const before = this.streak;
     if (on) { if (!this.streak) this.graced = false; this.streak = Math.min(this.cap, this.streak + 1); }
-    else if (this.perk('r_grace') && this.streak && !this.graced) { this.graced = true; this.g.ui.combatText('จังหวะผ่อน', 'info'); }
+    else if (this.perk('r_grace') && this.streak && !this.graced) { this.graced = true; this.g.ui.combatText(L('จังหวะผ่อน', 'Grace beat'), 'info'); }
     else if (this.perk('sustain')) this.streak = Math.max(0, this.streak - 2);
     else { this.streak = 0; this.resonance = Math.max(0, this.resonance - 8); }
     this.hitOnBeat = on;
     this.reachedTop = on && before < this.cap && this.streak === this.cap;
     const mul = on ? (this.perk('r_pulse') ? 1.45 : 1.3) + 0.18 * Math.min(this.streak, this.cap) : 0.75;
-    if (!this.graced || on) this.g.ui.combatText(on ? `♪ ตรงจังหวะ ×${mul.toFixed(1)}` : 'หลุดจังหวะ', on ? 'parry' : 'info');
+    if (!this.graced || on) this.g.ui.combatText(on ? L(`♪ ตรงจังหวะ ×${mul.toFixed(1)}`, `♪ On the beat ×${mul.toFixed(1)}`) : L('หลุดจังหวะ', 'Off the beat'), on ? 'parry' : 'info');
     const s = heavy
       ? { dur: 0.6, cost: 24 * (this.perk('r_arm') ? 0.8 : 1), hitAt: 0.42, range: 3.3, arc: 0.3, dmg: 2.6 * mul * (this.perk('weight') ? 1.3 : 1), heavy: true }
       : { dur: 0.38 * (this.perk('r_tempo') ? 0.85 : 1), cost: 10, hitAt: 0.35, range: 2.9 + (this.perk('r_crescendo') && this.streak >= 6 ? 0.6 : 0), arc: 0.45, dmg: 1 * mul, heavy: false };
@@ -406,7 +407,7 @@ class Bellwright extends Kit {
       this.greatBell(0.6);
       this.streak = 0;
       a.metal({ freq: 110, dur: 4, gain: 0.25, partials: [1, 2.02, 2.76, 4.1, 5.4], verb: 0.9 });
-      g.ui.combatText('ฟินาเล่!', 'parry');
+      g.ui.combatText(L('ฟินาเล่!', 'Finale!'), 'parry');
     }
     // the symphony: deep in a streak, every on-beat blow rings out around you (once per swing)
     const n = this.combat.swingN;
@@ -431,7 +432,7 @@ class Bellwright extends Kit {
       c.damageEnemy(e, true, V, 2 * power);
       if (e.alive && e.state !== 'dying') { e.state = 'stagger'; e.t = (e.def.boss ? 1.0 : this.perk('wave') ? 3.5 : 2.6) * Math.max(0.5, power); e.vel.addScaledVector(V, 10 * power / e.def.weight); }
       // the death knell: whatever is already broken does not get up again
-      if (this.perk('r_doom') && e.alive && e.state !== 'dying' && !e.def.boss && !e.def.named && !e.moba && e.hp < e.def.hp * 0.35) { c.kill(e); g.ui.combatText('ระฆังมรณะ', 'parry'); }
+      if (this.perk('r_doom') && e.alive && e.state !== 'dying' && !e.def.boss && !e.def.named && !e.moba && e.hp < e.def.hp * 0.35) { c.kill(e); g.ui.combatText(L('ระฆังมรณะ', 'Death knell'), 'parry'); }
     }
     g.moba?.strike({ radial: true, range: R, dmg: 2 * power, heavy: true }, g.camera.position, p.forwardVec);
   }
@@ -453,12 +454,12 @@ class Bellwright extends Kit {
         const a = i / 16 * Math.PI * 2;
         g.particles.burst(new THREE.Vector3(p.pos.x + Math.cos(a) * 3, p.pos.y + 1, p.pos.z + Math.sin(a) * 3), 2, 7, 0.8);
       }
-      g.ui.combatText('ระฆังใหญ่!', 'parry');
+      g.ui.combatText(L('ระฆังใหญ่!', 'Great bell!'), 'parry');
       return;
     }
-    if (this.pingCool > 0) { c.say('ระฆังยังสั่นอยู่...'); return; }
+    if (this.pingCool > 0) { c.say(L('ระฆังยังสั่นอยู่...', 'The bell still trembles...')); return; }
     const hunt = this.perk('r_hunt');
-    if (c.stamina < (hunt ? 6 : 12)) { c.say('เหนื่อยเกินไป'); return; }
+    if (c.stamina < (hunt ? 6 : 12)) { c.say(L('เหนื่อยเกินไป', 'Too weary')); return; }
     c.spend(hunt ? 6 : 12);
     this.pingCool = hunt ? 1.5 : 3;
     // a soft chime that comes back from everything alive in the dark
@@ -474,7 +475,7 @@ class Bellwright extends Kit {
       this.marks.push({ s, e, t: this.perk('echo') ? 14 : 6 });
       n++;
     }
-    g.ui.combatText(n ? `เสียงสะท้อน: ${n} ตัว` : 'เงียบสนิท...', 'info');
+    g.ui.combatText(n ? L(`เสียงสะท้อน: ${n} ตัว`, `Echo: ${n} foes`) : L('เงียบสนิท...', 'Utter silence...'), 'info');
   }
 
   clearMarks() { for (const m of this.marks) this.removeWorld(m.s); this.marks = []; }
@@ -514,7 +515,7 @@ class Bellwright extends Kit {
 
   chips() {
     const bar = '▮'.repeat(Math.floor(this.resonance / 10)) + '▯'.repeat(10 - Math.floor(this.resonance / 10));
-    return [`กังวาน ${bar}${this.resonance >= this.need ? ' [G] ระฆังใหญ่!' : ''}`, ...(this.streak > 1 ? [`จังหวะต่อเนื่อง ×${this.streak}`] : [])];
+    return [`${L('กังวาน', 'Resonance')} ${bar}${this.resonance >= this.need ? L(' [G] ระฆังใหญ่!', ' [G] Great bell!') : ''}`, ...(this.streak > 1 ? [L(`จังหวะต่อเนื่อง ×${this.streak}`, `Beat streak ×${this.streak}`)] : [])];
   }
 
   drawIcon(ctx, flash) {
@@ -597,7 +598,7 @@ class LeechDoctor extends Kit {
       this.combat.damageEnemy(e, true, V, 1.5 * this.frenzy);
       const p = this.g.player;
       p.hp = Math.min(p.maxHp, p.hp + 6);
-      this.g.ui.combatText('ผ่า! +6 เลือด', 'parry');
+      this.g.ui.combatText(L('ผ่า! +6 เลือด', 'Lanced! +6 blood'), 'parry');
       this.g.particles.burst(e.pos.clone().setY(e.pos.y + e.def.height * 0.6), 18, 4, 0.6);
     }
   }
@@ -615,15 +616,15 @@ class LeechDoctor extends Kit {
       p.hp = Math.min(p.maxHp, p.hp + 10);
       g.particles.burst(e.pos.clone().setY(e.pos.y + e.def.height * 0.6), 26, 5, 0.8);
       g.audio.burst({ dur: 0.5, freq: 300, q: 1, gain: 0.25 });
-      g.ui.combatText('สูบเลือด! +10', 'parry');
+      g.ui.combatText(L('สูบเลือด! +10', 'Bloodletting! +10'), 'parry');
     }
   }
 
   throwLeech() {
     const g = this.g, p = g.player, c = this.combat;
-    if (this.leeches.length >= this.maxOut) { c.say('ปลิงออกไปหมดแล้ว'); return; }
-    if (g.bag.count('leech_live') <= 0) { c.say('ไม่มีปลิงในกระเป๋า'); return; }
-    if (p.hp <= 6) { c.say('เลือดไม่พอจะเลี้ยงปลิง'); return; }
+    if (this.leeches.length >= this.maxOut) { c.say(L('ปลิงออกไปหมดแล้ว', 'All your leeches are out')); return; }
+    if (g.bag.count('leech_live') <= 0) { c.say(L('ไม่มีปลิงในกระเป๋า', 'No leeches in your bag')); return; }
+    if (p.hp <= 6) { c.say(L('เลือดไม่พอจะเลี้ยงปลิง', 'Too little blood to feed a leech')); return; }
     // the tide: three at once, fanned out (one blood price for the lot)
     const n = this.perk('l_tide') ? Math.min(3, g.bag.count('leech_live'), Math.max(1, this.maxOut - this.leeches.length)) : 1;
     p.hp -= Math.max(1, (this.perk('homing') ? 2 : 4) - (this.perk('l_jar') ? 1 : 0));
@@ -644,7 +645,7 @@ class LeechDoctor extends Kit {
 
   // G: every leech lets go (tearing a little more out on the way) and comes home
   skill() {
-    if (!this.leeches.length) { this.combat.say('ไม่มีปลิงอยู่ข้างนอก'); return; }
+    if (!this.leeches.length) { this.combat.say(L('ไม่มีปลิงอยู่ข้างนอก', 'No leeches are out')); return; }
     const burst = this.perk('burst');
     for (const L of this.leeches) {
       if (L.state === 'drink' && L.e?.alive && L.e.state !== 'dying') {
@@ -725,18 +726,18 @@ class LeechDoctor extends Kit {
     if (heal > 0.5) this.feat(Math.round(heal));
     if (heal > 0.5) {
       p.hp = Math.min(p.maxHp, p.hp + heal);
-      g.ui.combatText(`+${Math.round(heal)} เลือด`, 'parry');
+      g.ui.combatText(L(`+${Math.round(heal)} เลือด`, `+${Math.round(heal)} blood`), 'parry');
       g.audio.drink();
       if (this.perk('l_rich')) this.combat.stamina = Math.min(this.combat.maxStamina, this.combat.stamina + 10);
     }
     const back = 1 + (this.perk('l_breed') && heal > 0.5 && Math.random() < 0.35 ? 1 : 0);
-    if (back > 1) g.ui.combatText('ปลิงแพร่พันธุ์! +1', 'parry');
-    if (g.bag.add('leech_live', back) > 0) g.ui.toast('กระเป๋าเต็ม — ปลิงตัวนั้นคลานหนีไปแล้ว');
+    if (back > 1) g.ui.combatText(L('ปลิงแพร่พันธุ์! +1', 'The leech breeds! +1'), 'parry');
+    if (g.bag.add('leech_live', back) > 0) g.ui.toast(L('กระเป๋าเต็ม — ปลิงตัวนั้นคลานหนีไปแล้ว', 'Bag full — that leech has crawled away'));
   }
 
   chips() {
     const out = this.leeches.length, have = this.g.bag.count('leech_live');
-    return [`ปลิง ${have} ในกระเป๋า · ${out}/${this.maxOut} ออกล่า`, `เลือดคลั่ง ×${this.frenzy.toFixed(1)}`];
+    return [L(`ปลิง ${have} ในกระเป๋า · ${out}/${this.maxOut} ออกล่า`, `Leeches ${have} in bag · ${out}/${this.maxOut} hunting`), L(`เลือดคลั่ง ×${this.frenzy.toFixed(1)}`, `Blood frenzy ×${this.frenzy.toFixed(1)}`)];
   }
 
   drawIcon(ctx, flash) {
@@ -758,12 +759,12 @@ class LeechDoctor extends Kit {
 // ------------------------------------------------------------------------------------------------
 // The Coffin-Bearer
 export const CORPSES = {
-  gaunt: { name: 'ร่างซูบ', power: 'วิ่งไม่เปลืองแรง เร็วขึ้น' },
-  crawler: { name: 'ร่างคลาน', power: 'ปีนทางชันได้' },
-  weeper: { name: 'หญิงร่ำไห้', power: 'ศัตรูที่จ้องอยู่ขยับไม่ได้' },
-  brute: { name: 'ร่างยักษ์', power: 'ทุบพื้นกว้างและแรงขึ้น' },
-  wolf: { name: 'หมาป่าเงา', power: 'เหวี่ยงโลงเร็วขึ้น' },
-  straw: { name: 'หุ่นฟาง', power: 'รับดาเมจลดลง 15%' },
+  gaunt: { name: L('ร่างซูบ', 'Gaunt'), power: L('วิ่งไม่เปลืองแรง เร็วขึ้น', 'run faster, without tiring') },
+  crawler: { name: L('ร่างคลาน', 'Crawler'), power: L('ปีนทางชันได้', 'climb steep slopes') },
+  weeper: { name: L('หญิงร่ำไห้', 'Weeping Woman'), power: L('ศัตรูที่จ้องอยู่ขยับไม่ได้', 'foes you watch cannot move') },
+  brute: { name: L('ร่างยักษ์', 'Brute'), power: L('ทุบพื้นกว้างและแรงขึ้น', 'wider, harder ground slams') },
+  wolf: { name: L('หมาป่าเงา', 'Shadow Wolf'), power: L('เหวี่ยงโลงเร็วขึ้น', 'faster coffin swings') },
+  straw: { name: L('หุ่นฟาง', 'Strawman'), power: L('รับดาเมจลดลง 15%', 'take 15% less damage') },
 };
 const COFFIN_SLOTS = 4;
 const COFFIN_POSE = {
@@ -833,7 +834,7 @@ class CoffinBearer extends Kit {
   holdFirm() {
     if (!this.perk('a_unmoved') || this.g.time < (this.firmAt || 0)) return false;
     this.firmAt = this.g.time + 10;
-    this.g.ui.combatText('ไม่สะเทือน!', 'parry');
+    this.g.ui.combatText(L('ไม่สะเทือน!', 'Unshaken!'), 'parry');
     return true;
   }
 
@@ -841,7 +842,7 @@ class CoffinBearer extends Kit {
     this.feat(1);
     const g = this.g, p = g.player;
     if (this.perk('a_bastion')) p.hp = Math.min(p.maxHp, p.hp + 3);
-    if (this.perk('a_vengeance') && ++this.blocks >= 3 && !this.venge) { this.venge = true; g.ui.combatText('แค้นโลง: ครั้งต่อไป ×2', 'parry'); }
+    if (this.perk('a_vengeance') && ++this.blocks >= 3 && !this.venge) { this.venge = true; g.ui.combatText(L('แค้นโลง: ครั้งต่อไป ×2', 'Coffin\'s grudge: next blow ×2'), 'parry'); }
     if (!this.perk('reflect')) return;
     const back = this.perk('a_bash') ? 2.4 : 1.2;
     if (e && e.alive && e.state !== 'dying') {
@@ -890,7 +891,7 @@ class CoffinBearer extends Kit {
     if (kind !== 'heavy' || !e.alive || e.def.boss) return;
     // the ground split under it, or the dead in the coffin looked at it
     if (this.perk('a_fissure')) { e.state = 'stagger'; e.t = Math.max(e.t, 1.3); }
-    if (this.perk('b_fear') && Math.random() < 0.3) { e.state = 'stagger'; e.t = Math.max(e.t, 1.5); this.g.ui.combatText('ขวัญเสีย!', 'parry'); }
+    if (this.perk('b_fear') && Math.random() < 0.3) { e.state = 'stagger'; e.t = Math.max(e.t, 1.5); this.g.ui.combatText(L('ขวัญเสีย!', 'Terrified!'), 'parry'); }
   }
 
   onKill(e) {
@@ -898,7 +899,7 @@ class CoffinBearer extends Kit {
     if (this.perk('b_drain') && this.slots.length) p.hp = Math.min(p.maxHp, p.hp + 4);
     if (!CORPSES[e.type]) return;
     e.corpseHold = this.perk('b_root') ? 60 : 30;    // the body stays put until it is taken or the time runs out
-    if (!this.hinted) { this.hinted = true; setTimeout(() => this.g.ui.toast('กด G ใกล้ศพเพื่อเก็บเข้าโลง'), 900); }
+    if (!this.hinted) { this.hinted = true; setTimeout(() => this.g.ui.toast(L('กด G ใกล้ศพเพื่อเก็บเข้าโลง', 'Press G near a corpse to take it into the coffin')), 900); }
   }
 
   nearestCorpse() {
@@ -927,19 +928,19 @@ class CoffinBearer extends Kit {
       g.audio.thump({ freq: 110, dur: 0.3, gain: 0.35 });
       g.audio.burst({ dur: 0.4, freq: 600, q: 1, gain: 0.12, delay: 0.15 });
       g.particles.burst(e.pos.clone().setY(e.pos.y + 0.5), 10, 2, 0.6);
-      g.ui.combatText(`เก็บ${CORPSES[e.type].name}: ${CORPSES[e.type].power}`, 'parry');
+      g.ui.combatText(L(`เก็บ${CORPSES[e.type].name}: ${CORPSES[e.type].power}`, `${CORPSES[e.type].name} taken: ${CORPSES[e.type].power}`), 'parry');
       g.hud.grin();
       if (this.perk('b_harvest')) { g.player.hp = Math.min(g.player.maxHp, g.player.hp + 8); this.combat.stamina = Math.min(this.combat.maxStamina, this.combat.stamina + 20); }
       return;
     }
-    if (!this.slots.length) { this.combat.say('ไม่มีศพในโลง และไม่มีศพให้เก็บ'); return; }
+    if (!this.slots.length) { this.combat.say(L('ไม่มีศพในโลง และไม่มีศพให้เก็บ', 'The coffin is empty, and no corpse lies near')); return; }
     this.bury();
   }
 
   // the oldest corpse goes into the ground at your feet: a grave to wake up at
   bury() {
     const g = this.g, p = g.player;
-    if (p.inWater > 0.15) { this.combat.say('ฝังศพในน้ำไม่ได้'); return false; }
+    if (p.inWater > 0.15) { this.combat.say(L('ฝังศพในน้ำไม่ได้', 'You cannot bury in water')); return false; }
     const type = this.slots.shift();
     this.apply();
     const f = p.forwardVec;
@@ -961,7 +962,7 @@ class CoffinBearer extends Kit {
     g.audio.thump({ freq: 70, dur: 0.6, gain: 0.4 });
     g.audio.burst({ dur: 0.8, freq: 300, q: 0.8, gain: 0.2 });
     g.audio.chime();
-    g.ui.combatText(`ฝัง${CORPSES[type].name} · จุดฟื้นคืนชีพใหม่ · +${heal} เลือด`, 'parry');
+    g.ui.combatText(L(`ฝัง${CORPSES[type].name} · จุดฟื้นคืนชีพใหม่ · +${heal} เลือด`, `${CORPSES[type].name} buried · new respawn point · +${heal} health`), 'parry');
     g.save();
     return true;
   }
@@ -976,7 +977,7 @@ class CoffinBearer extends Kit {
     g.audio.slam(p.pos);
     g.audio.burst({ dur: 1.2, freq: 400, q: 0.7, gain: 0.25, sweep: 0.5 });
     p.shake = Math.max(p.shake, 0.4);
-    g.ui.combatText(`กองทัพในโลง! ×${n}`, 'parry');
+    g.ui.combatText(L(`กองทัพในโลง! ×${n}`, `An army in the coffin! ×${n}`), 'parry');
   }
 
   addGrave(x, z, type) {
@@ -1037,7 +1038,7 @@ class CoffinBearer extends Kit {
   chips() {
     const list = this.slots.map((t) => `⚰ ${CORPSES[t].name} — ${CORPSES[t].power}`);
     for (const l of this.lingering || []) list.push(`👻 ${CORPSES[l.type].name} ${Math.ceil(l.t)}s`);
-    return list.length ? list : [`โลงว่าง (0/${this.maxSlots}) · ฆ่าแล้วกด G ใกล้ศพ`];
+    return list.length ? list : [L(`โลงว่าง (0/${this.maxSlots}) · ฆ่าแล้วกด G ใกล้ศพ`, `Coffin empty (0/${this.maxSlots}) · kill, then press G near the corpse`)];
   }
 
   label() { return `${super.label()} · ${this.slots.length}/${this.maxSlots}`; }
@@ -1136,7 +1137,7 @@ class WickBearer extends Kit {
     const g = this.g;
     setTimeout(() => { g.player.hp = Math.max(g.player.hp, 40); }, 0);
     g.particles.burst(g.player.pos.clone().setY(g.player.pos.y + 1), 30, 5, 1.0);
-    g.ui.combatText('ฟีนิกซ์! ไขกลับคืน', 'parry');
+    g.ui.combatText(L('ฟีนิกซ์! ไขกลับคืน', 'Phoenix! The wax returns'), 'parry');
     return true;
   }
 
@@ -1145,7 +1146,7 @@ class WickBearer extends Kit {
     // ambush: the first blow out of the dark burns three times as hot
     const amb = this.perk('ambush') && g.time - (this.unsnuffAt ?? -9) < 2 && !this.ambushUsed;
     if (amb) {
-      this.ambushUsed = true; this.ambushing = true; this.feat(1); g.ui.combatText('ลอบเผา! ×3', 'parry');
+      this.ambushUsed = true; this.ambushing = true; this.feat(1); g.ui.combatText(L('ลอบเผา! ×3', 'Ambush burn! ×3'), 'parry');
       // dread: everything near reels from the sudden fire
       if (this.perk('k_dread')) for (const e of this.combat.enemies) {
         if (!e.alive || e.state === 'dying' || e.def.boss || e.moba || e.pos.distanceTo(g.player.pos) > 5) continue;
@@ -1230,15 +1231,15 @@ class WickBearer extends Kit {
     for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2; g.particles.burst(new THREE.Vector3(p.pos.x + Math.cos(a) * 4, p.pos.y + 1, p.pos.z + Math.sin(a) * 4), 2, 8, 1); }
     g.audio.burst({ dur: 1.4, freq: 400, q: 0.6, gain: 0.35, sweep: 0.5, attack: 0.05 });
     p.shake = Math.max(p.shake, 0.4);
-    g.ui.combatText('ดวงอาทิตย์ดับ!', 'parry');
+    g.ui.combatText(L('ดวงอาทิตย์ดับ!', 'The sun goes out!'), 'parry');
   }
 
   skill() {
     const g = this.g, p = g.player;
     if (this.snuffed) return;
     if (this.perk('k_sun') && this.heat >= 0.95) { this.sunburst(); return; }
-    if (p.hp <= 12) { this.combat.say('ไขเทียนเหลือน้อยเกินไป'); return; }
-    if (p.inWater > 0.15) { this.combat.say('ปักเทียนในน้ำไม่ได้'); return; }
+    if (p.hp <= 12) { this.combat.say(L('ไขเทียนเหลือน้อยเกินไป', 'Too little wax left')); return; }
+    if (p.inWater > 0.15) { this.combat.say(L('ปักเทียนในน้ำไม่ได้', 'You cannot plant a candle in water')); return; }
     if (this.candles.length >= this.maxCandles) { const old = this.candles.shift(); this.removeWorld(old.obj); }
     p.hp -= this.perk('k_twin') ? 3 : 6;
     const f = p.forwardVec, x = p.pos.x + f.x * 1.2, z = p.pos.z + f.z * 1.2;
@@ -1319,7 +1320,7 @@ class WickBearer extends Kit {
       for (const f of this.fires) if (f.t <= 0) this.removeWorld(f.obj);
       this.fires = this.fires.filter((f) => f.t > 0);
     }
-    if (p.hp < 30 && !this.warned) { this.warned = true; g.ui.toast('เทียนใกล้หมด... หากองไฟแล้วยืนใกล้ ๆ เพื่อหล่อเทียนคืน'); }
+    if (p.hp < 30 && !this.warned) { this.warned = true; g.ui.toast(L('เทียนใกล้หมด... หากองไฟแล้วยืนใกล้ ๆ เพื่อหล่อเทียนคืน', 'Your candle gutters... find a fire and stand close to recast it')); }
     if (p.hp > 50) this.warned = false;
 
     // candles burn down; the Pale Ones and the wisps will not step into their light
@@ -1363,8 +1364,8 @@ class WickBearer extends Kit {
   }
 
   chips() {
-    const lit = this.snuffed ? 'ป้องไฟอยู่ — มองไม่เห็นเจ้า' : `ไฟ ${'▮'.repeat(Math.round(this.heat * 5))}${'▯'.repeat(5 - Math.round(this.heat * 5))}`;
-    return [lit, `เทียนที่ปัก ${this.candles.length}/${this.maxCandles}`, ...(this.nearFire() ? ['กำลังหล่อเทียน ▲'] : [])];
+    const lit = this.snuffed ? L('ป้องไฟอยู่ — มองไม่เห็นเจ้า', 'Flame shielded — none can see you') : `${L('ไฟ', 'Flame')} ${'▮'.repeat(Math.round(this.heat * 5))}${'▯'.repeat(5 - Math.round(this.heat * 5))}`;
+    return [lit, L(`เทียนที่ปัก ${this.candles.length}/${this.maxCandles}`, `Candles planted ${this.candles.length}/${this.maxCandles}`), ...(this.nearFire() ? [L('กำลังหล่อเทียน ▲', 'Recasting ▲')] : [])];
   }
 
   drawIcon(ctx, flash) {
@@ -1476,7 +1477,7 @@ class Hunter extends Kit {
   swing(kind) {
     if (this.canShoot) { this.fire(kind === 'heavy'); return null; }
     // the knife: quick, short, for when the crossbow is empty or still being wound
-    if (!this.quiver && !this.warned) { this.warned = true; this.combat.say('ลูกดอกหมด! — ใช้มีด'); }
+    if (!this.quiver && !this.warned) { this.warned = true; this.combat.say(L('ลูกดอกหมด! — ใช้มีด', 'Out of bolts — knife')); }
     const k = this.perk('h_knife');
     return { dur: 0.28 * (k ? 0.85 : 1), cost: 7, hitAt: 0.45, range: 2.3, arc: 0.6, dmg: (kind === 'heavy' ? 1.3 : 0.8) * (k ? 1.4 : 1), heavy: kind === 'heavy' };
   }
@@ -1493,7 +1494,7 @@ class Hunter extends Kit {
     let dmg = aimed ? 4 : 2;
     if (!aimed && this.perk('h_sure')) dmg *= 1.1;
     if (aimed && this.perk('h_eye')) dmg *= 1.2;
-    if (this.perk('h_still') && this.still >= 1.5) { dmg *= 1.4; g.ui.combatText('นิ่ง...', 'info'); }
+    if (this.perk('h_still') && this.still >= 1.5) { dmg *= 1.4; g.ui.combatText(L('นิ่ง...', 'Still...'), 'info'); }
     const moon = aimed && this.perk('h_moon');
     if (moon) dmg *= 1.5;
     const pierce = !aimed ? 1 : moon ? 99 : this.perk('h_pierce') ? 5 : 3;
@@ -1516,9 +1517,9 @@ class Hunter extends Kit {
     b.hit.add(e);
     let dmg = b.dmg;
     const head = !e.def.fly && point.y > e.pos.y + e.def.height * 0.85;
-    if (head) { dmg *= this.perk('h_head') ? 2 : 1.5; g.ui.combatText('หัว!', 'parry'); this.feat(1); }
+    if (head) { dmg *= this.perk('h_head') ? 2 : 1.5; g.ui.combatText(L('หัว!', 'Headshot!'), 'parry'); this.feat(1); }
     if (this.perk('h_far')) dmg *= 1 + Math.min(0.32, Math.floor(b.from.distanceTo(e.pos) / 5) * 0.04);
-    if (this.perk('h_unseen') && (e.state === 'idle' || e.state === 'return' || e.state === 'wander')) { dmg *= 1.6; g.ui.combatText('ไร้เงา!', 'parry'); }
+    if (this.perk('h_unseen') && (e.state === 'idle' || e.state === 'return' || e.state === 'wander')) { dmg *= 1.6; g.ui.combatText(L('ไร้เงา!', 'Unseen!'), 'parry'); }
     V.copy(b.vel).setY(0).normalize();
     this.lastShotAimed = b.aimed;
     e.boltsIn = (e.boltsIn || 0) + 1;          // counted first: the bolt that kills comes out of the body too
@@ -1536,13 +1537,13 @@ class Hunter extends Kit {
       let n = 0;
       for (let i = 0; i < e.boltsIn; i++) if (this.perk('h_salvage') || Math.random() < 0.6) n++;
       e.boltsIn = 0;
-      if (n && g.bag.add('bolt', n) < n) g.ui.combatText(`+${n} ลูกดอก`, 'info');
+      if (n && g.bag.add('bolt', n) < n) g.ui.combatText(L(`+${n} ลูกดอก`, `+${n} bolts`), 'info');
     }
     if (this.lastShotAimed && this.combat.swing == null) this.feat(1);
     if (this.perk('h_chain')) { this.reloadT = 0; this.loaded = this.magazine; }
     if (e.trapped > 0) {
-      if (this.perk('h_skin')) { g.coins += 4; g.ui.combatText('+4 เหรียญ', 'info'); }
-      if (this.perk('h_feast')) { this.cool = 0; this.reloadT = 0; this.loaded = this.magazine; p.hp = Math.min(p.maxHp, p.hp + 10); g.ui.combatText('งานเลี้ยง! +10', 'parry'); }
+      if (this.perk('h_skin')) { g.coins += 4; g.ui.combatText(L('+4 เหรียญ', '+4 coins'), 'info'); }
+      if (this.perk('h_feast')) { this.cool = 0; this.reloadT = 0; this.loaded = this.magazine; p.hp = Math.min(p.maxHp, p.hp + 10); g.ui.combatText(L('งานเลี้ยง! +10', 'Feast! +10'), 'parry'); }
     }
   }
 
@@ -1550,7 +1551,7 @@ class Hunter extends Kit {
 
   // G: a steel trap in front of you (or three, thrown in a fan)
   skill() {
-    if (this.cool > 0) { this.combat.say(`กับดักยังไม่พร้อม (${Math.ceil(this.cool)})`); return; }
+    if (this.cool > 0) { this.combat.say(L(`กับดักยังไม่พร้อม (${Math.ceil(this.cool)})`, `Trap not ready (${Math.ceil(this.cool)})`)); return; }
     const g = this.g, p = g.player, f = p.forwardVec;
     const angles = this.perk('h_field') ? [-0.45, 0, 0.45] : [0];
     for (const a of angles) {
@@ -1602,7 +1603,7 @@ class Hunter extends Kit {
       g.audio.burst({ dur: 0.5, freq: 160, q: 0.8, gain: 0.35 });
     }
     g.audio.burst({ dur: 0.15, freq: 1200, q: 3, gain: 0.3, pos: e.pos });
-    g.ui.combatText('ติดกับ!', 'parry');
+    g.ui.combatText(L('ติดกับ!', 'Trapped!'), 'parry');
     T.m.scale.set(1, 1, 0.35);           // the jaws snapped shut
     T.armed = false;
     if (T.rearm > 0) { T.rearm--; T.t = -2; }          // it winds itself back in two seconds
@@ -1627,7 +1628,7 @@ class Hunter extends Kit {
     for (const b of this.bolts) {
       b.t += dt;
       if (b.state === 'stuck') {
-        if (p.pos.distanceTo(b.pos) < 1.6 && g.bag.add('bolt', 1) === 0) { b.done = true; g.ui.combatText('+1 ลูกดอก', 'info'); g.audio.ui?.(); }
+        if (p.pos.distanceTo(b.pos) < 1.6 && g.bag.add('bolt', 1) === 0) { b.done = true; g.ui.combatText(L('+1 ลูกดอก', '+1 bolt'), 'info'); g.audio.ui?.(); }
         else if (b.t > (this.perk('h_salvage') ? 120 : 45)) b.done = true;
         continue;
       }
@@ -1705,11 +1706,11 @@ class Hunter extends Kit {
     this.knife.position.z = knifeUp ? -0.35 : 0.1;
   }
 
-  label() { return `${super.label()} · ${this.quiver} ดอก`; }
+  label() { return `${super.label()} · ${L(`${this.quiver} ดอก`, `${this.quiver} bolts`)}`; }
 
   chips() {
-    const state = this.quiver <= 0 ? 'ลูกดอกหมด — ใช้มีด' : this.reloadT > 0 ? `กำลังบรรจุ ${this.reloadT.toFixed(1)}s` : `พร้อมยิง${this.loaded > 1 ? ` ×${this.loaded}` : ''}`;
-    return [`ลูกดอก ${this.quiver} · ${state}`, this.cool > 0 ? `กับดัก ${Math.ceil(this.cool)}s` : `กับดัก [G] ✓ (${this.traps.filter((t) => t.armed).length}/${this.maxTraps})`];
+    const state = this.quiver <= 0 ? L('ลูกดอกหมด — ใช้มีด', 'Out of bolts — knife') : this.reloadT > 0 ? L(`กำลังบรรจุ ${this.reloadT.toFixed(1)}s`, `Reloading ${this.reloadT.toFixed(1)}s`) : `${L('พร้อมยิง', 'Loaded')}${this.loaded > 1 ? ` ×${this.loaded}` : ''}`;
+    return [`${L('ลูกดอก', 'Bolts')} ${this.quiver} · ${state}`, this.cool > 0 ? `${L('กับดัก', 'Trap')} ${Math.ceil(this.cool)}s` : `${L('กับดัก', 'Trap')} [G] ✓ (${this.traps.filter((t) => t.armed).length}/${this.maxTraps})`];
   }
 
   drawIcon(ctx, flash) {

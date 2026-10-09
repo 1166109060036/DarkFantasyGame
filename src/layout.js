@@ -1,5 +1,6 @@
 // Hand-placed world layout. North is -Z, east is +X. The map spans -800..800 on both axes: the
 // old valley of Moonmire in the middle (-300..300) and four wild regions around it.
+import { L } from './i18n.js';
 
 export const WATER_LEVEL = 0;
 
@@ -49,15 +50,15 @@ export const HOUSES = [[50, 30, 0.3], [64, -24, 2.9], [97, -24, 3.3], [40, 6, 1.
 
 // Discoverable locations (shown as a title card the first time you get close).
 export const LOCATIONS = [
-  { id: 'swamp', name: 'บึงแสงจันทร์', x: -40, z: 220, r: 60 },
-  { id: 'ribcage', name: 'ซี่โครงอสูร', x: RIBCAGE.x, z: RIBCAGE.z, r: 40 },
-  { id: 'village', name: 'หมู่บ้านสถานีร้าง', x: TAVERN.x, z: TAVERN.z, r: 45 },
-  { id: 'pasture', name: 'เนินจันทร์', x: PASTURE.x, z: PASTURE.z, r: 50 },
-  { id: 'castle', name: 'ปราสาทแขวนฟ้า', x: CASTLE.x, z: CASTLE.z, r: 95 },
-  { id: 'toad', name: 'เห็ดยักษ์', x: TOAD.x, z: TOAD.z, r: 30 },
-  { id: 'head', name: 'ราชาหินผู้หลับใหล', x: HEAD.x, z: HEAD.z, r: 70 },
-  { id: 'canyon', name: 'หุบผาซุ้มประตู', x: 0, z: -165, r: 30 },
-  { id: 'temple', name: 'วิหารจมน้ำ', x: TEMPLE.x, z: TEMPLE.z, r: 40 },
+  { id: 'swamp', name: L('บึงแสงจันทร์', 'Moonlit Marsh'), x: -40, z: 220, r: 60 },
+  { id: 'ribcage', name: L('ซี่โครงอสูร', "Beast's Ribcage"), x: RIBCAGE.x, z: RIBCAGE.z, r: 40 },
+  { id: 'village', name: L('หมู่บ้านสถานีร้าง', 'Abandoned Station Village'), x: TAVERN.x, z: TAVERN.z, r: 45 },
+  { id: 'pasture', name: L('เนินจันทร์', 'Moon Hill'), x: PASTURE.x, z: PASTURE.z, r: 50 },
+  { id: 'castle', name: L('ปราสาทแขวนฟ้า', 'Sky-Hung Castle'), x: CASTLE.x, z: CASTLE.z, r: 95 },
+  { id: 'toad', name: L('เห็ดยักษ์', 'Giant Mushroom'), x: TOAD.x, z: TOAD.z, r: 30 },
+  { id: 'head', name: L('ราชาหินผู้หลับใหล', 'The Sleeping Stone King'), x: HEAD.x, z: HEAD.z, r: 70 },
+  { id: 'canyon', name: L('หุบผาซุ้มประตู', 'Archway Gorge'), x: 0, z: -165, r: 30 },
+  { id: 'temple', name: L('วิหารจมน้ำ', 'Drowned Temple'), x: TEMPLE.x, z: TEMPLE.z, r: 40 },
 ];
 
 // ---- Enemies ----
@@ -119,14 +120,14 @@ export const ROADS = [
 ];
 
 export const WILD_LOCATIONS = [
-  { id: 'belltower', name: 'หอระฆังบนยอดเขา', x: BELLTOWER.x, z: BELLTOWER.z, r: 55 },
-  { id: 'stones', name: 'ลานหินตั้งแห่งลมหนาว', x: STONES.x, z: STONES.z, r: 45 },
-  { id: 'windmill', name: 'กังหันลมร้าง', x: WINDMILL.x, z: WINDMILL.z, r: 45 },
-  { id: 'farms', name: 'ไร่ข้าวโพดร้าง', x: FARMS.x, z: FARMS.z, r: 60 },
-  { id: 'drowned', name: 'เมืองจมใต้ทะเลสาบ', x: DROWNED.x, z: DROWNED.z, r: 130 },
-  { id: 'pier', name: 'ท่าเรือผุ', x: PIER.x, z: PIER.z, r: 35 },
-  { id: 'hangtree', name: 'ต้นไม้แขวนคอ', x: HANGTREE.x, z: HANGTREE.z, r: 50 },
-  { id: 'hunter', name: 'เพิงนายพรานที่หายไป', x: HUNTER.x, z: HUNTER.z, r: 35 },
+  { id: 'belltower', name: L('หอระฆังบนยอดเขา', 'Bell Tower on the Peak'), x: BELLTOWER.x, z: BELLTOWER.z, r: 55 },
+  { id: 'stones', name: L('ลานหินตั้งแห่งลมหนาว', 'Standing Stones of the Cold Wind'), x: STONES.x, z: STONES.z, r: 45 },
+  { id: 'windmill', name: L('กังหันลมร้าง', 'Abandoned Windmill'), x: WINDMILL.x, z: WINDMILL.z, r: 45 },
+  { id: 'farms', name: L('ไร่ข้าวโพดร้าง', 'Abandoned Cornfield'), x: FARMS.x, z: FARMS.z, r: 60 },
+  { id: 'drowned', name: L('เมืองจมใต้ทะเลสาบ', 'Sunken City'), x: DROWNED.x, z: DROWNED.z, r: 130 },
+  { id: 'pier', name: L('ท่าเรือผุ', 'Rotting Pier'), x: PIER.x, z: PIER.z, r: 35 },
+  { id: 'hangtree', name: L('ต้นไม้แขวนคอ', 'Hanging Tree'), x: HANGTREE.x, z: HANGTREE.z, r: 50 },
+  { id: 'hunter', name: L('เพิงนายพรานที่หายไป', "Lost Hunter's Camp"), x: HUNTER.x, z: HUNTER.z, r: 35 },
 ];
 LOCATIONS.push(...WILD_LOCATIONS);
 

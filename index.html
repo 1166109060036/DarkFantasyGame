@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-47SYuv52ST9yQ76ncm8OHvWn4zem0EXrZt9l4WuC2XY='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' blob: https://0.peerjs.com wss://0.peerjs.com http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:*; media-src 'self' blob:; object-src 'none'; base-uri 'none'">
   <meta name="theme-color" content="#050a1c">
-  <title>Moonmire — ตำนานบึงจันทรา</title>
+  <title data-en="Moonmire — Legend of the Moonmire">Moonmire — ตำนานบึงจันทรา</title>
   <link rel="stylesheet" href="fonts/fonts.css">
   <link rel="stylesheet" href="css/style.css">
   <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
@@ -16,7 +16,7 @@
   <div id="hud" class="hidden">
     <div id="compass"><div id="compass-strip"></div><div id="compass-needle"></div></div>
     <div id="clock"></div>
-    <div id="discover"><div class="caption">ค้นพบสถานที่</div><div class="name"></div><div class="count"></div></div>
+    <div id="discover"><div class="caption" data-en="Place Discovered">ค้นพบสถานที่</div><div class="name"></div><div class="count"></div></div>
     <div id="quest">
       <div id="quest-title"></div>
       <div id="quest-text"></div>
@@ -38,13 +38,13 @@
     <div id="prompt" class="hidden"></div>
     <div id="toasts"></div>
     <div id="dbar">
-      <div class="dcell dwpn"><canvas id="d-wpn" width="48" height="14"></canvas><div class="dlbl" id="d-wpn-name">ดาบเก่า ×1.0</div></div>
-      <div class="dcell dnumcell"><canvas id="d-hp" class="dnum" width="28" height="8"></canvas><div class="dlbl">เลือด</div></div>
+      <div class="dcell dwpn"><canvas id="d-wpn" width="48" height="14"></canvas><div class="dlbl" id="d-wpn-name" data-en="Old Sword ×1.0">ดาบเก่า ×1.0</div></div>
+      <div class="dcell dnumcell"><canvas id="d-hp" class="dnum" width="28" height="8"></canvas><div class="dlbl" data-en="Health">เลือด</div></div>
       <div class="dcell dface"><canvas id="d-face" width="32" height="32"></canvas></div>
-      <div class="dcell dnumcell"><canvas id="d-st" class="dnum" width="28" height="8"></canvas><div class="dlbl">แรง</div></div>
+      <div class="dcell dnumcell"><canvas id="d-st" class="dnum" width="28" height="8"></canvas><div class="dlbl" data-en="Stamina">แรง</div></div>
       <div class="dcell ditems">
-        <div><span class="dic potion">⚱</span> ยา <b id="d-potions">0</b></div>
-        <div><span class="dic coin">●</span> เหรียญ <b id="d-coins">0</b></div>
+        <div><span class="dic potion">⚱</span> <span data-en="Draughts">ยา</span> <b id="d-potions">0</b></div>
+        <div><span class="dic coin">●</span> <span data-en="Coins">เหรียญ</span> <b id="d-coins">0</b></div>
       </div>
     </div>
   </div>
@@ -58,19 +58,19 @@
 
   <div id="bag" class="hidden">
     <div class="bag-case">
-      <div class="bag-head"><span class="bag-title">กระเป๋าเดินทาง</span><span id="bag-size"></span><span id="bag-coins"></span></div>
+      <div class="bag-head"><span class="bag-title" data-en="Travelling Bag">กระเป๋าเดินทาง</span><span id="bag-size"></span><span id="bag-coins"></span></div>
       <div class="bag-body">
         <div id="bag-grid"></div>
         <div class="bag-side">
           <div id="bag-info"><div class="name"></div><div class="desc"></div></div>
-          <div id="bag-pending" class="hidden"><div class="lbl">ของที่เพิ่งเก็บ — ลากใส่กระเป๋า</div><div id="bag-pending-slot"></div></div>
+          <div id="bag-pending" class="hidden"><div class="lbl" data-en="Just picked up — drag it into the bag">ของที่เพิ่งเก็บ — ลากใส่กระเป๋า</div><div id="bag-pending-slot"></div></div>
           <div class="bag-buttons">
-            <button id="bag-sort">จัดอัตโนมัติ</button>
-            <button id="bag-rotate">หมุน (R)</button>
-            <button id="bag-drop" class="ghost">ลากมาที่นี่เพื่อทิ้ง</button>
-            <button id="bag-close">ปิด (I)</button>
+            <button id="bag-sort" data-en="Auto-sort">จัดอัตโนมัติ</button>
+            <button id="bag-rotate" data-en="Rotate (R)">หมุน (R)</button>
+            <button id="bag-drop" class="ghost" data-en="Drag here to discard">ลากมาที่นี่เพื่อทิ้ง</button>
+            <button id="bag-close" data-en="Close (I)">ปิด (I)</button>
           </div>
-          <p class="small">ลากเพื่อย้าย · คลิกเพื่อใช้/ทิ้ง · R หรือคลิกขวาเพื่อหมุน · วางทับของชนิดเดียวกันเพื่อรวมกอง</p>
+          <p class="small" data-en="Drag to move · click to use/discard · R or right click to rotate · drop onto the same kind to stack">ลากเพื่อย้าย · คลิกเพื่อใช้/ทิ้ง · R หรือคลิกขวาเพื่อหมุน · วางทับของชนิดเดียวกันเพื่อรวมกอง</p>
         </div>
       </div>
     </div>
@@ -81,10 +81,10 @@
   <div id="svc" class="hidden overlay">
     <div class="panel svc-panel">
       <div class="svc-head"><h2 id="svc-title"></h2><span id="svc-coins"></span></div>
-      <div id="svc-tabs" class="hidden"><button data-tab="buy">ซื้อ</button><button data-tab="sell">ขาย</button></div>
+      <div id="svc-tabs" class="hidden"><button data-tab="buy" data-en="Buy">ซื้อ</button><button data-tab="sell" data-en="Sell">ขาย</button></div>
       <p id="svc-hint" class="small"></p>
       <div id="svc-list"></div>
-      <div class="buttons"><button id="svc-close">ปิด</button></div>
+      <div class="buttons"><button id="svc-close" data-en="Close">ปิด</button></div>
     </div>
   </div>
 
@@ -93,8 +93,8 @@
       <h2 id="skills-title"></h2>
       <div id="skills-head"></div>
       <div id="skills-cols"></div>
-      <p class="small">ผสมขั้นของสองสายได้ แต่ไปถึงขั้นสุดท้าย (★) ได้สายเดียว · ขั้นลึก ๆ ต้องใช้ของสะสมของวิถีนี้ · K หรือ Esc เพื่อปิด</p>
-      <div class="buttons"><button id="skills-close">ปิด</button></div>
+      <p class="small" data-en="You may mix tiers of two branches, but only one may reach its final tier (★) · the deepest tiers ask for this path's keepsakes · K or Esc to close">ผสมขั้นของสองสายได้ แต่ไปถึงขั้นสุดท้าย (★) ได้สายเดียว · ขั้นลึก ๆ ต้องใช้ของสะสมของวิถีนี้ · K หรือ Esc เพื่อปิด</p>
+      <div class="buttons"><button id="skills-close" data-en="Close">ปิด</button></div>
     </div>
   </div>
 
@@ -106,14 +106,14 @@
     <div class="tut-text"></div>
     <div class="tut-bar"><i></i></div>
     <div class="tut-hint"></div>
-    <div class="tut-btns"><button class="tut-skip ghost">ข้ามขั้นนี้</button><button class="tut-end ghost">ข้ามทั้งหมด</button></div>
+    <div class="tut-btns"><button class="tut-skip ghost" data-en="Skip this step">ข้ามขั้นนี้</button><button class="tut-end ghost" data-en="Skip all">ข้ามทั้งหมด</button></div>
   </div>
 
   <div id="map" class="hidden">
     <div class="panel">
-      <h2>แผนที่บึงจันทรา</h2>
+      <h2 data-en="Map of the Moonmire">แผนที่บึงจันทรา</h2>
       <canvas id="map-canvas" width="480" height="480"></canvas>
-      <p class="small"><span id="map-count"></span> · กด M เพื่อปิด</p>
+      <p class="small"><span id="map-count"></span> · <span data-en="press M to close">กด M เพื่อปิด</span></p>
     </div>
   </div>
 
@@ -141,97 +141,101 @@
 
   <div id="pause" class="hidden overlay gothic">
     <div class="panel pause-panel">
-      <h2>หยุดชั่วคราว</h2>
+      <h2 data-en="Paused">หยุดชั่วคราว</h2>
       <div class="g-rule"></div>
       <div class="pause-cols">
         <div class="buttons g-menu-col">
-          <button id="btn-resume">เล่นต่อ</button>
-          <button id="btn-controls">วิธีเล่น / ปุ่มควบคุม</button>
-          <button id="btn-tutorial" class="story-only">ฝึกพื้นฐานอีกครั้ง</button>
-          <button id="btn-fullscreen" class="desktop-only">สลับเต็มจอ (F11)</button>
-          <button id="btn-restart" class="danger">เริ่มใหม่ทั้งหมด</button>
-          <button id="btn-quit" class="desktop-only">ออกจากเกม</button>
+          <button id="btn-resume" data-en="Resume">เล่นต่อ</button>
+          <button id="btn-controls" data-en="How to Play / Controls">วิธีเล่น / ปุ่มควบคุม</button>
+          <button id="btn-tutorial" class="story-only" data-en="Repeat the First Steps">ฝึกพื้นฐานอีกครั้ง</button>
+          <button id="btn-fullscreen" class="desktop-only" data-en="Toggle Fullscreen (F11)">สลับเต็มจอ (F11)</button>
+          <button id="btn-restart" class="danger" data-en="Start Over">เริ่มใหม่ทั้งหมด</button>
+          <button id="btn-quit" class="desktop-only" data-en="Quit">ออกจากเกม</button>
         </div>
         <div class="pause-settings">
-          <h3>ภาพ</h3>
-          <label>ความละเอียด (แนว PS2)
+          <h3 data-en="Display">ภาพ</h3>
+          <label><span data-en="Resolution (PS2 style)">ความละเอียด (แนว PS2)</span>
             <select id="set-res">
-              <option value="240">240p — ดิบสุด</option>
+              <option value="240" data-en="240p — rawest">240p — ดิบสุด</option>
               <option value="360">360p</option>
-              <option value="448">448p — PS2 แท้</option>
+              <option value="448" data-en="448p — true PS2">448p — PS2 แท้</option>
               <option value="540">540p</option>
-              <option value="720">720p — คมชัด</option>
+              <option value="720" data-en="720p — sharp">720p — คมชัด</option>
             </select>
           </label>
-          <label>จุดยอดสั่นไหว
+          <label><span data-en="Vertex wobble">จุดยอดสั่นไหว</span>
             <select id="set-snap">
-              <option value="0">ปิด</option>
-              <option value="1">น้อย (PS2)</option>
-              <option value="2">มาก (PS1)</option>
+              <option value="0" data-en="Off">ปิด</option>
+              <option value="1" data-en="Light (PS2)">น้อย (PS2)</option>
+              <option value="2" data-en="Heavy (PS1)">มาก (PS1)</option>
             </select>
           </label>
-          <h3>การควบคุม</h3>
-          <label>ความไวเมาส์ / การมอง <input id="set-sens" type="range" min="0.3" max="2.5" step="0.1"></label>
-          <h3>เสียง</h3>
-          <label>เสียงรวม <input id="set-vol" type="range" min="0" max="1" step="0.05"></label>
-          <label>ดนตรีประกอบ <input id="set-music" type="range" min="0" max="1" step="0.05"></label>
-          <label>เสียงเอฟเฟกต์ <input id="set-sfx" type="range" min="0" max="1" step="0.05"></label>
+          <h3 data-en="Controls">การควบคุม</h3>
+          <label><span data-en="Mouse / look sensitivity">ความไวเมาส์ / การมอง</span> <input id="set-sens" type="range" min="0.3" max="2.5" step="0.1"></label>
+          <h3 data-en="Language">ภาษา</h3>
+          <label><span data-en="Game language (restarts the game)">ภาษาในเกม (เกมจะเริ่มใหม่)</span>
+            <select id="set-lang"><option value="th">ไทย</option><option value="en">English</option></select>
+          </label>
+          <h3 data-en="Sound">เสียง</h3>
+          <label><span data-en="Master volume">เสียงรวม</span> <input id="set-vol" type="range" min="0" max="1" step="0.05"></label>
+          <label><span data-en="Music">ดนตรีประกอบ</span> <input id="set-music" type="range" min="0" max="1" step="0.05"></label>
+          <label><span data-en="Effects">เสียงเอฟเฟกต์</span> <input id="set-sfx" type="range" min="0" max="1" step="0.05"></label>
         </div>
       </div>
-      <p class="small controls">เวลาในเกม 1 วัน = 15 นาที · พักที่โรงเตี๊ยมเพื่อข้ามเวลาได้</p>
+      <p class="small controls" data-en="1 day in game = 15 minutes · rest at the inn to pass the time">เวลาในเกม 1 วัน = 15 นาที · พักที่โรงเตี๊ยมเพื่อข้ามเวลาได้</p>
     </div>
   </div>
 
   <div id="controls" class="hidden overlay gothic">
     <div class="panel ctl-panel">
-      <h2>วิธีเล่น</h2>
-      <div class="ctl-tabs"><button data-ctl="keys" class="on">คีย์บอร์ด + เมาส์</button><button data-ctl="pad">🎮 จอยเกม</button></div>
+      <h2 data-en="How to Play">วิธีเล่น</h2>
+      <div class="ctl-tabs"><button data-ctl="keys" class="on" data-en="Keyboard + Mouse">คีย์บอร์ด + เมาส์</button><button data-ctl="pad" data-en="🎮 Controller">🎮 จอยเกม</button></div>
       <div id="controls-list" data-ctl-page="keys"></div>
       <div id="controls-pad" data-ctl-page="pad" class="hidden"></div>
-      <div class="buttons"><button id="btn-controls-close">กลับ</button></div>
+      <div class="buttons"><button id="btn-controls-close" data-en="Back">กลับ</button></div>
     </div>
   </div>
 
   <div id="classpick" class="hidden overlay gothic">
     <div class="cp-wrap">
-      <h2 id="classpick-title" class="g-title">เลือกวิถีของเจ้า</h2>
+      <h2 id="classpick-title" class="g-title" data-en="Choose Your Path">เลือกวิถีของเจ้า</h2>
       <div class="g-rule"></div>
       <div class="cp-main">
         <ol id="classpick-list" class="g-menu"></ol>
-        <div class="cp-stage"><canvas id="cp-canvas"></canvas><div class="cp-hint">ลากเพื่อหมุน</div></div>
+        <div class="cp-stage"><canvas id="cp-canvas"></canvas><div class="cp-hint" data-en="Drag to turn">ลากเพื่อหมุน</div></div>
         <div class="cp-info">
           <div class="cp-name" id="cp-name"></div>
           <div class="cp-weapon" id="cp-weapon"></div>
           <p class="cp-blurb" id="cp-blurb"></p>
           <ul id="cp-lines"></ul>
-          <button id="cp-choose" class="g-btn primary">เลือกวิถีนี้</button>
+          <button id="cp-choose" class="g-btn primary" data-en="Walk This Path">เลือกวิถีนี้</button>
         </div>
       </div>
       <div class="cp-foot">
-        <button id="classpick-cancel" class="g-btn">ย้อนกลับ</button>
-        <p class="small">↑ ↓ เปลี่ยนวิถี · Enter เลือก · Esc ย้อนกลับ · เปลี่ยนวิถีได้ภายหลังที่โรงเตี๊ยม (คุยกับเทียนหลอม)</p>
+        <button id="classpick-cancel" class="g-btn" data-en="Back">ย้อนกลับ</button>
+        <p class="small" data-en="↑ ↓ change path · Enter choose · Esc back · you may change your path later at the inn (speak with Tallow)">↑ ↓ เปลี่ยนวิถี · Enter เลือก · Esc ย้อนกลับ · เปลี่ยนวิถีได้ภายหลังที่โรงเตี๊ยม (คุยกับเทียนหลอม)</p>
       </div>
     </div>
   </div>
 
   <div id="lobby" class="hidden overlay gothic">
     <div class="panel lb-panel">
-      <h2>ศึกราชาจันทรา</h2>
-      <p class="small lb-rules">ผู้เล่น 2–4 คนต่างมีฐานและราชาของตัวเอง ออกไปหาไม้ แร่ และวิญญาณ สร้างหอคอยกับแคมป์ฮีลในฐาน ซัมม่อนฝูงร่างซีดไปตีฐานศัตรู · ราชาองค์สุดท้ายที่ยังมีชีวิตคือผู้ชนะ</p>
-      <label>ชื่อของเจ้า <input id="lobby-name" maxlength="16" placeholder="ผู้เดินทาง"></label>
-      <label>วิถี <select id="lobby-class"></select></label>
+      <h2 data-en="War of the Moon Kings">ศึกราชาจันทรา</h2>
+      <p class="small lb-rules" data-en="2–4 players, each with a base and a king of their own. Go out for wood, ore and souls; raise towers and healing camps in your base; summon hordes of the Pale Ones against enemy bases · the last king left alive is the victor">ผู้เล่น 2–4 คนต่างมีฐานและราชาของตัวเอง ออกไปหาไม้ แร่ และวิญญาณ สร้างหอคอยกับแคมป์ฮีลในฐาน ซัมม่อนฝูงร่างซีดไปตีฐานศัตรู · ราชาองค์สุดท้ายที่ยังมีชีวิตคือผู้ชนะ</p>
+      <label><span data-en="Your name">ชื่อของเจ้า</span> <input id="lobby-name" maxlength="16" placeholder="ผู้เดินทาง" data-en-placeholder="Traveller"></label>
+      <label><span data-en="Path">วิถี</span> <select id="lobby-class"></select></label>
       <div id="lobby-menu">
-        <div class="buttons"><button id="lobby-host">สร้างห้องใหม่</button></div>
-        <div class="lb-join"><input id="lobby-code-in" maxlength="5" placeholder="รหัสห้อง 5 ตัว" autocomplete="off"><button id="lobby-join">เข้าร่วม</button></div>
-        <div class="buttons"><button id="lobby-back" class="ghost">กลับ</button></div>
+        <div class="buttons"><button id="lobby-host" data-en="Create a Room">สร้างห้องใหม่</button></div>
+        <div class="lb-join"><input id="lobby-code-in" maxlength="5" placeholder="รหัสห้อง 5 ตัว" data-en-placeholder="5-letter room code" autocomplete="off"><button id="lobby-join" data-en="Join">เข้าร่วม</button></div>
+        <div class="buttons"><button id="lobby-back" class="ghost" data-en="Back">กลับ</button></div>
       </div>
       <div id="lobby-room" class="hidden">
-        <div class="lb-codebox">รหัสห้อง <b id="lobby-code">-----</b> <button id="lobby-copy" class="ghost">คัดลอก</button></div>
+        <div class="lb-codebox"><span data-en="Room code">รหัสห้อง</span> <b id="lobby-code">-----</b> <button id="lobby-copy" class="ghost" data-en="Copy">คัดลอก</button></div>
         <div id="lobby-list"></div>
         <div class="buttons">
-          <button id="lobby-addbot" class="ghost">+ เพิ่มบอท</button>
-          <button id="lobby-start">เริ่มเกม</button>
-          <button id="lobby-leave" class="ghost">ออกจากห้อง</button>
+          <button id="lobby-addbot" class="ghost" data-en="+ Add Bot">+ เพิ่มบอท</button>
+          <button id="lobby-start" data-en="Start">เริ่มเกม</button>
+          <button id="lobby-leave" class="ghost" data-en="Leave Room">ออกจากห้อง</button>
         </div>
       </div>
       <p id="lobby-status" class="small"></p>
@@ -242,37 +246,38 @@
     <div class="panel">
       <h2 id="mobaover-title"></h2>
       <p id="mobaover-text"></p>
-      <div class="buttons"><button id="mobaover-back">กลับหน้าหลัก</button></div>
+      <div class="buttons"><button id="mobaover-back" data-en="Return to Title">กลับหน้าหลัก</button></div>
     </div>
   </div>
 
   <div id="title" class="overlay gothic">
     <div class="title-wrap">
       <h1>MOONMIRE</h1>
-      <div class="subtitle"><span class="g-orn"></span>ตำนานบึงจันทรา<span class="g-orn r"></span></div>
-      <div class="chapter">บทที่ 1 · มือที่กอดดวงจันทร์</div>
+      <div class="subtitle"><span class="g-orn"></span><span data-en="Legend of the Moonmire">ตำนานบึงจันทรา</span><span class="g-orn r"></span></div>
+      <div class="chapter" data-en="Chapter 1 · The Hands That Hold the Moon">บทที่ 1 · มือที่กอดดวงจันทร์</div>
       <div class="buttons g-menu-col">
-        <button id="btn-new">เริ่มการเดินทาง</button>
-        <button id="btn-continue" class="hidden">เล่นต่อจากที่บันทึกไว้</button>
-        <button id="btn-online">ศึกราชาจันทรา <small>ออนไลน์ 2–4 คน</small></button>
-        <button id="btn-howto">วิธีเล่น</button>
-        <button id="btn-quit-title" class="desktop-only">ออกจากเกม</button>
+        <button id="btn-new" data-en="Begin the Journey">เริ่มการเดินทาง</button>
+        <button id="btn-continue" class="hidden" data-en="Continue">เล่นต่อจากที่บันทึกไว้</button>
+        <button id="btn-online" data-en="War of the Moon Kings <small>online, 2–4 players</small>">ศึกราชาจันทรา <small>ออนไลน์ 2–4 คน</small></button>
+        <button id="btn-howto" data-en="How to Play">วิธีเล่น</button>
+        <button id="btn-quit-title" class="desktop-only" data-en="Quit">ออกจากเกม</button>
       </div>
-      <p class="small title-hint">↑ ↓ เลือก · Enter ยืนยัน · แนะนำให้ใส่หูฟัง<span class="desktop-only"> · F11 เต็มจอ</span></p>
-      <p class="credits">โมเดล "Giant cockroach" โดย Drillimpact (sketchfab.com/Drillimpact) · "PS1 Pig" โดย joann5632 (sketchfab.com/ioann5632) · สัญญาอนุญาต CC BY 4.0 · "Lowpoly Male Base Mesh" โดย arsenios (sketchfab.com/arsenikos) · "PS1/PSX style low poly plate armor" โดย annaumurn (sketchfab.com/annaumurn, CC BY 4.0) · "Psx hands monster (ps2 style)" โดย petya-petyavich (sketchfab.com/petya-petyavich, CC BY 4.0) · "Low Poly Micolash" โดย ratmeaty (sketchfab.com/ratmeaty, CC BY 4.0) · "BOUNTY HUNTER" โดย EZ-GAZI (sketchfab.com/EZ-GAZI, CC BY 4.0) · "Knight Set Dark Souls 1 - PS1 Style" โดย MoiDev (sketchfab.com/moidev, CC BY 4.0)</p>
+      <div class="lang-switch" id="lang-switch"><button data-lang="th">ไทย</button><span>·</span><button data-lang="en">English</button></div>
+      <p class="small title-hint" data-en="↑ ↓ choose · Enter confirm · headphones recommended<span class=&quot;desktop-only&quot;> · F11 fullscreen</span>">↑ ↓ เลือก · Enter ยืนยัน · แนะนำให้ใส่หูฟัง<span class="desktop-only"> · F11 เต็มจอ</span></p>
+      <p class="credits" data-en="Models: &quot;Giant cockroach&quot; by Drillimpact (sketchfab.com/Drillimpact) · &quot;PS1 Pig&quot; by joann5632 (sketchfab.com/ioann5632) · licensed CC BY 4.0 · &quot;Lowpoly Male Base Mesh&quot; by arsenios (sketchfab.com/arsenikos) · &quot;PS1/PSX style low poly plate armor&quot; by annaumurn (sketchfab.com/annaumurn, CC BY 4.0) · &quot;Psx hands monster (ps2 style)&quot; by petya-petyavich (sketchfab.com/petya-petyavich, CC BY 4.0) · &quot;Low Poly Micolash&quot; by ratmeaty (sketchfab.com/ratmeaty, CC BY 4.0) · &quot;BOUNTY HUNTER&quot; by EZ-GAZI (sketchfab.com/EZ-GAZI, CC BY 4.0) · &quot;Knight Set Dark Souls 1 - PS1 Style&quot; by MoiDev (sketchfab.com/moidev, CC BY 4.0)">โมเดล "Giant cockroach" โดย Drillimpact (sketchfab.com/Drillimpact) · "PS1 Pig" โดย joann5632 (sketchfab.com/ioann5632) · สัญญาอนุญาต CC BY 4.0 · "Lowpoly Male Base Mesh" โดย arsenios (sketchfab.com/arsenikos) · "PS1/PSX style low poly plate armor" โดย annaumurn (sketchfab.com/annaumurn, CC BY 4.0) · "Psx hands monster (ps2 style)" โดย petya-petyavich (sketchfab.com/petya-petyavich, CC BY 4.0) · "Low Poly Micolash" โดย ratmeaty (sketchfab.com/ratmeaty, CC BY 4.0) · "BOUNTY HUNTER" โดย EZ-GAZI (sketchfab.com/EZ-GAZI, CC BY 4.0) · "Knight Set Dark Souls 1 - PS1 Style" โดย MoiDev (sketchfab.com/moidev, CC BY 4.0)</p>
     </div>
   </div>
 
   <div id="ending" class="hidden overlay gothic">
     <div class="title-wrap">
-      <div class="g-title end-title">บทที่ 1</div><div class="chapter">มือที่กอดดวงจันทร์ · จบ</div><div class="g-rule"></div>
-      <p class="ending-text">มือนับร้อยแบออกพร้อมกัน... รังไหมแตกทีละใบ<br>แสงสีฟ้าลอยขึ้นสู่ฟ้า และดวงจันทร์ก็หายใจออกเป็นครั้งแรกในรอบร้อยปี<br><br>ทางตะวันตก ดวงตาของราชาหินเปิดขึ้นช้า ๆ<br>"ลูกข้า... ในที่สุดเจ้าก็แบมือ"</p>
-      <div class="buttons"><button id="btn-ending-continue">สำรวจต่อ</button></div>
+      <div class="g-title end-title" data-en="Chapter 1">บทที่ 1</div><div class="chapter" data-en="The Hands That Hold the Moon · End">มือที่กอดดวงจันทร์ · จบ</div><div class="g-rule"></div>
+      <p class="ending-text" data-en="A hundred hands open at once... the cocoons split one by one<br>Blue light rises to the sky, and the moon breathes out for the first time in a hundred years<br><br>In the west, the eyes of the Stone King slowly open<br>&quot;My child... at last, thou openest thy hand.&quot;">มือนับร้อยแบออกพร้อมกัน... รังไหมแตกทีละใบ<br>แสงสีฟ้าลอยขึ้นสู่ฟ้า และดวงจันทร์ก็หายใจออกเป็นครั้งแรกในรอบร้อยปี<br><br>ทางตะวันตก ดวงตาของราชาหินเปิดขึ้นช้า ๆ<br>"ลูกข้า... ในที่สุดเจ้าก็แบมือ"</p>
+      <div class="buttons"><button id="btn-ending-continue" data-en="Explore Onward">สำรวจต่อ</button></div>
     </div>
   </div>
 
   <div id="fade"></div>
-  <div id="loading" class="overlay gothic"><div class="load-box"><div class="load-title">MOONMIRE</div><div class="g-rule"></div><div class="load-text">กำลังสร้างโลก...</div></div></div>
+  <div id="loading" class="overlay gothic"><div class="load-box"><div class="load-title">MOONMIRE</div><div class="g-rule"></div><div class="load-text" data-en="Forging the world...">กำลังสร้างโลก...</div></div></div>
 
   <script src="vendor/peerjs.min.js"></script>
   <script type="module" src="src/main.js"></script>

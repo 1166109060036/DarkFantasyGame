@@ -12,26 +12,27 @@ import { createArmour } from './armour.js';
 import { createHandKing, updateHandKing } from './handking.js';
 import { clamp, lerp, wrapAngle } from './util.js';
 import { rng } from './noise.js';
+import { L } from './i18n.js';
 import { SWORD_POSE } from './classes.js';
 import { ARENA_CAMPS, ARENA_BASES } from './arena.js';
 
 export const ENEMY_TYPES = {
-  wisp: { name: 'วิญญาณบึง', hp: 2, speed: 3.2, range: 1.3, windup: 0.55, recover: 0.9, damage: 12, aggro: 15, leash: 50, radius: 0.4, height: 1.5, weight: 0.4, active: 'night', fly: true, coins: [2, 4], respawn: 30 },
-  straw: { name: 'หุ่นฟางคลั่ง', hp: 4, speed: 2.4, range: 2.0, windup: 0.85, recover: 1.0, damage: 15, aggro: 14, leash: 40, radius: 0.45, height: 2.0, weight: 1, active: 'day', coins: [3, 6], respawn: 90 },
-  wolf: { name: 'หมาป่าเงา', hp: 3, speed: 6.0, range: 2.4, windup: 0.6, recover: 1.0, damage: 13, aggro: 20, leash: 60, radius: 0.5, height: 1.1, weight: 0.7, active: 'always', lunge: 9, coins: [2, 5], respawn: 120 },
-  leech: { name: 'ปลิงยักษ์', hp: 5, speed: 2.4, range: 2.7, windup: 0.75, recover: 1.2, damage: 18, aggro: 12, leash: 22, radius: 0.6, height: 1.6, weight: 1.4, active: 'night', water: true, coins: [4, 7], respawn: 90 },
+  wisp: { name: L('วิญญาณบึง', 'Marsh Wisp'), hp: 2, speed: 3.2, range: 1.3, windup: 0.55, recover: 0.9, damage: 12, aggro: 15, leash: 50, radius: 0.4, height: 1.5, weight: 0.4, active: 'night', fly: true, coins: [2, 4], respawn: 30 },
+  straw: { name: L('หุ่นฟางคลั่ง', 'Mad Strawman'), hp: 4, speed: 2.4, range: 2.0, windup: 0.85, recover: 1.0, damage: 15, aggro: 14, leash: 40, radius: 0.45, height: 2.0, weight: 1, active: 'day', coins: [3, 6], respawn: 90 },
+  wolf: { name: L('หมาป่าเงา', 'Shadow Wolf'), hp: 3, speed: 6.0, range: 2.4, windup: 0.6, recover: 1.0, damage: 13, aggro: 20, leash: 60, radius: 0.5, height: 1.1, weight: 0.7, active: 'always', lunge: 9, coins: [2, 5], respawn: 120 },
+  leech: { name: L('ปลิงยักษ์', 'Giant Leech'), hp: 5, speed: 2.4, range: 2.7, windup: 0.75, recover: 1.2, damage: 18, aggro: 12, leash: 22, radius: 0.6, height: 1.6, weight: 1.4, active: 'night', water: true, coins: [4, 7], respawn: 90 },
   // the Pale Ones (src/gaunts.js)
-  gaunt: { name: 'ร่างซูบ', hp: 4, speed: 1.9, sprint: 9, range: 1.9, windup: 0.6, recover: 1.0, damage: 16, aggro: 17, leash: 55, radius: 0.4, height: 1.8, weight: 0.8, active: 'night', coins: [2, 5], respawn: 120, cull: 85, freq: 5 },
-  crawler: { name: 'ร่างคลาน', hp: 3, speed: 5.2, range: 1.8, windup: 0.45, recover: 1.1, damage: 12, aggro: 15, leash: 45, radius: 0.5, height: 0.9, weight: 0.6, active: 'night', lunge: 7, coins: [2, 4], respawn: 120, cull: 85, freq: 2.7 },
-  weeper: { name: 'หญิงร่ำไห้', hp: 7, speed: 7.5, range: 1.7, windup: 0.3, recover: 1.3, damage: 30, aggro: 26, leash: 80, radius: 0.4, height: 2.1, weight: 1.2, active: 'night', stalker: true, coins: [8, 12], respawn: 300, cull: 95 },
-  brute: { name: 'ร่างซูบยักษ์', hp: 16, speed: 1.8, range: 3.0, windup: 1.1, recover: 1.5, damage: 26, aggro: 18, leash: 35, radius: 0.9, height: 3.2, weight: 4, active: 'always', slamEvery: 2, coins: [20, 30], respawn: 600, cull: 110, freq: 2, elite: true },
+  gaunt: { name: L('ร่างซูบ', 'Gaunt'), hp: 4, speed: 1.9, sprint: 9, range: 1.9, windup: 0.6, recover: 1.0, damage: 16, aggro: 17, leash: 55, radius: 0.4, height: 1.8, weight: 0.8, active: 'night', coins: [2, 5], respawn: 120, cull: 85, freq: 5 },
+  crawler: { name: L('ร่างคลาน', 'Crawler'), hp: 3, speed: 5.2, range: 1.8, windup: 0.45, recover: 1.1, damage: 12, aggro: 15, leash: 45, radius: 0.5, height: 0.9, weight: 0.6, active: 'night', lunge: 7, coins: [2, 4], respawn: 120, cull: 85, freq: 2.7 },
+  weeper: { name: L('หญิงร่ำไห้', 'Weeping Woman'), hp: 7, speed: 7.5, range: 1.7, windup: 0.3, recover: 1.3, damage: 30, aggro: 26, leash: 80, radius: 0.4, height: 2.1, weight: 1.2, active: 'night', stalker: true, coins: [8, 12], respawn: 300, cull: 95 },
+  brute: { name: L('ร่างซูบยักษ์', 'Gaunt Giant'), hp: 16, speed: 1.8, range: 3.0, windup: 1.1, recover: 1.5, damage: 26, aggro: 18, leash: 35, radius: 0.9, height: 3.2, weight: 4, active: 'always', slamEvery: 2, coins: [20, 30], respawn: 600, cull: 110, freq: 2, elite: true },
   // the Lost (src/hollow.js): people still, of a kind; they guard, combine blows and sidestep
-  hollow: { name: 'ผู้หลงทาง', hp: 6, speed: 2.3, sprint: 7, range: 2.0, windup: 0.5, recover: 0.9, damage: 13, aggro: 18, leash: 50, radius: 0.4, height: 1.95, weight: 1, active: 'always', guard: true, combo: 2, coins: [4, 8], respawn: 180, cull: 95, freq: 1 },
+  hollow: { name: L('ผู้หลงทาง', 'the Lost'), hp: 6, speed: 2.3, sprint: 7, range: 2.0, windup: 0.5, recover: 0.9, damage: 13, aggro: 18, leash: 50, radius: 0.4, height: 1.95, weight: 1, active: 'always', guard: true, combo: 2, coins: [4, 8], respawn: 180, cull: 95, freq: 1 },
   // empty plate armour (src/armour.js): light blows glance off; a parried swing leaves it open
-  armour: { name: 'ชุดเกราะไร้ร่าง', hp: 12, speed: 1.6, range: 2.9, windup: 0.95, recover: 1.2, damage: 24, aggro: 16, leash: 40, radius: 0.5, height: 2.0, weight: 3, active: 'always', armour: true, slamEvery: 3, coins: [12, 20], respawn: 400, cull: 100, freq: 1, elite: true },
+  armour: { name: L('ชุดเกราะไร้ร่าง', 'Empty Armour'), hp: 12, speed: 1.6, range: 2.9, windup: 0.95, recover: 1.2, damage: 24, aggro: 16, leash: 40, radius: 0.5, height: 2.0, weight: 3, active: 'always', armour: true, slamEvery: 3, coins: [12, 20], respawn: 400, cull: 100, freq: 1, elite: true },
   // the King of a Hundred Hands (src/handking.js): a boss with its own brain and attacks
-  handking: { name: 'ราชันร้อยกร', hp: 80, speed: 2.5, range: 0, windup: 1, recover: 1, damage: 30, aggro: 26, leash: 60, radius: 3.0, height: 9.6, hitY: 2.4, weight: 25, active: 'always', boss: true, custom: true, coins: [120, 160], cull: 260 },
-  knight: { name: 'อัศวินหินผู้เฝ้าสะพาน', hp: 32, speed: 2.5, range: 3.8, windup: 1.05, recover: 1.4, damage: 28, aggro: 22, leash: 40, radius: 1.1, height: 4.2, weight: 6, active: 'always', boss: true, slamEvery: 3, coins: [60, 60] },
+  handking: { name: L('ราชันร้อยกร', 'the King of a Hundred Hands'), hp: 80, speed: 2.5, range: 0, windup: 1, recover: 1, damage: 30, aggro: 26, leash: 60, radius: 3.0, height: 9.6, hitY: 2.4, weight: 25, active: 'always', boss: true, custom: true, coins: [120, 160], cull: 260 },
+  knight: { name: L('อัศวินหินผู้เฝ้าสะพาน', 'Stone Knight of the Bridge'), hp: 32, speed: 2.5, range: 3.8, windup: 1.05, recover: 1.4, damage: 28, aggro: 22, leash: 40, radius: 1.1, height: 4.2, weight: 6, active: 'always', boss: true, slamEvery: 3, coins: [60, 60] },
 };
 
 const COST = { light: 10, heavy: 26, dodge: 22 };
@@ -253,7 +254,7 @@ export class Combat {
 
     // dodge
     if (input.consume('dodge') && !riding && this.dodgeT <= 0 && this.staggerT <= 0 && !this.swing) {
-      if (this.stamina < 8) this.say('เหนื่อยเกินกว่าจะหลบ...');
+      if (this.stamina < 8) this.say(L('เหนื่อยเกินกว่าจะหลบ...', 'Too weary to dodge...'));
       else {
         let f = input.forward, s = input.strafe;
         if (Math.hypot(f, s) < 0.2) { f = -1; s = 0; }
@@ -294,7 +295,7 @@ export class Combat {
 
   // the kit decides what a blow is: timing, cost, reach, arc (or a spin / ground slam), damage
   startSwing(kind) {
-    if (this.stamina <= 0) { this.say('เหนื่อย!'); return; }
+    if (this.stamina <= 0) { this.say(L('เหนื่อย!', 'Exhausted!')); return; }
     const spec = this.g.kit.swing(kind);
     if (!spec) return;                       // handled by the kit (e.g. a thrown leech)
     this.swing = { kind, t: 0, dur: spec.dur, hit: false, spec };
@@ -363,16 +364,16 @@ export class Combat {
         g.audio.block();
         g.particles.burst(e.pos.clone().setY(e.pos.y + 1.4), 5, 2.5, 0.3);
         g.player.vel.x += dir.x * 2.5; g.player.vel.z += dir.z * 2.5;
-        if ((this.guardHint = (this.guardHint || 0) + 1) <= 3) g.ui.combatText('มันปัดป้อง! ฟันหนักหรืออ้อมไปฟันด้านข้าง', 'bad');
-        else g.ui.combatText('ปัดป้อง', 'bad');
+        if ((this.guardHint = (this.guardHint || 0) + 1) <= 3) g.ui.combatText(L('มันปัดป้อง! ฟันหนักหรืออ้อมไปฟันด้านข้าง', 'Guarded! Use a heavy attack, or strike from the side'), 'bad');
+        else g.ui.combatText(L('ปัดป้อง', 'Guarded'), 'bad');
         this.target = e; this.targetT = 3;
         return;
       }
-      if (front && heavy) { e.state = 'stagger'; e.t = 1.0; e.guarding = false; e.comboN = 0; g.ui.combatText('ทำลายการ์ด!', 'parry'); }
+      if (front && heavy) { e.state = 'stagger'; e.t = 1.0; e.guarding = false; e.comboN = 0; g.ui.combatText(L('ทำลายการ์ด!', 'Guard broken!'), 'parry'); }
     }
     // the King of a Hundred Hands sleeps sealed in roots until the story comes for him
     if (e.type === 'handking' && g.quests && !g.quests.bossReady()) {
-      g.ui.combatText('รากไม้นับร้อยพันร่างนั้นไว้ — ฟันไม่เข้า', 'bad');
+      g.ui.combatText(L('รากไม้นับร้อยพันร่างนั้นไว้ — ฟันไม่เข้า', 'A hundred roots bind it — your blade cannot bite'), 'bad');
       return;
     }
     // a big thing caught with its arms in the ground; anything laid open by a path's skill
@@ -380,15 +381,15 @@ export class Combat {
     if (e.exposeT > 0) dmg *= e.exposeK;
     // plate: light blows glance off (a third gets through), unless it has just been parried open
     if (def.armour) {
-      if (e.exposedT > 0) { dmg *= 2; g.ui.combatText('ช่องโหว่! ×2', 'parry'); }
+      if (e.exposedT > 0) { dmg *= 2; g.ui.combatText(L('ช่องโหว่! ×2', 'Opening! ×2'), 'parry'); }
       else if (!heavy) {
         dmg *= 0.33;
         g.audio.metal?.({ freq: 900 + Math.random() * 300, dur: 0.5, gain: 0.08, partials: [1, 2.7, 5.1], pos: e.pos });
-        if ((this.armourHint = (this.armourHint || 0) + 1) <= 3) g.ui.combatText('เกราะหนา! ฟันหนัก หรือปัดแล้วฟันตอนเซ', 'bad');
+        if ((this.armourHint = (this.armourHint || 0) + 1) <= 3) g.ui.combatText(L('เกราะหนา! ฟันหนัก หรือปัดแล้วฟันตอนเซ', 'Thick armour! Heavy attack, or parry and strike while it reels'), 'bad');
       }
     }
     // a stone-skinned bounty shrugs off light blows
-    if (e.named?.affix === 'stone' && !heavy) { dmg *= 0.25; g.ui.combatText('ฟันไม่เข้า! ต้องฟันหนัก', 'info'); }
+    if (e.named?.affix === 'stone' && !heavy) { dmg *= 0.25; g.ui.combatText(L('ฟันไม่เข้า! ต้องฟันหนัก', 'No effect! Use a heavy attack'), 'info'); }
     // an oiled blade sets foes alight
     if (g.buffs.oil > 0) { e.dots = e.dots || {}; e.dots.burn = { dps: 0.25, t: 2.5 }; }
     e.hp -= dmg;
@@ -435,15 +436,15 @@ export class Combat {
       this.handKingDefeated = true;
       e.respawn = 1e12;
       for (const f of e.ai?.fx || []) f.update(99);           // clear its marks and hands
-      g.ui.banner('ชนะ', `${def.name} พ่ายแพ้`);
+      g.ui.banner(L('ชนะ', 'Victory'), L(`${def.name} พ่ายแพ้`, `${def.name} has fallen`));
       g.music?.sting('victory');
       if (g.quests) setTimeout(() => g.quests.onBossDefeated(), 1600);
       g.save();
     } else if (def.boss) {
       this.bossDefeated = true;
       this.swordMul = 1.6;
-      g.ui.banner('ชนะ', `${def.name} พ่ายแพ้`);
-      setTimeout(() => g.ui.toast('ได้รับ ดาบแห่งราชาหิน — พลังโจมตี ×1.6'), 1800);
+      g.ui.banner(L('ชนะ', 'Victory'), L(`${def.name} พ่ายแพ้`, `${def.name} has fallen`));
+      setTimeout(() => g.ui.toast(L('ได้รับ ดาบแห่งราชาหิน — พลังโจมตี ×1.6', 'Received: Sword of the Stone King — attack ×1.6')), 1800);
       g.music?.sting('victory');
       g.save();
     }
@@ -466,7 +467,7 @@ export class Combat {
       if (facing < 0.45 && d > 1.2) return;
     }
     if (p.hp <= 0) return;
-    if (this.iframes > 0) { this.say('หลบ!'); return; }
+    if (this.iframes > 0) { this.say(L('หลบ!', 'Dodged!')); return; }
     const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
     const facingEnemy = (-dx * fx - dz * fz) / Math.max(d, 1e-3) > 0.3 || !!g.kit.allRound;
     let dmg = def.damage * (slam ? 1.3 : 1) * (PALE_ONES.has(e.type) ? g.events?.enemyDamageMul ?? 1 : 1) * (e.dmgMul ?? 1) * (e.sapT > 0 ? e.sapK : 1);
@@ -480,7 +481,7 @@ export class Combat {
       p.vel.x += dx / d * 2 * push; p.vel.z += dz / d * 2 * push;
       g.kit.onWallBlock(e, dmg);
       if (this.stamina > 0 || g.kit.holdFirm?.()) return;
-      dmg *= 0.5; this.staggerT = 0.8; this.blocking = false; g.ui.combatText('การ์ดแตก!', 'bad');
+      dmg *= 0.5; this.staggerT = 0.8; this.blocking = false; g.ui.combatText(L('การ์ดแตก!', 'Guard broken!'), 'bad');
     } else if (this.blocking && facingEnemy && !slam) {
       if (g.time - this.blockStart < PARRY_WINDOW + g.kit.parryBonus) {
         e.state = 'stagger';
@@ -492,7 +493,7 @@ export class Combat {
         p.shake = Math.max(p.shake, 0.22);
         g.audio.parry();
         g.particles.burst(g.camera.position.clone().addScaledVector(p.forwardVec, 0.9), 16, 4, 0.35);
-        g.ui.combatText('ปัดสำเร็จ!', 'parry');
+        g.ui.combatText(L('ปัดสำเร็จ!', 'Parried!'), 'parry');
         g.hud.grin();
         g.kit.onParry(e);
         return;
@@ -502,7 +503,7 @@ export class Combat {
       p.shake = Math.max(p.shake, 0.12);
       p.vel.x += dx / d * 3; p.vel.z += dz / d * 3;
       if (this.stamina > 0) dmg *= 0.12 * (g.kit.blockLeak ?? 1);
-      else { dmg *= 0.6; this.staggerT = 0.7; this.blocking = false; g.ui.combatText('การ์ดแตก!', 'bad'); }
+      else { dmg *= 0.6; this.staggerT = 0.7; this.blocking = false; g.ui.combatText(L('การ์ดแตก!', 'Guard broken!'), 'bad'); }
     }
     dmg = g.kit.onHurt(dmg * g.armorMul * g.kit.armorMul, e);
     p.hurt(dmg, g.time);
@@ -521,7 +522,7 @@ export class Combat {
   takeHit(dmg, from, by = null, { unblockable = false } = {}) {
     const g = this.g, p = g.player;
     if (p.hp <= 0 || g.state !== 'play') return;
-    if (this.iframes > 0) { this.say('หลบ!'); return; }
+    if (this.iframes > 0) { this.say(L('หลบ!', 'Dodged!')); return; }
     const dx = p.pos.x - from.x, dz = p.pos.z - from.z, d = Math.max(Math.hypot(dx, dz), 1e-3);
     const facing = (-dx * -Math.sin(p.yaw) - dz * -Math.cos(p.yaw)) / d > 0.3 || !!g.kit.allRound;
     if (this.blocking && facing && !unblockable) {
@@ -532,13 +533,13 @@ export class Combat {
         dmg *= 0.5; this.staggerT = 0.8; this.blocking = false;
       } else if (g.time - this.blockStart < PARRY_WINDOW + g.kit.parryBonus) {
         this.stamina = Math.min(this.maxStamina, this.stamina + 15);
-        g.audio.parry(); g.ui.combatText('ปัดสำเร็จ!', 'parry'); g.hud.grin();
+        g.audio.parry(); g.ui.combatText(L('ปัดสำเร็จ!', 'Parried!'), 'parry'); g.hud.grin();
         g.kit.onParry(null, by);
         return;
       } else {
         this.spend(dmg * 1.2); g.audio.block();
         if (this.stamina > 0) dmg *= 0.12 * (g.kit.blockLeak ?? 1);
-        else { dmg *= 0.6; this.staggerT = 0.7; this.blocking = false; g.ui.combatText('การ์ดแตก!', 'bad'); }
+        else { dmg *= 0.6; this.staggerT = 0.7; this.blocking = false; g.ui.combatText(L('การ์ดแตก!', 'Guard broken!'), 'bad'); }
       }
     }
     dmg = g.kit.onHurt(dmg * g.armorMul * g.kit.armorMul, null);
@@ -692,8 +693,8 @@ export class Combat {
             g.audio.enemyCue(e.type, 'aggro', e.pos);
             if (!this.hintShown) {
               this.hintShown = true;
-              g.ui.toast(g.input.touch ? '⚔ แตะ = ฟันเบา · กดค้าง = ฟันหนัก · 🛡 ป้องกัน (จังหวะพอดี = ปัด) · ↯ หลบ'
-                : 'คลิกซ้าย ฟันเบา · กดค้าง ฟันหนัก · คลิกขวาค้าง ป้องกัน (กดตอนศัตรูจะโจมตี = ปัด) · C / Ctrl หลบ');
+              g.ui.toast(g.input.touch ? L('⚔ แตะ = ฟันเบา · กดค้าง = ฟันหนัก · 🛡 ป้องกัน (จังหวะพอดี = ปัด) · ↯ หลบ', '⚔ tap = light attack · hold = heavy attack · 🛡 block (well timed = parry) · ↯ dodge')
+                : L('คลิกซ้าย ฟันเบา · กดค้าง ฟันหนัก · คลิกขวาค้าง ป้องกัน (กดตอนศัตรูจะโจมตี = ปัด) · C / Ctrl หลบ', 'Left click: light attack · hold: heavy attack · hold right-click: block (as the foe strikes = parry) · C / Ctrl: dodge'));
             }
           }
           break;

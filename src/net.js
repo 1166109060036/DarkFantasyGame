@@ -4,6 +4,7 @@
 // traffic flows peer to peer, through PeerJS's TURN relays when a direct path is blocked.
 //
 // `?peer=localhost:9000` points at a self-hosted PeerJS server instead (used by the tests).
+import { L } from './i18n.js';
 
 const PREFIX = 'moonmire-v1-';
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';     // no 0/O or 1/I to misread
@@ -39,7 +40,7 @@ export class Net {
   // ---------------------------------------------------------------- host
   host() {
     return new Promise((resolve, reject) => {
-      if (!this.available) { reject(new Error('ไม่พบไลบรารีเครือข่าย')); return; }
+      if (!this.available) { reject(new Error(L('ไม่พบไลบรารีเครือข่าย', 'The network library is missing.'))); return; }
       const tryCode = (attempt) => {
         const code = makeCode();
         const peer = new window.Peer(PREFIX + code, peerOptions());
@@ -81,12 +82,12 @@ export class Net {
   // ---------------------------------------------------------------- client
   join(code) {
     return new Promise((resolve, reject) => {
-      if (!this.available) { reject(new Error('ไม่พบไลบรารีเครือข่าย')); return; }
+      if (!this.available) { reject(new Error(L('ไม่พบไลบรารีเครือข่าย', 'The network library is missing.'))); return; }
       code = code.trim().toUpperCase();
       const peer = new window.Peer(peerOptions());
       let done = false;
       const fail = (m) => { if (!done) { done = true; peer.destroy(); reject(new Error(m)); } };
-      const timer = setTimeout(() => fail('เชื่อมต่อไม่สำเร็จ (หมดเวลา) — ตรวจรหัสห้องอีกครั้ง'), 15000);
+      const timer = setTimeout(() => fail(L('เชื่อมต่อไม่สำเร็จ (หมดเวลา) — ตรวจรหัสห้องอีกครั้ง', 'Could not connect (timed out) — check the room code.')), 15000);
       peer.on('open', () => {
         const conn = peer.connect(PREFIX + code, { reliable: true, serialization: 'json' });
         conn.on('open', () => {
@@ -118,9 +119,9 @@ export class Net {
 
 function describe(err) {
   switch (err?.type) {
-    case 'peer-unavailable': return 'ไม่พบห้องนี้ — รหัสผิดหรือโฮสต์ปิดห้องไปแล้ว';
-    case 'network': case 'server-error': case 'socket-error': case 'socket-closed': return 'ติดต่อเซิร์ฟเวอร์จับคู่ไม่ได้ — ตรวจอินเทอร์เน็ต';
-    case 'browser-incompatible': return 'อุปกรณ์นี้ไม่รองรับการเล่นออนไลน์';
-    default: return `เกิดข้อผิดพลาดของเครือข่าย (${err?.type || err?.message || err})`;
+    case 'peer-unavailable': return L('ไม่พบห้องนี้ — รหัสผิดหรือโฮสต์ปิดห้องไปแล้ว', 'No such room — the code is wrong, or the host has closed it.');
+    case 'network': case 'server-error': case 'socket-error': case 'socket-closed': return L('ติดต่อเซิร์ฟเวอร์จับคู่ไม่ได้ — ตรวจอินเทอร์เน็ต', 'Cannot reach the matchmaking server — check your connection.');
+    case 'browser-incompatible': return L('อุปกรณ์นี้ไม่รองรับการเล่นออนไลน์', 'This device cannot play online.');
+    default: return L(`เกิดข้อผิดพลาดของเครือข่าย (${err?.type || err?.message || err})`, `Network error (${err?.type || err?.message || err})`);
   }
 }

@@ -1,468 +1,483 @@
-# MOONMIRE — ตำนานบึงจันทรา
+# MOONMIRE — Legend of the Moonmire
 
-เกม **Open-world Dark Fantasy มุมมองบุคคลที่หนึ่ง** แนวผจญภัย (ได้แรงบันดาลใจจาก The Witcher / Red Dead Redemption)
-ในสไตล์ภาพ **3D ยุค PS2**: โลกยามค่ำคืนใต้แสงจันทร์สีฟ้า น้ำเรืองแสง ซากปรักหักพังที่มีมอสขึ้น ฝนตกหนัก และสิ่งมีชีวิตแปลกประหลาด
+ภาษาไทย: [README.th.md](README.th.md)
 
-เป็น **โปรแกรมบนคอม (Windows)** ดับเบิลคลิก `.exe` แล้วเล่นได้เลย ไม่ต้องเปิดเบราว์เซอร์และไม่ต้องติดตั้งอะไรเพิ่ม
-ภาพ เสียง และโมเดลทั้งหมดสร้างขึ้นด้วยโค้ด ไม่มีไฟล์ asset ภายนอก และเล่นแบบออฟไลน์ได้ 100%
+A **first-person open-world dark fantasy** adventure (inspired by The Witcher / Red Dead Redemption),
+in a **PS2-era 3D** look: a night world under blue moonlight, glowing water, moss-covered ruins, heavy rain and strange creatures.
 
-## ดาวน์โหลดและเล่น (Windows 10/11)
+It is a **desktop app (Windows and Linux)**. Run it and play. No browser, nothing else to install.
+All graphics, sound and models are made in code. There are no outside asset files, and it plays 100% offline.
 
-1. ไปที่หน้า **Releases** ของ repo นี้ (ด้านขวาของหน้า GitHub) แล้วเลือกเวอร์ชันล่าสุด
-2. ดาวน์โหลดไฟล์ใดไฟล์หนึ่ง:
-   - **`Moonmire-Portable-x.x.x.exe`**: ไม่ต้องติดตั้ง ดับเบิลคลิกแล้วเล่นทันที
-   - **`Moonmire-Setup-x.x.x.exe`**: ตัวติดตั้ง สร้างไอคอนบนเดสก์ท็อปและเมนู Start
-3. ครั้งแรกถ้าขึ้น **"Windows protected your PC"** (เพราะไฟล์ยังไม่ได้เซ็นชื่อดิจิทัล) ให้กด **More info** แล้วกด **Run anyway**
+**Languages:** the game is in English and Thai. Switch on the title screen, or in the pause menu under Settings › Language. The first launch follows your system language.
 
-ไฟล์ `.exe` ถูกสร้างอัตโนมัติด้วย GitHub Actions (`.github/workflows/windows.yml`) บนเครื่อง Windows ทุกครั้งที่ push โค้ดเกม
-ถ้ายังไม่มีใน Releases ให้ดูที่แท็บ **Actions → Build Windows app → Artifacts** ได้เช่นกัน
+## Download / Platforms
 
-**ปุ่มเฉพาะเวอร์ชันคอม:** `F11` หรือ `Alt+Enter` สลับเต็มจอ · มีปุ่ม "ออกจากเกม" ในหน้าแรกและหน้าหยุดเกม
-เซฟเกมเก็บไว้ในเครื่องโดยอัตโนมัติ
+Every push builds the game with GitHub Actions (`.github/workflows/build.yml`). Releases are tagged `vX.Y.Z-build.N`.
 
-## สำหรับนักพัฒนา
+- **Windows 10/11:** the portable `.exe` or the installer (details below).
+- **Linux — Arch Linux / Manjaro / EndeavourOS:** download the `PKGBUILD` from the release into an empty folder and run `makepkg -si`. It installs to `/opt/moonmire`, adds a menu entry and the `moonmire` command.
+- **Linux — any distro, AppImage:** `chmod +x` the `.AppImage`, then run it. It needs `fuse2` (on Arch: `sudo pacman -S fuse2`).
+- **Linux — any distro, tar.gz:** extract it and run `./moonmire`.
 
-รันจากซอร์สโค้ดเป็นโปรแกรมบนคอม (ต้องมี [Node.js](https://nodejs.org) 20 ขึ้นไป):
+Local builds: `npm run dist` (Windows) and `npm run dist:linux` (Linux AppImage + tar.gz).
+
+## Download and play (Windows 10/11)
+
+1. Go to the **Releases** page of this repo (right side of the GitHub page) and pick the latest version.
+2. Download one of these files:
+   - **`Moonmire-Portable-x.x.x.exe`**: no install. Double-click and play.
+   - **`Moonmire-Setup-x.x.x.exe`**: an installer. It adds a desktop icon and a Start menu entry.
+3. The first time, you may see **"Windows protected your PC"** (the file has no digital signature yet). Click **More info**, then **Run anyway**.
+
+The `.exe` files are built automatically by GitHub Actions (`.github/workflows/build.yml`) on a Windows machine every time game code is pushed.
+If a build is not in Releases yet, you can also find it under **Actions → Build Windows and Linux apps → Artifacts**.
+
+**Desktop-only keys:** `F11` or `Alt+Enter` toggles fullscreen · there is a "Quit" button on the title screen and in the pause menu.
+The game saves on your computer automatically.
+
+## For developers
+
+Run from source as a desktop app (needs [Node.js](https://nodejs.org) 20 or later):
 
 ```bash
 npm install
-npm start          # เปิดเกมเป็นหน้าต่างโปรแกรม (Electron)
-npm run dist       # สร้าง .exe เองบน Windows (ไฟล์อยู่ในโฟลเดอร์ dist/)
+npm start          # open the game in an app window (Electron)
+npm run dist       # build the .exe yourself on Windows (files go to dist/)
+npm run dist:linux # build the Linux AppImage + tar.gz (files go to dist/)
 ```
 
-ตัวเกมจริงเป็น HTML/JavaScript ล้วน (Three.js) ส่วน `electron/` เป็นเพียงตัวห่อให้กลายเป็นโปรแกรม จึงยังเปิดในเบราว์เซอร์ได้ด้วย:
-บน Windows ดับเบิลคลิก `play.bat` (เซิร์ฟเวอร์ PowerShell) หรือใช้ `py -m http.server 8000` แล้วเปิด http://localhost:8000
-เวอร์ชันเว็บมีไว้สำหรับทดสอบเร็ว ๆ และเล่นบนมือถือผ่าน GitHub Pages (แนะนำให้ถือมือถือแนวนอน)
+The game itself is plain HTML/JavaScript (Three.js). `electron/` is only a wrapper that turns it into an app, so it still runs in a browser too:
+on Windows, double-click `play.bat` (a PowerShell server), or use `py -m http.server 8000` and open http://localhost:8000
+The web version is for quick tests and for playing on phones through GitHub Pages (hold the phone sideways).
 
-## การควบคุม
+## Controls
 
-**หน้าเมนู** เป็นธีม Gothic ดำ-ทอง ทั้งหน้าแรก เลือกวิถี เมนูหยุดเกม วิธีเล่น หน้าจบบท และหน้าโหลด · ใช้ `↑ ↓` + `Enter` เลือกได้ทุกหน้า · **หน้าเลือกวิถี** มีโมเดล 3D ของสายนั้นยืนหมุนอยู่กลางจอ โชว์ท่าฟัน ฟันหนัก และป้องกันวนไป ลากเมาส์เพื่อหมุนดูเองได้
+**The menus** use a black-and-gold Gothic theme: the title screen, Choose Your Path, the pause menu, How to Play, the chapter-end screen and the loading screen · `↑ ↓` + `Enter` works on every screen · **Choose Your Path** shows a 3D model of the path turning in the middle of the screen. It loops through light attack, heavy attack and block. Drag the mouse to turn it yourself.
 
-**จอยเกม (Xbox / PlayStation / จอยทั่วไป)** เสียบแล้วเล่นได้เลย ไม่ต้องตั้งค่า: สติ๊กซ้ายเดิน · สติ๊กขวามอง · `A` กระโดด · `B` หลบ · `X` คุย/เก็บของ · `Y` ดื่มยา · `RT` ฟัน (ค้าง = ฟันหนัก) · `LT` ป้องกัน/ปัด · `LB` ค้าง (หรือกด `L3`) วิ่ง · `RB` สกิล · D-pad ขึ้น แผนที่ / ลง แมลงสาบ / ซ้าย ต้นไม้สกิล / ขวา กระเป๋า · `Start` หยุดเกม · ในเมนูทุกหน้า สติ๊กซ้ายเลื่อนลูกศร `A` เลือก `B` ย้อนกลับ `LB`/`RB` ปรับค่าตั้งค่า สติ๊กขวาเลื่อนหน้า · กดคีย์บอร์ดหรือขยับเมาส์เมื่อไรก็สลับกลับทันที · ภาพจอยพร้อมคำอธิบายทุกปุ่มดูได้ที่ปุ่ม **วิธีเล่น** หน้าแรก หรือในเมนูหยุดเกม (แท็บ 🎮 จอยเกม)
+**Controllers (Xbox / PlayStation / generic)** work as soon as you plug them in. No setup: left stick move · right stick look · `A` jump · `B` dodge · `X` talk/pick up · `Y` drink a draught · `RT` attack (hold = heavy attack) · `LT` block/parry · hold `LB` (or press `L3`) sprint · `RB` skill · D-pad up map / down cockroach / left skill tree / right bag · `Start` pause · in every menu: left stick moves the cursor, `A` selects, `B` goes back, `LB`/`RB` change settings, right stick scrolls · touch the keyboard or move the mouse at any time to switch back at once · a picture of the controller with every button explained is under **How to Play** on the title screen, or in the pause menu (🎮 Controller tab)
 
-เริ่มเกมใหม่ (โหมดเนื้อเรื่อง) จะมี **บทฝึกพื้นฐาน 13 ขั้น** ที่มุมซ้ายบน สอนทีละปุ่มและรอจนผู้เล่นลองทำจริง (มอง เดิน วิ่ง กระโดด ฟัน ฟันหนัก ป้องกัน หลบ สกิล กระเป๋า แผนที่ ต้นไม้สกิล ขี่แมลงสาบ) · `Enter` ข้ามขั้น · `Backspace` ข้ามทั้งหมด · เมนูหยุดเกม (`Esc`) มีหน้า **ปุ่มควบคุมทั้งหมด** และปุ่ม **ฝึกพื้นฐานอีกครั้ง**
+A new game (story mode) starts with **First Steps, a 13-step tutorial** in the top-left corner. It teaches one button at a time and waits until you really try it (look, walk, sprint, jump, light attack, heavy attack, block, dodge, skill, bag, map, skill tree, ride the cockroach) · `Enter` skips a step · `Backspace` skips them all · the pause menu (`Esc`) has an **all controls** page and a **Repeat the First Steps** button
 
-| คอมพิวเตอร์ | มือถือ | การกระทำ |
+| PC | Phone | Action |
 |---|---|---|
-| `W A S D` | จอยซ้าย | เดิน |
-| เมาส์ | ลากนิ้วฝั่งขวา | มองรอบ ๆ |
-| `Shift` | `»` | วิ่ง (ใช้ stamina) |
-| `Space` | `⤒` | กระโดด |
-| คลิกซ้าย | แตะ `⚔` | ฟันเบา |
-| กดคลิกซ้ายค้างแล้วปล่อย | กด `⚔` ค้าง | ฟันหนัก (ดาเมจ ×3) |
-| คลิกขวาค้าง หรือ `R` | กด `🛡` ค้าง | ป้องกัน (กดตอนศัตรูกำลังจะฟัน = **ปัด**) |
-| `C` หรือ `Ctrl` | `↯` | หลบ (ช่วงหลบโดนโจมตีไม่เข้า) |
-| `G` | `✦` | สกิลประจำวิถี (ดูหัวข้อวิถี) |
-| `E` | `✋` | คุย / เก็บของ / เปิดหีบ |
-| `I` หรือ `Tab` | `🎒` | เปิดกระเป๋า |
-| `Q` | `⚱` | ดื่มยาฟื้นพลัง |
-| `M` / `Tab` | `⌖` | แผนที่ |
-| `Esc` | `❚❚` | หยุดเกม / ตั้งค่า |
-| `F11` | | เต็มจอ (เวอร์ชันคอม) |
+| `W A S D` | left stick | Walk |
+| Mouse | drag on the right side | Look around |
+| `Shift` | `»` | Sprint (uses stamina) |
+| `Space` | `⤒` | Jump |
+| Left click | tap `⚔` | Light attack |
+| Hold left click, then release | hold `⚔` | Heavy attack (×3 damage) |
+| Hold right click, or `R` | hold `🛡` | Block (just as an enemy strikes = **parry**) |
+| `C` or `Ctrl` | `↯` | Dodge (you can't be hit during the dodge) |
+| `G` | `✦` | Path skill (see Paths) |
+| `E` | `✋` | Talk / pick up / open a chest |
+| `I` or `Tab` | `🎒` | Open the bag |
+| `Q` | `⚱` | Drink a Healing Draught |
+| `M` / `Tab` | `⌖` | Map |
+| `Esc` | `❚❚` | Pause / settings |
+| `F11` | | Fullscreen (desktop version) |
 
-## หน้าจอขณะเล่น (สไตล์ Doom)
+## The in-game screen (Doom style)
 
-แถบหินด้านล่างจอ ภาพ 3D อยู่เหนือแถบเหมือนเกม Doom:
+A stone bar sits at the bottom of the screen, with the 3D view above it, like in Doom:
 
-| ช่อง | แสดง |
+| Slot | Shows |
 |---|---|
-| อาวุธ | ดาบที่ถืออยู่และพลังโจมตี (ดาบแห่งราชาหินจะเรืองแสงสีฟ้า) |
-| เลือด | ตัวเลขสีแดง |
-| **หน้าตัวละคร** | เหลือบมองซ้ายขวา · เลือดยิ่งน้อยหน้ายิ่งเลือดอาบ · โดนตีแล้วหันไปทางศัตรู · โดนหนักจะร้องลั่น · กัดฟันตอนฟัน · ยิ้มเหี้ยมตอนฆ่าศัตรูหรือปัดสำเร็จ · หอบเหงื่อตกตอนเหนื่อย · ตาย = ตาเป็นกากบาท |
-| แรง (ความเหนื่อย) | stamina สีทอง เหลือน้อยเป็นสีส้ม หมดแรงจะกะพริบ |
-| ของ | จำนวนยาและเหรียญ |
+| Weapon | The sword you hold and its attack power (the Sword of the Stone King glows blue) |
+| Health | A red number |
+| **The face** | Glances left and right · gets bloodier as health drops · turns toward the enemy when hit · screams when hit hard · grits its teeth when attacking · grins cruelly when you kill an enemy or parry · pants and sweats when tired · dead = crossed-out eyes |
+| Stamina (tiredness) | Gold stamina; turns orange when low; flashes when empty |
+| Items | Number of draughts and coins |
 
-## เสียงและดนตรีประกอบ
+## Sound and music
 
-ดนตรีในเกม **แต่งสดด้วยโค้ดระหว่างเล่น** (synth ทั้งหมด ไม่มีไฟล์เพลง) และเปลี่ยนตามสถานการณ์แบบ adaptive:
+The music is **composed live in code while you play** (all synth, no music files) and adapts to what is happening:
 
-| สถานการณ์ | ดนตรี |
+| Situation | Music |
 |---|---|
-| กลางคืน | คอรัสเย็นเยียบ พิณ ระฆังไกล ๆ บนเสียงโดรนต่ำ (บางช่วงจะเงียบลงเหลือแค่โดรน) |
-| กลางวันที่มืดมน | เชลโล่โศกเศร้าคลอพิณลูท ทำนอง Dm–C–B♭–A ฟลุตตอบทำนองเป็นบางรอบ |
-| เข้าใกล้สิ่งก่อสร้างยักษ์ | คอรัสเสียงต่ำลึก ๆ ค่อย ๆ ดังขึ้นตามระยะ (ปราสาทลอยฟ้า, ราชาหิน, ซี่โครงอสูร) |
-| ต่อสู้ | เครื่องสายเร่งเร้า กลองศึก ยิ่งศัตรูรุมเยอะ/เลือดน้อย ยิ่งมีแตรและคอรัสเพิ่ม · หลังชนะเพลงค่อย ๆ จางกลับ |
-| อัศวินหิน (บอส) | คอรัสร้องเพลงสวด *Dies irae* กลองหนัก ฆ้อง |
-| ในโรงเตี๊ยม | เพลงจิ๊ก 6/8 ฮาร์ดี้-เกอร์ดี้ ฟลุต กลองมือ (ยืนข้างนอกจะได้ยินอู้อี้ลอดผนังมา) |
-| ตาย / ชนะบอส | ฆ้องงานศพ / คอรัสคอร์ด D เมเจอร์ |
+| Night | Chilling choir, harp and distant bells over a low drone (sometimes it fades down to just the drone) |
+| Gloomy day | A mournful cello with lute, melody Dm–C–B♭–A; a flute answers on some passes |
+| Near a giant structure | A deep low choir that swells as you come closer (the floating castle, the Stone King, the Beast's Ribcage) |
+| Combat | Driving strings and war drums; the more enemies or the lower your health, the more horns and choir join · after a win it slowly fades back |
+| The Stone Knight (boss) | A choir singing the *Dies irae* hymn, heavy drums, gongs |
+| In the inn | A 6/8 jig on hurdy-gurdy, flute and hand drum (outside you hear it muffled through the walls) |
+| Death / boss defeated | A funeral gong / a choir on a D major chord |
 
-เปิดกระเป๋า เมนู หรือหยุดเกม เพลงจะเบาและอู้อี้ลง
+When you open the bag or a menu, or pause, the music gets quieter and muffled.
 
-**เสียงเอฟเฟกต์** มีทิศทางแบบ 3 มิติ (ได้ยินว่าศัตรูอยู่ซ้าย/ขวา ใกล้/ไกล) และมีเสียงสะท้อนตามสถานที่ (ในห้อง, หุบผา, วิหาร):
+**Sound effects** are 3D (you can hear if an enemy is left/right, near/far) and echo to suit the place (indoors, gorges, temples):
 
-- เสียงเท้าต่างกันตามพื้น: หญ้า, น้ำ, ไม้ (ในโรงเตี๊ยม), หิน
-- ดาบฟันโดนเนื้อ / หิน / ฟาง / วิญญาณ ได้เสียงต่างกัน, ปัดดาบดังกังวาน, ป้องกัน, หลบ, ฟันหนักชาร์จ
-- ศัตรูทุกชนิดมีเสียงร้องตอนเห็นเรา เสียงเตือนก่อนโจมตี และเสียงตายของตัวเอง
-- บรรยากาศ: แม่น้ำ, น้ำตกปราสาท, ไฟกองเปรี๊ยะ ๆ, ลมแรงขึ้นบนที่สูงและในหุบผา, จิ้งหรีด กบในบึง นกฮูก หมาป่าหอนไกล ๆ และเสียงกรีดร้องในความมืด (กลางคืน), อีกาและระฆังสถานี (กลางวัน), โซ่ปราสาทลั่นเอี๊ยด, ราชาหินหายใจ, ลมหวีดผ่านซี่โครงอสูร, เสียงคนคุยกันชนแก้วในโรงเตี๊ยม
+- Footsteps change with the ground: grass, water, wood (in the inn), stone
+- Swords sound different hitting flesh / stone / straw / spirits; parries ring out; block, dodge and heavy-attack charge have their own sounds
+- Every enemy type has a cry when it sees you, a warning before it attacks, and its own death sound
+- Ambience: the river, the castle waterfall, crackling fires, wind that grows on high ground and in gorges, crickets, marsh frogs, owls, distant howling wolves and screams in the dark (at night), crows and the station bell (by day), creaking castle chains, the Stone King breathing, wind whistling through the Beast's Ribcage, people talking and clinking glasses in the inn
 
-ปรับระดับ **เสียงรวม / ดนตรีประกอบ / เสียงเอฟเฟกต์** แยกกันได้ในเมนูหยุดเกม (`Esc`)
+Set **Master volume / Music / Effects** separately in the pause menu (`Esc`).
 
-**ใส่เพลงของตัวเองแทนได้:** วางไฟล์ไว้ใน `audio/bgm/` แล้วแก้ `audio/bgm/tracks.json` เช่น
-`{ "night": "night.mp3", "combat": "battle.ogg" }` (ชื่อที่ใช้ได้: `night`, `day`, `combat`, `boss`, `tavern`, `awe`) เพลงจะวนลูปแทนเพลงที่สังเคราะห์
+**Use your own music:** put the files in `audio/bgm/` and edit `audio/bgm/tracks.json`, for example
+`{ "night": "night.mp3", "combat": "battle.ogg" }` (valid names: `night`, `day`, `combat`, `boss`, `tavern`, `awe`). Your tracks loop in place of the synthesized music.
 
-เพลงในหน้าเมนู: `audio/menu.mp3`
+Menu music: `audio/menu.mp3`
 
-## กระเป๋าแบบ Resident Evil 4
+## Resident Evil 4-style bag
 
-กด `I` หรือ `Tab` เปิดกระเป๋า เกมจะหยุดระหว่างที่เปิด ของแต่ละชิ้นกินพื้นที่ตามขนาดจริง เช่น ยา 1×2 ช่อง แร่ 2×1 รูปเคารพ 2×2 จัดเองได้ทั้งหมด:
+Press `I` or `Tab` to open the bag. The game pauses while it is open. Each item takes up space by its real size: a draught is 1×2 slots, ore 2×1, an idol 2×2. You arrange everything yourself:
 
-- **ลาก** ของเพื่อย้าย · กด **R / คลิกขวา / หมุนลูกกลิ้งเมาส์** ระหว่างถือเพื่อหมุน
-- วางทับ **ของชนิดเดียวกัน** = รวมกอง · วางทับของชิ้นอื่น **ชิ้นเดียว** = สลับมาถือแทน
-- **คลิก** ที่ของ = เมนู ใช้ / ย้าย / หมุน / ทิ้ง · ลากไปที่ปุ่ม "ทิ้ง" = วางลงพื้น (เก็บคืนได้)
-- **จัดอัตโนมัติ** เรียงของให้แน่นในคลิกเดียว
-- ถ้ากระเป๋าเต็มตอนเก็บของ กระเป๋าจะเปิดเองพร้อมของชิ้นใหม่รอในช่องด้านข้าง ให้จัดที่แล้วลากเข้าไป (ปิดกระเป๋าแล้วของจะอยู่ที่พื้นเหมือนเดิม)
-- กระเป๋าเริ่มที่ 8×5 ซื้อใบใหญ่ขึ้นได้ที่โรงเตี๊ยม (10×6 และ 12×7)
+- **Drag** an item to move it · press **R / right click / scroll the mouse wheel** while holding it to rotate it
+- Drop it on **the same kind of item** = stack them · drop it on **one** other item = swap, so you now hold that one
+- **Click** an item = menu: Use / Move / Rotate / Discard · drag it to the "Discard" button = drop it on the ground (you can pick it up again)
+- **Auto-sort** packs everything tightly in one click
+- If the bag is full when you pick something up, the bag opens by itself with the new item waiting in a side slot. Make room, then drag it in (close the bag and the item stays on the ground)
+- The bag starts at 8×5. Buy bigger ones at the inn (10×6 and 12×7)
 
-### ของในโลก
-- **ศัตรูดรอปของ:** ฟางสาป (หุ่นฟาง), เขี้ยวหมาป่าเงา, เมือกปลิง, แก่นวิญญาณ, แกนหินอัศวิน + รูปเคารพ (บอส) และบางทีมีสมบัติ
-- **เก็บได้แล้วงอกใหม่:** หญ้าจันทร์ (ทุ่งหญ้า), เห็ดเรืองแสง (ป่าตะวันตก/บึง), แร่เหล็กมืด (เชิงหน้าผาและในหุบผา)
-- **หีบสมบัติ 14 ใบ** ตามซากปรักหักพังและรอบสิ่งก่อสร้างยักษ์ เปิดได้ครั้งเดียว
-- **สมบัติ** (มูนสโตน ไข่มุก เหรียญรถไฟ นาฬิกาพก เชิงเทียนเงิน รูปเคารพ) มีไว้ขายเป็นเงิน
+### Items in the world
+- **Enemy drops:** Cursed Straw (Strawmen), Shadow Wolf Fang, Giant Leech Slime, Wisp Essence, Stone Knight's Core + an idol (boss), and sometimes treasure
+- **Gathered, and they grow back:** Moon Herb (meadows), Glowcap (Western Woods/marsh), Dark Iron Ore (at the foot of cliffs and in the gorge)
+- **14 treasure chests** in ruins and around the giant structures. Each opens once
+- **Treasure** (Moonstone, Marsh Pearl, Old Rail Token, Railwayman's Pocket Watch, Silver Candlestick, idols) is for selling
 
-### ปรุงยา · ตีเหล็ก · ร้านค้า
-| ที่ไหน | ทำอะไร |
+### Brewing · Smithing · Shops
+| Where | What |
 |---|---|
-| **ยายคางคก** (หม้อต้มยา) | ยาฟื้นพลัง · ยาฟื้นพลังใหญ่ · ยาบำรุงแรง (แรงฟื้นเร็ว ×2) · น้ำมันดาบเรืองแสง (ดาเมจ ×1.5) · ยาตาแมว (มองเห็นตอนกลางคืน) |
-| **ลุงทั่ง ช่างตีเหล็ก** (หมู่บ้าน) | ดาบ 4 ขั้น (+20%/ขั้น) · ผ้าคลุม 4 ขั้น (ลดดาเมจ 8%/ขั้น) · ตะเกียง 3 ขั้น (สว่างและไกลขึ้น) |
-| **เทียนหลอม** (โรงเตี๊ยม) | ซื้อยา/หญ้า · ซื้อกระเป๋าใบใหญ่ · ขายสมบัติและวัตถุดิบ |
+| **Granny Toad** (cauldron) | Healing Draught · Great Healing Draught · Stamina Tonic (stamina recovers ×2) · Glowing Blade Oil (×1.5 damage) · Cat's-Eye Potion (see at night) |
+| **Old Anvil, the smith** (village) | Sword, 4 tiers (+20%/tier) · Cloak, 4 tiers (8% less damage/tier) · Lantern, 3 tiers (brighter and farther) |
+| **Tallow** (the inn) | Buy draughts/herbs · buy bigger bags · sell treasure and materials |
 
-ยาที่ดื่มแล้วมีผลต่อเนื่องจะแสดงเวลาที่เหลือมุมซ้ายล่าง ผลจากการอัปเกรดและยาเห็นได้ในช่องอาวุธของแถบสถานะ
+Draughts with lasting effects show their time left in the bottom-left corner. Upgrade and draught effects show in the weapon slot of the status bar.
 
-## วิถี (Class) — เลือกตอนเริ่มเกม เปลี่ยนได้ที่โรงเตี๊ยม
+## Paths (classes) — pick one at the start, change it at the inn
 
-แต่ละวิถีถืออาวุธต่างกัน และเปลี่ยนกติกาการเล่นทั้งเกม ไม่ใช่แค่ตัวเลข หน้าตัวละครในแถบสถานะก็เปลี่ยนตามวิถี (ต่างหูระฆัง, ปลิงเกาะแก้ม, หมวกสัปเหร่อ, หัวเทียน) และช่างตีเหล็กจะอัปเกรดอาวุธของวิถีนั้น ๆ
+Each path has its own weapon and changes how the whole game plays, not just the numbers. The face in the status bar changes with the path too (bell earrings, a leech on the cheek, an undertaker's hat, a candle head), and the smith upgrades that path's weapon.
 
-| วิถี | อาวุธ | วิธีเล่น |
+| Path | Weapon | How it plays |
 |---|---|---|
-| **ผู้พเนจร** | ดาบ | สมดุล ป้องกัน/ปัดได้ · `G` ตั้งหลัก: แรงเต็มทันที (พัก 30 วิ) |
-| **ผู้ตีระฆัง** | ค้อนระฆัง | **ฟันตรงจังหวะกลองของเพลง** แรงขึ้นสูงสุด ×2.4 (มีวงแหวนกะพริบตามจังหวะรอบเป้าเล็ง) ทุกครั้งที่โดนจะดังเป็นโน้ตไต่สเกลขึ้นเรื่อย ๆ และสะสม **พลังกังวาน** · `G` ตอนเต็ม: **ระฆังใหญ่** ศัตรูในรัศมี 10 ม. กระเด็นและมึนงง · `G` ตอนไม่เต็ม: เคาะเบา ๆ **เสียงสะท้อนเผยตำแหน่งศัตรูทะลุกำแพง** 6 วินาที |
-| **หมอปลิง** | มีดกรีด + ปลิง | **เลือดไม่ฟื้นเอง** · ยิ่งเลือดน้อยยิ่งตีแรง (สูงสุด ×2.4) · ฟันเบาทำให้เลือดไหล · กดค้างแล้วปล่อย = **ปาปลิง** (ใช้เลือด 4 + ปลิงในกระเป๋า 1 ตัว) ปลิงเกาะดูดเลือดศัตรู 8 วินาที แล้วคลานกลับมาเติมเลือดให้ · `G` เรียกปลิงกลับทันที (กระชากเลือดเพิ่ม) · ปลิงหาได้จากปลิงยักษ์ ร้านโรงเตี๊ยม และหม้อยายคางคก |
-| **สัปเหร่อแบกโลง** | โลงศพ | เหวี่ยงช้าแต่หนัก กดค้าง = ทุบพื้นวงกว้าง · **ยกโลงเป็นกำแพง** กันได้ทุกอย่างจากด้านหน้า แม้แต่ท่าทุบพื้น (แต่ปัดไม่ได้) · ศัตรูที่ฆ่าจะทิ้งศพไว้ — `G` ใกล้ศพ = **เก็บเข้าโลง** (4 ช่อง) ได้พลังของศพนั้น: ร่างซูบ = วิ่งไม่เปลืองแรง, ร่างคลาน = ปีนทางชัน, หญิงร่ำไห้ = **ศัตรูที่เราจ้องจะขยับไม่ได้**, ร่างยักษ์ = ทุบพื้นกว้างขึ้น, หมาป่า = เหวี่ยงเร็วขึ้น, หุ่นฟาง = รับดาเมจน้อยลง · `G` ที่อื่น = **ฝังศพ** กลายเป็นหลุมศพที่ใช้ฟื้นคืนชีพ + ฟื้นเลือด 40 |
-| **นักล่าหน้าไม้** | หน้าไม้ + มีดเดินป่า | **โจมตีระยะไกล** · คลิก = ยิงลูกดอก 1 ดอก แล้ว**บรรจุใหม่ 1.2 วิ** · **กดค้าง = เล็งซูม** แล้วปล่อยยิงแรง ×2 **ทะลุได้ 3 ตัว** · ยิงโดน**หัว**แรง ×1.5 · ระหว่างบรรจุหรือลูกดอกหมด คลิก = **แทงมีด** · `G` **วางกับดักเหล็กหนีบ** (สูงสุด 2 อัน พัก 18 วิ) ศัตรูเหยียบแล้วติดอยู่กับที่ 3 วิ (บอสแค่ช้าลง) · **ลูกดอกมีจำกัด** เริ่มต้น 24 ดอก ซื้อที่โรงเตี๊ยม (6 ดอก 10 เหรียญ) ตีที่ช่างเหล็ก (แร่ 1 ก้อน = 12 ดอก, กรงเล็บซีด 1 = 4 ดอก) ลูกที่พลาดจะปักพื้น เดินไปเก็บคืนได้ ลูกที่ปักศัตรูเก็บคืนได้ 60% ตอนศัตรูตาย |
-| **ผู้แบกไส้เทียน** | กระถางไฟติดโซ่ | **เลือดคือไขเทียนที่ละลายลงเรื่อย ๆ** ยืนใกล้กองไฟเพื่อหล่อเทียนคืน · เหวี่ยงระยะไกล ศัตรูติดไฟ ยิ่งตีติดกันไฟยิ่งแรงแต่ละลายเร็วขึ้น · กดค้าง = หมุนรอบตัว · **คลิกขวาค้าง = ป้องไฟ** จอมืด ศัตรูมองไม่เห็นเจ้าและเลิกไล่ (แต่ป้องกันไม่ได้) · `G` **ปักเทียน** (สูงสุด 3) ร่างซีดและวิญญาณเข้าเขตแสงไม่ได้ ยืนใกล้เทียนจะค่อย ๆ หล่อเทียนคืน |
+| **Wanderer** | Sword | Balanced; can block/parry · `G` Steady: stamina refills at once (30 s cooldown) |
+| **Bellwright** | Bell Hammer | **Hit on the music's drum beat** for up to ×2.4 power (a ring around the crosshair flashes on the beat). Each hit rings a note that climbs the scale and builds **Resonance** · `G` when full: **Great Bell** — enemies within 10 m are thrown back and stunned · `G` when not full: a soft tap; **the echo reveals enemies through walls** for 6 seconds |
+| **Leech-Doctor** | Lancet + leeches | **Your blood does not regenerate** · the lower your blood, the harder you hit (up to ×2.4) · light attacks cause bleeding · hold and release = **throw a leech** (costs 4 blood + 1 leech from the bag). The leech drinks from the enemy for 8 seconds, then crawls back to feed you · `G` calls the leeches back at once (tearing out extra blood) · find leeches from Giant Leeches, the inn shop and Granny Toad's cauldron |
+| **Coffin-Bearer** | Coffin | Slow but heavy swings; hold = wide ground slam · **raise the coffin as a wall** that stops everything from the front, even ground slams (but it can't parry) · enemies you kill leave a corpse — `G` near a corpse = **take it into the coffin** (4 slots) and gain its power: Gaunt = sprinting costs no stamina, Crawler = climb steep slopes, Weeping Woman = **an enemy you stare at cannot move**, Brute = wider ground slam, wolf = faster swings, Strawman = take less damage · `G` anywhere else = **bury a corpse**; it becomes a grave you respawn at + restores 40 health |
+| **Crossbow Hunter** | Crossbow + Hunting Knife | **Ranged attacks** · click = fire 1 bolt, then **reload for 1.2 s** · **hold = zoom and aim**, release for a ×2 shot that **pierces up to 3 enemies** · **headshots** deal ×1.5 · while reloading or out of bolts, click = **knife stab** · `G` **sets a steel jaw trap** (up to 2, 18 s cooldown); an enemy that steps in is stuck for 3 s (bosses only slow down) · **bolts are limited**: you start with 24, buy them at the inn (6 bolts for 10 coins) or have the smith make them (1 ore = 12 bolts, 1 Pale Claw = 4 bolts). Missed bolts stick in the ground and can be picked up; bolts stuck in an enemy are 60% recoverable when it dies |
+| **Wick-Bearer** | Censer on a chain | **Your health is candle wax that keeps melting.** Stand near a fire to recast it · long-reach swings set enemies on fire; the longer you keep hitting, the hotter the flame, but you melt faster · hold = spin · **hold right click = shield the flame**: the screen goes dark, enemies can't see you and give up the chase (but you can't block) · `G` **plants a candle** (up to 3). The Pale Ones and spirits can't enter its light. Standing near a candle slowly recasts your wax |
 
-## ต้นไม้สกิลของแต่ละวิถี (กด K)
+## Each path's skill tree (press K)
 
-**เลเวลแยกตามวิถี** เลเวลสูงสุด **30** และอัพยาก (รวมประมาณ 54,000 XP) ทุกเลเวลได้ 1 แต้ม ถึงเลเวล 30 ก็ซื้อสกิลได้ไม่ครบต้น ต้องเลือกเองว่าจะเน้นอะไร
+**Each path levels up on its own.** The top level is **30** and it is hard to reach (about 54,000 XP in all). Each level gives 1 point. Even at level 30 you can't buy the whole tree, so you choose what to focus on.
 
-- **XP มาจาก:** ฆ่าศัตรู (นอกหุบเขาได้ ×1.5) · ฆ่าศัตรูชนิดเดิมซ้ำ ๆ ได้น้อยลงเรื่อย ๆ (ต่ำสุด 20% ฟื้นเองใน ~1.5 นาที) · บอสและมอนสเตอร์ค่าหัวได้เต็มเสมอ · เควสต์ 150 · ส่งค่าหัว 300 · **ค้นพบสถานที่ใหม่ 120**
-- **โครงต้นไม้:** ลำต้น (ทุกคนในวิถี) → เลือก **1 ใน 2 สาย** → แต่ละสายมี **3 กิ่ง** ผสมกันได้ → จุด **◆ เลือก 1 ใน 2** → **★ ท่าไม้ตาย เลือก 1 ใน 2**
-- **ล็อกถาวร:** ลงแต้มสายไหนแล้วอีกสายปิดตลอดไป และจุด "เลือก 1 ใน 2" ก็เช่นกัน เกมจะถามยืนยันก่อนทุกครั้ง
-- แต่ละสกิลมีเลเวลขั้นต่ำ และขั้นลึกต้องใช้**ของสะสมเฉพาะวิถี** ที่ได้จากการเล่นแบบของวิถีนั้นเท่านั้น
-- **เซฟเก่า:** XP ทั้งหมดที่เคยได้ ยกให้วิถีที่เล่นอยู่ (คิดตามเกณฑ์ใหม่) และคืนแต้มทั้งหมดให้เลือกใหม่หนึ่งครั้ง
-- **โหมดออนไลน์:** ทุกคนเริ่มเลเวล 1 ใหม่ทุกแมตช์ อัพเร็ว สูงสุดเลเวล 15 ใช้ต้นไม้และกติกาล็อกสายเดียวกัน
+- **XP comes from:** killing enemies (×1.5 outside the valley) · killing the same kind of enemy again and again gives less and less (down to 20%, recovering in ~1.5 minutes) · bosses and bounty monsters always give full XP · quests 150 · turning in a bounty 300 · **discovering a new place 120**
+- **Tree shape:** trunk (everyone on the path) → choose **1 of 2 lines** → each line has **3 branches** you can mix → a **◆ Choose 1 of 2** node → **★ Finishing Art, choose 1 of 2**
+- **Permanent locks:** once you put a point in one line, the other line closes for good. The "Choose 1 of 2" nodes work the same way. The game always asks you to confirm first.
+- Each skill has a minimum level, and the deeper ones need the **path's keepsake**, earned only by playing that path its own way.
+- **Old saves:** all the XP you ever earned goes to the path you are playing (counted by the new rules), and all your points are refunded once so you can choose again.
+- **Online mode:** everyone starts again at level 1 every match. Levelling is fast, the cap is level 15, and the same tree and line locks apply.
 
-ทุกวิถีมีต้นไม้เต็ม **32 สกิล** (ลำต้น 4 + สายละ 14):
+Every path has a full tree of **32 skills** (trunk 4 + 14 per line):
 
-| วิถี | ของสะสม (ได้จาก) | สาย 1 (กิ่ง · ◆ · ★) | สาย 2 (กิ่ง · ◆ · ★) |
+| Path | Keepsake (earned by) | Line 1 (branches · ◆ · ★) | Line 2 (branches · ◆ · ★) |
 |---|---|---|---|
-| ผู้พเนจร | ตราดาบบิ่น (ปัดสำเร็จ / ฆ่าด้วยฟันหนัก) | **ดาบพเนจร** · ความเร็ว / ฟันหนัก / เลือดร้อน · ◆ ดาบเงาคู่ / มือหนัก · ★ ดาบจันทร์เสี้ยว / ดาบวน | **ผู้รอด** · ปัด / ทนทาน / ฟื้นตัว · ◆ ท่ารับ / ฝีเท้าเบา · ★ สวนกลับ / ป้อมคนเดียว (กันได้ทุกทิศ) |
-| ผู้ตีระฆัง | เศษระฆังร้าว (ตีตรงจังหวะ) | **จังหวะ** · ไต่สเกล / ประคองจังหวะ / เสียงคม · ◆ ดูเอ็ต / เร่งจังหวะ · ★ ซิมโฟนีระฆัง / ฟินาเล่ | **ระฆังใหญ่** · คลื่น / สะท้อน / ค้อน · ◆ ระฆังยักษ์ / ม่านเสียง · ★ ระฆังก้อง / ระฆังมรณะ |
-| หมอปลิง | ปลิงอิ่มเลือด (เลือดที่ปลิงนำกลับมา) | **ฝูงปลิง** · ฝูง / กตัญญู / พิษ · ◆ นางพญาปลิง / งานเลี้ยง · ★ ปลิงระเบิด / คลื่นปลิง | **มีดผ่าตัด** · แผล / คลั่ง / ดูด · ◆ กรีดรัว / แม่นยำ · ★ ผ่าตัดเลือดเย็น / สูบเลือด |
-| สัปเหร่อแบกโลง | ดินหลุมศพ (ยกโลงกัน / เก็บศพ / ฝังศพ) | **กำแพงเหล็ก** · ป้องกัน / สวนกลับ / ทุบพื้น · ◆ ป้อมเคลื่อนที่ / ปราการ · ★ โลงพุ่งชน / โลงเหล็กหมุน | **ผู้ปลุกศพ** · เก็บศพ / ฝังศพ / ปลุกศพ · ◆ โลงกระดูก / วิญญาณเดียว · ★ ศพไม่ยอมหลับ / กองทัพในโลง |
-| นักล่าหน้าไม้ | ขนนกหางลูกดอก (ยิงโดนหัว / ฆ่าด้วยการเล็งยิง) | **มือแม่น** · เล็ง / บรรจุ / ซุ่ม · ◆ ลูกดอกเหล็กหนัก / หน้าไม้สองสาย · ★ ลูกดอกทะลุจันทร์ / ห่าลูกดอก | **นักล่ากับดัก** · กับดัก / สัญชาตญาณ / มีด · ◆ กับดักดินปืน / ตาข่าย · ★ ทุ่งกับดัก / งานเลี้ยงของนักล่า |
-| ผู้แบกไส้เทียน | ไขเทียนดำ (ตีตอนไฟร้อน / ลอบโจมตี) | **เปลวเพลิง** · โหมไฟ / ไฟลาม / ไข · ◆ กระถางใหญ่ / ไฟพุ่ง · ★ พายุไฟ / ดวงอาทิตย์ดับ | **เงามืด** · ย่อง / เทียน / ลอบ · ◆ เทียนประหยัด / ตาแมว · ★ ลอบเผา / สุริยคราส |
+| Wanderer | Notched Blade Sigil (parry / kill with a heavy attack) | **Wandering Blade** · Speed / Heavy Attack / Hot Blood · ◆ Twin Shadow Blade / Heavy Hand · ★ Crescent Blade / Whirling Blade | **Survivor** · Parry / Endurance / Recovery · ◆ Guarded Stance / Light Feet · ★ Riposte / One-Man Bulwark (block from every side) |
+| Bellwright | Cracked Bell Shard (hit on the beat) | **Rhythm** · Climb the Scale / Keeping Time / Sharp Tone · ◆ Duet / Accelerando · ★ Bell Symphony / Finale | **Great Bell** · Wave / Echo / Hammer · ◆ Giant Bell / Veil of Sound · ★ Tolling / Death Knell |
+| Leech-Doctor | Sated Leech (blood the leeches bring back) | **Leech Brood** · Swarm / Faithful / Venom · ◆ Leech Queen / Feast · ★ Bursting Leech / Leech Tide | **Surgeon's Knife** · Wounds / Frenzy / Drain · ◆ Rapid Slashes / Precision · ★ Cold Dissection / Exsanguinate |
+| Coffin-Bearer | Grave Soil (coffin blocks / gathering corpses / burying corpses) | **Iron Wall** · Guard / Retaliation / Ground Slam · ◆ Moving Keep / Bastion · ★ Coffin Charge / Iron Coffin Spin | **Corpse-Raiser** · Gathering / Burial / Raising · ◆ Ossuary / Lone Soul · ★ The Restless Dead / Legion in the Coffin |
+| Crossbow Hunter | Bolt Fletching (headshots / kills with aimed shots) | **Marksman** · Aim / Reload / Lurk · ◆ Heavy Iron Bolt / Twin-String Crossbow · ★ Moonpiercer / Bolt Volley | **Trapper** · Traps / Instinct / Knife · ◆ Powder Trap / Net · ★ Field of Traps / Hunter's Feast |
+| Wick-Bearer | Black Tallow (hits while the flame is hot / ambushes) | **Flame** · Stoke the Fire / Spreading Fire / Wax · ◆ Great Censer / Flare · ★ Firestorm / Dying Sun | **Shadow** · Stalk / Candles / Ambush · ◆ Frugal Candle / Cat's Eye · ★ Ambush Burn / Eclipse |
 
-รายละเอียดทุกสกิลดูได้ในเกม (กด K) หรือใน `src/upgrades.js`
+See every skill in the game (press K) or in `src/upgrades.js`.
 
-## สัตว์ขี่: แมลงสาบยักษ์ (กด H)
+## Mount: the Giant Cockroach (press H)
 
-ใช้ได้ทั้งโหมดเนื้อเรื่องและโหมดออนไลน์
+Works in both story mode and online mode.
 
-- **H ผิวปาก:** แมลงสาบยักษ์วิ่งมาหาจากด้านหลัง กด **H** ข้างมันเพื่อขึ้นขี่ กดอีกครั้งเพื่อลง
-- **ขี่:** วิ่ง 12.5 ม./วิ (เดินเท้าวิ่งได้ 8.2) ไม่เปลืองแรง ปีนทางชันที่คนเดินขึ้นไม่ได้
-- **Space:** กางปีกกระพือขึ้น กดค้างไว้เพื่อร่อน (ปีกมีจำกัด ฟื้นตอนอยู่บนพื้น)
-- **คลิกขวา:** สั่งให้มันกัดศัตรูข้างหน้า (ขณะขี่จะป้องกันและหลบไม่ได้)
-- **ฟันจากบนหลังได้ตามปกติ** แต่ถ้าโดนตีแรง ๆ จะตกจากหลัง
-- **ออนไลน์:** คนอื่นเห็นเจ้านั่งอยู่บนหลังแมลงสาบ
+- **H to whistle:** the Giant Cockroach runs up from behind you. Press **H** next to it to mount; press again to get off.
+- **Riding:** runs at 12.5 m/s (sprinting on foot is 8.2), costs no stamina, and climbs slopes you can't walk up.
+- **Space:** spread its wings and flap upward. Hold to glide (wing power is limited and recovers on the ground).
+- **Right click:** make it bite the enemy in front (while riding you can't block or dodge).
+- **You can attack from its back as usual**, but a hard hit knocks you off.
+- **Online:** other players see you riding the cockroach.
 
-## ศึกราชาจันทรา — โหมดออนไลน์ 2–4 คน
+## War of the Moon Kings — online mode, 2–4 players
 
-โหมดผสม MOBA บน **แผนที่สนามศึกของตัวเอง**: ผู้เล่นแต่ละคนมี **ฐานและราชา** ของตัวเอง (สี่ฐานที่สี่มุม: แดง ฟ้า เขียว ทอง) **ราชาองค์สุดท้ายที่รอดคือผู้ชนะ** ที่นั่งที่ว่างเติมด้วย **บอทเจ้าเมือง** ได้ (เล่นคนเดียวกับบอท 3 ตัวก็ได้)
+A MOBA mix on **its own battlefield map**: each player has their **own base and king** (four bases in the four corners: Red, Blue, Green, Gold). **The last king standing wins.** Empty seats can be filled with **lord bots** (you can also play alone against 3 bots).
 
-**แผนที่สนามศึก** (`src/arena.js`): แอ่งป่ากว้างล้อมด้วยภูเขา
-- **ถนนดิน 8 สาย มีตะเกียงตลอดทาง**: ถนนวงแหวนเชื่อมฐานที่อยู่ติดกัน และถนนจากทุกฐานตรงเข้า **ลานราชาคุกเข่า** กลางแผนที่ (รูปปั้นราชายักษ์คุกเข่าบนดาบ)
-- **ป้ายบอกทาง** (ตัวหนังสือเรืองแสงสีของฐานนั้น) ทุกปากทางออกจากฐาน และทุกปากทางที่ลานกลาง เดินตามถนนไปถึงทุกฐานได้เลย
-- **แผนที่ `M`** แสดงถนนทุกสาย ฐานทั้งสี่เป็นวงกลมสีของฐาน (ฐานเจ้ามีวงแหวนล้อม) ชื่อสถานที่ครบตั้งแต่เริ่ม · **เข็มทิศ** มีหมุดสีของทุกฐาน (⌂ = ฐานเจ้า, ✝ = ฐานที่ล่มแล้ว) พร้อมระยะ
-- **แคมป์สัตว์ป่า** 4 แห่งระหว่างถนน (ถ้ำหมาป่าเหนือ/ใต้, ซากโบสถ์ตะวันออก/ตะวันตก) และสัตว์ป่าเร่ร่อนในป่า ฆ่าได้วิญญาณ 2 เกิดใหม่ทุก 75 วินาที
-- **สิ่งปลูกสร้างเริ่มต้น** ทุกฐาน: หอคอยธนู 2 หลัง (ตั้งระหว่างถนนเข้าลานกลางกับถนนวงแหวน คุมได้ทั้งสามทาง) แคมป์ไฟฮีล 1 และเหมือง 1
+**The battlefield map** (`src/arena.js`): a wide forest basin ringed by mountains
+- **8 dirt roads, lit by lanterns all the way**: a ring road links neighbouring bases, and a road from every base runs straight into the **Court of the Kneeling King** in the middle of the map (a giant statue of a king kneeling on his sword)
+- **Signposts** (glowing letters in that base's colour) at every road out of a base and every road out of the Court. Just follow the roads to reach any base.
+- **The `M` map** shows every road. The four bases are circles in their colour (yours has a ring around it). All place names show from the start · **the compass** has a pin in each base's colour (⌂ = your base, ✝ = a fallen base) with the distance
+- **4 wild camps** between the roads (Northern/Southern Wolf Den, Eastern/Western Chapel Ruin) and wild beasts roaming the forest. Each kill gives 2 souls; they respawn every 75 seconds
+- **Starting buildings** at every base: 2 Arrow Towers (between the road to the Court and the ring road, covering all three ways), 1 Healing Campfire and 1 mine
 
-**เข้าเล่น:** หน้าแรก → `ศึกราชาจันทรา (ออนไลน์)` → ใส่ชื่อ เลือกวิถี →
-- **สร้างห้องใหม่** ได้รหัส 5 ตัวอักษร ส่งให้เพื่อน แล้วกด *เพิ่มบอท* / *เริ่มเกม*
-- **เข้าร่วม** พิมพ์รหัสห้องของเพื่อน
+**To play:** title screen → `War of the Moon Kings (online)` → enter a name, choose a path →
+- **Create a Room** to get a 5-letter code. Send it to your friends, then press *Add Bot* / *Start*
+- **Join**: type your friend's room code
 
-เชื่อมต่อแบบ peer-to-peer (WebRTC) ผ่านเซิร์ฟเวอร์จับคู่สาธารณะของ PeerJS ต้องต่ออินเทอร์เน็ตทุกเครื่อง โฮสต์เป็นคนประมวลผลเกม (ถ้าโฮสต์ออก เกมจบ / ถ้าคนอื่นออก บอทรับช่วงฐานต่อ) · โหมดนี้ไม่แตะเซฟของเนื้อเรื่อง
+It connects peer-to-peer (WebRTC) through PeerJS's public matchmaking server. Every machine needs internet. The host runs the game (if the host leaves, the game ends; if anyone else leaves, a bot takes over their base) · this mode doesn't touch your story save
 
-**ทรัพยากร:** 🪵 ไม้ (ตัดซุงไม้ด้วย `E`) · ⛏ แร่ (ทุบก้อนหิน) · ✦ วิญญาณ (ฆ่าสัตว์ป่า ครีป หรือผู้เล่นอื่น) · เหมืองให้ไม้และแร่เองเรื่อย ๆ
+**Resources:** 🪵 wood (chop logs with `E`) · ⛏ ore (break rocks) · ✦ souls (kill wild beasts, creeps or other players) · mines keep producing wood and ore
 
-**`B` = ค่ายของเจ้า** (มือถือ: ปุ่ม 🏰) สร้างได้เฉพาะในวงแหวนสีรอบฐาน — คลิกซ้ายวาง · คลิกขวายกเลิก · `T` หมุน
+**`B` = Your Camp** (phone: the 🏰 button). You can only build inside the coloured ring around your base — left click to place · right click to cancel · `T` to rotate
 
-| สิ่งปลูกสร้าง | ทำอะไร |
+| Building | What it does |
 |---|---|
-| หอคอยธนู | ยิงครีปและผู้เล่นศัตรูในระยะ 24 ม. |
-| แคมป์ไฟฮีล | ฟื้นเลือดเจ้าและครีปของเจ้าในรัศมี 9 ม. |
-| เหมืองและโรงเลื่อย | +4 ไม้ +2 แร่ ทุก 8 วินาที |
-| กำแพงไม้ | ขวางครีปศัตรู (ครีปของเจ้าเดินผ่านได้) |
-| กับดักหนาม | แทงศัตรูที่เหยียบ 4 ครั้ง |
-| หุ่นฟางล่อเป้า | ครีปศัตรูจะหันมาตีหุ่นก่อน |
-| หอระฆังเตือนภัย | ตีระฆังเตือนเมื่อศัตรูบุกเข้าฐาน |
-| รังเพาะร่างยักษ์ | ปลดล็อกร่างยักษ์ และครีปทุกตัวเลือด +25% |
+| Arrow Tower | Shoots enemy creeps and players within 24 m |
+| Healing Campfire | Heals you and your creeps within 9 m |
+| Mine and Sawmill | +4 wood +2 ore every 8 seconds |
+| Wooden Wall | Blocks enemy creeps (your creeps can pass) |
+| Spike Trap | Stabs enemies who step on it, 4 times |
+| Straw Decoy | Enemy creeps attack the decoy first |
+| Warning Bell Tower | Rings a warning when enemies enter your base |
+| Brute Brood-Nest | Unlocks Brutes, and all your creeps get +25% health |
 
-**ซัมม่อนครีป** (เลือกฐานที่จะส่งไปตี): ร่างซูบ ×3 · ร่างคลาน ×3 · หมาป่าเงา ×2 · ร่างยักษ์ ×1 — ครีปเดินตามถนน: ไปฐานข้างเคียงทางถนนวงแหวน ไปฐานฝั่งตรงข้ามผ่านลานกลาง (อ้อมรูปปั้น) สู้กับครีป หอคอย ผู้เล่น และตีราชา (ราชาสู้กลับ) ถ้าเป้าหมายตกรอบจะหาเป้าใหม่เอง
+**Summon creeps** (choose the base to attack): Gaunt ×3 · Crawler ×3 · Shadow Wolf ×2 · Brute ×1 — creeps follow the roads: to a neighbouring base along the ring road, to the opposite base through the Court (around the statue). They fight creeps, towers and players, and attack the king (the king fights back). If their target is knocked out, they find a new one.
 
-**ฮีโร่:** ผู้เล่นคนอื่นจะเห็นเจ้าเป็นฮีโร่ของวิถีที่เลือก (ผู้พเนจร ผู้ตีระฆัง หมอปลิง สัปเหร่อแบกโลง ผู้แบกไส้เทียน ตามแบบใน `docs/hero-concepts/`) ผ้าย้อมเป็นสีฐาน มีแสงประจำตัวให้เห็นตอนกลางคืน และเห็นท่าเดิน วิ่ง ฟันเบา ฟันหนัก และป้องกันของกันและกัน · **สัปเหร่อแบกโลง** ใช้โมเดลชายเสื้อคลุมยาวสวมกรงเหล็กครอบหัวที่มีเทียนจุดอยู่ข้างบน แบกโลงไว้ข้างตัว มีสายสะพาย เข็มขัด และปลอกแขนสีฐาน · **ผู้พเนจร** ใช้โมเดลอัศวินเกราะเหล็กเก่าสไตล์ Dark Souls ถือดาบยาว ห้อยตะเกียงจันทร์ที่สะโพก สวมผ้าคลุมอก (tabard) และปลอกแขนสีฐาน · **หมอปลิง** ใช้โมเดลนักสืบเสื้อโค้ทยาว หมวกปีกกว้าง สวมหน้ากากกันแก๊ส มีสายคาดขวดปลิงเรืองแดงพาดอก ถือมีดกรีด ผ้าพันคอและปลอกแขนสีฐาน (ไฟล์ .fbx มาไม่มีเท็กซ์เจอร์ จึงลงสีตามส่วนของร่างแทน)
+**Heroes:** other players see you as the hero of your path (Wanderer, Bellwright, Leech-Doctor, Coffin-Bearer, Wick-Bearer, following the designs in `docs/hero-concepts/`). Their cloth is dyed in the base colour, they carry a light so you can see them at night, and you see each other walk, run, light attack, heavy attack and block · **the Coffin-Bearer** uses a model of a man in a long coat with an iron cage over his head and a lit candle on top. He carries the coffin at his side, with a strap, belt and armband in the base colour · **the Wanderer** uses a model of a knight in old iron armour in Dark Souls style, holding a longsword, with a moon lantern on the hip, a tabard and armbands in the base colour · **the Leech-Doctor** uses a model of a detective in a long coat and wide-brimmed hat, wearing a gas mask, with a bandolier of glowing red leech jars across the chest, holding a lancet, with a scarf and armband in the base colour (the .fbx file came with no textures, so it is coloured by body part instead)
 
-**บอทเจ้าเมือง** ก็มีตัวฮีโร่เดินในสนามด้วย (สุ่มวิถีที่ยังไม่มีใครใช้): ยืนเฝ้าหน้าบัลลังก์ ออกไล่ศัตรูที่บุกเข้าใกล้ราชา เดินตามครีปของตัวเองไปบุกฐานเป้าหมาย ถอยกลับเมื่อเลือดต่ำ ฟันครีป ฮีโร่ อาคาร และราชาได้ โดนฟันได้ ฆ่าได้วิญญาณ 3 ตายแล้วเกิดใหม่ที่ฐานใน 12 วินาที
+**Lord bots** also have a hero walking the field (a random path no one else is using): it guards the front of its throne, chases enemies who come close to its king, follows its own creeps to attack the target base, falls back when its health is low, attacks creeps, heroes, buildings and kings, and can be hit. Killing it gives 3 souls. It respawns at its base after 12 seconds.
 
-**ต่อสู้:** ใช้วิถีและอาวุธเดิมทั้งหมด ฟันผู้เล่นอื่น อาคาร และราชาได้ ตายแล้วเกิดใหม่ที่ฐานใน 6 วินาที (ถ้าราชายังอยู่) ฆ่าผู้เล่นอื่นได้วิญญาณ 3
+**Combat:** you use your path and weapon as usual. You can attack other players, buildings and kings. When you die you respawn at your base after 6 seconds (if your king still stands). Killing another player gives 3 souls.
 
-## ใบประกาศล่าค่าหัว (แบบ Witcher)
+## Bounty board (Witcher style)
 
-บอร์ดประกาศหน้าโรงเตี๊ยมมีงานให้รับวันละ 3 ใบ (มาใหม่ทุกเช้า) รับพร้อมกันได้ 2 งาน
+The board outside the inn has 3 contracts a day (new ones every morning). You can take 2 at once.
 
-1. **รับงาน** ที่บอร์ด อ่านเรื่องราวจากผู้ว่าจ้าง
-2. **ไปที่เกิดเหตุ** ตามเข็มทิศ (หมุดสีส้มแดง) แล้ว **ตรวจร่องรอย 3 จุด** (คราบเลือด, รอยเท้า, เศษผ้า/กระดูก ที่มีแสงเรือง ๆ) แต่ละจุดบอกเรื่องของมันเพิ่ม — จุดสุดท้ายบอก **รังและจุดอ่อน**
-3. **ล่า** มอนสเตอร์ชื่อเฉพาะที่รัง (ตัวใหญ่ เลือดมาก มีแถบเลือดชื่อมันขึ้นตอนสู้) แต่ละตัวมี **ลักษณะพิเศษ** ที่ต้องเล่นให้ถูก:
-   - **ฟื้นตัว** — แผลสมานเอง เว้นแต่จะติดไฟหรือเลือดไหล (ผู้แบกไส้เทียน, หมอปลิง, น้ำมันดาบ)
-   - **เงาพราง** — มองไม่เห็นเมื่ออยู่ห่างเกิน ~6 ก้าว (เสียงสะท้อนของผู้ตีระฆัง หรือยาตาแมว เผยตัวได้)
-   - **แม่รัง** — เรียกร่างคลานมาช่วยเรื่อย ๆ
-   - **คลั่ง** — เลือดต่ำกว่าครึ่งจะเร็วและแรงขึ้นมาก
-   - **หนังหิน** — ฟันเบาแทบไม่เข้า ต้องฟันหนัก (โลงของสัปเหร่อเข้าเสมอ)
-4. ฆ่าแล้วได้ **หลักฐานการล่า** นำไปส่งที่บอร์ดรับเหรียญและของรางวัล
+1. **Take a contract** at the board and read the client's story.
+2. **Go to the scene** by the compass (orange-red pin) and **examine 3 signs** (bloodstains, footprints, scraps of cloth/bone, all faintly glowing). Each one tells more of the story — the last one shows **the lair and the weak point**.
+3. **Hunt** the named monster at its lair (big, lots of health, with a health bar showing its name in the fight). Each one has a **special trait** you must play around:
+   - **Regrowth** — its wounds close, unless it is burning or bleeding (Wick-Bearer, Leech-Doctor, blade oil)
+   - **Shroud** — invisible beyond ~6 steps (the Bellwright's echo or a Cat's-Eye Potion reveals it)
+   - **Brood** — keeps calling Crawlers to help
+   - **Frenzy** — below half health it gets much faster and stronger
+   - **Stoneskin** — light attacks barely hurt it; you need heavy attacks (the Coffin-Bearer's coffin always gets through)
+4. The kill gives you a **Proof of the Hunt**. Bring it to the board for coins and rewards.
 
-มีงานเขียนเรื่องไว้ 8 งาน (แม่ร่างคลานใต้ซี่โครง, เขี้ยวเฒ่า, หุ่นไร้หน้าแห่งทุ่งเหนือ, ปลิงใต้ระฆังจม, ผู้กินศพแห่งหุบผา, เงาที่ยืนข้างเตียง, ยักษ์ผู้กินแกะ, แม่ม่ายผมเทา) ทำครบแล้วบอร์ดจะสุ่มงานใหม่ให้เรื่อย ๆ
+There are 8 written contracts (Brood-Mother Beneath the Ribs, Old Fang, Faceless Effigy of the North Field, Leech Beneath the Sunken Bell, Corpse-Eater of the Gorge, Shadow at the Bedside, Sheep-Devouring Brute, Grey-Haired Widow). Once you finish them all, the board keeps rolling new random contracts.
 
-## เหตุการณ์สุ่มในโลก
+## Random world events
 
-โลกเปลี่ยนไปเองตามเวลา สุ่มทุกครั้งที่ถึงสนธยา รุ่งสาง และทุกชั่วโมงตอนกลางคืน (นอนข้ามเวลาที่โรงเตี๊ยมก็สุ่มด้วย) ป้ายใหญ่กลางจอจะบอกเมื่อเกิดเหตุการณ์ และมีป้ายสถานะมุมซ้ายล่าง
+The world changes over time on its own. Events roll at every dusk, every dawn and every hour of the night (sleeping at the inn rolls too). A large banner in the middle of the screen tells you when one happens, and a status tag shows in the bottom-left corner.
 
-| เหตุการณ์ | เกิดเมื่อ | ผล |
+| Event | When | Effect |
 |---|---|---|
-| **คืนจันทร์เลือด** | บางคืน (~28% ตั้งแต่คืนที่ 2) | ท้องฟ้า หมอก และน้ำกลายเป็นสีเลือด เพลงเปลี่ยนเป็นคอรัสไม่ประสานกับเสียงหัวใจเต้น จิ้งหรีดกับกบเงียบ มีเสียงกรีดร้องบ่อยขึ้น · ร่างซีดตีแรงขึ้น 30% เร็วขึ้น 20% เห็นเราไกลขึ้น และเกิดใหม่เร็ว · มีร่างซีดเพิ่ม 10 ตัวทั่วแผนที่ · **ของดรอป ×2** และร่างซีดดรอป **อำพันเลือด** (สมบัติ) |
-| **พ่อค้าเร่** | บางเช้า (~40%) | ตั้งแผงตามทางแยก/รางรถไฟ 1 วัน มีเสียงกระดิ่งและหมุดบนเข็มทิศ · ขายของหายากจำนวนจำกัด (ยาใหญ่, น้ำมันดาบ, แกนหินอัศวิน ฯลฯ) · **แผนที่ขุมทรัพย์** ชี้ไปหีบที่ยังไม่ได้เปิด · รับซื้อสมบัติแพงกว่าโรงเตี๊ยม ×1.3 · มีข่าวลือให้ฟัง |
-| **หมอกหนา** | บางเช้า/บางค่ำ | มองเห็นใกล้มาก แต่ศัตรูก็เห็นเราได้แค่ครึ่งระยะ — โอกาสย่องผ่านป่า |
-| **ดาวตก** | กลางคืน (สุ่มทุกชั่วโมง) | ดาวพุ่งลงมาตกไม่ไกล มีลำแสงให้เห็นจากระยะไกลและหมุดบนเข็มทิศ ไปเก็บ **เศษดาวตก** (สมบัติราคาดี) ก่อนแสงจะดับ |
+| **Night of the Blood Moon** | Some nights (~28% from night 2) | The sky, fog and water turn blood red. The music becomes a dissonant choir over a heartbeat; crickets and frogs fall silent; screams come more often · the Pale Ones hit 30% harder, move 20% faster, see you from farther away and respawn quickly · 10 more Pale Ones appear across the map · **drops ×2**, and the Pale Ones drop **Blood Amber** (treasure) |
+| **Wandering Pedlar** | Some mornings (~40%) | Sets up a stall at a crossroads/railway for 1 day, with a bell sound and a compass pin · sells rare goods in limited numbers (Great Healing Draught, blade oil, Stone Knight's Core, etc.) · **Treasure Map** pointing to a chest you haven't opened · buys treasure for ×1.3 the inn's price · has rumours to share |
+| **Heavy Fog** | Some mornings/evenings | You can see only a short way, but enemies see you at only half range — a chance to sneak through the woods |
+| **Falling Star** | At night (rolled every hour) | A star falls not far away. You can see its beam from far off, and it gets a compass pin. Go pick up the **Star Shard** (valuable treasure) before the light fades |
 
-## ระบบต่อสู้
+## Combat
 
-- **Stamina (แถบสีเหลือง):** ใช้ตอนฟัน หลบ วิ่ง และรับการโจมตีด้วยการ์ด จะฟื้นเองเมื่อหยุดใช้ ถ้าหมดจะวิ่งไม่ได้จนกว่าจะฟื้นถึง 35%
-- **ฟันเบา** เร็ว ใช้ stamina น้อย ทำให้ศัตรูชะงักและขัดจังหวะท่าโจมตีได้
-- **ฟันหนัก** ต้องกดค้างจนเห็นดาบง้าง ได้ดาเมจ ×3 ผลักศัตรูกระเด็น และเกมจะหยุดภาพเสี้ยววินาทีให้รู้สึกถึงน้ำหนัก
-- **ป้องกัน:** รับดาเมจแค่ 12% แต่เสีย stamina ถ้า stamina หมดการ์ดจะแตกและตัวละครเซ
-- **ปัด:** ยกการ์ดภายใน 0.3 วินาทีก่อนโดนฟัน ไม่เสียเลือด ได้ stamina คืน และศัตรูเซนาน (เป็นจังหวะสวนกลับ)
-- **หลบ:** พุ่งไปทางที่กดอยู่ (ไม่กดทิศจะถอยหลัง) ช่วงหลบโดนโจมตีไม่เข้า
-- ศัตรูทุกตัว **ส่งสัญญาณก่อนโจมตี** มีท่าง้างและเสียงเตือน ให้ดูจังหวะแล้วหลบหรือปัด
+- **Stamina (yellow bar):** used for attacking, dodging, sprinting and blocking hits. It recovers when you stop. If it runs out, you can't sprint until it is back to 35%.
+- **Light attacks** are fast, cost little stamina, make enemies flinch and can interrupt their attacks.
+- **Heavy attacks**: hold until you see the sword wind up. They deal ×3 damage, knock enemies back, and the game freezes for a split second so you feel the weight.
+- **Block:** you take only 12% damage but lose stamina. If stamina runs out, your guard breaks and you stagger.
+- **Parry:** raise your guard within 0.3 seconds before a hit lands. You lose no health, get stamina back, and the enemy staggers for a long time (your chance to counter).
+- **Dodge:** dash in the direction you are holding (with no direction, you step back). You can't be hit during the dodge.
+- Every enemy **signals before it attacks** with a wind-up and a warning sound. Watch the timing, then dodge or parry.
 
-### ศัตรู
+### Enemies
 
-| ศัตรู | ที่ไหน / เมื่อไร | ลักษณะ |
+| Enemy | Where / when | What it does |
 |---|---|---|
-| วิญญาณบึง | บึง หุบผา วิหาร · กลางคืน | ลอยตาม พุ่งชน |
-| **หุ่นฟางคลั่ง** | ทุ่งรอบเนินจันทร์ · **กลางวัน** (กลางคืนยืนนิ่งบนเสา) | กระโดดตาม ง้างแขนฟาด |
-| **หมาป่าเงา** | ป่าตะวันตก · ทุกเวลา มาเป็นฝูง | วิ่งเร็ว กระโจนกัด |
-| **ปลิงยักษ์** | ในน้ำของบึง · กลางคืน | โผล่จากน้ำ ง้างตัวแล้วฉก ไม่ขึ้นบก |
-| **ร่างซูบ** | ทั่วแผนที่ · กลางคืน (บางตัวอยู่ในป่าตะวันตกแม้กลางวัน) | ร่างผอมซีดหลังค่อม ผมหงอกยาว เดินลากขาช้า ๆ แต่ **วิ่งพุ่งเข้าหาเมื่ออยู่ใกล้** ง้างแขนขึ้นสูงแล้วตะกุย |
-| **ร่างคลาน** | บึงและขอบป่า · กลางคืน | คลานสี่ขาแบบแมงมุม เร็วมาก กระโจนใส่ |
-| **หญิงร่ำไห้** | ใต้ซี่โครงอสูร, ซากปรักหักพัง, วิหาร · กลางคืน | **ขยับได้เฉพาะตอนที่ไม่ได้มองเธอ** ถ้าหันหลังเธอจะพุ่งเข้ามาเงียบ ๆ ได้ยินเสียงสะอื้นใกล้ขึ้นเรื่อย ๆ ตีแรงมาก |
-| **ผู้หลงทาง** | ตามถนนนอกหุบเขา ซากปรักหักพัง สุสานหอระฆัง ต้นไม้แขวนคอ ไร่ร้าง · ทุกเวลา | นักเดินทางที่มาบึงจันทราก่อนเราแล้วหลงอยู่ที่นี่ ร่างเปลือยไหม้เกรียม ตาเป็นถ่านแดง ยัง**สู้เหมือนคน**: เข้าใกล้แล้ว**ยกการ์ด** ฟันเบาจากด้านหน้าจะโดนปัดแล้วสวนกลับทันที · **ต่อยสองหมัดติด** · บางทีก็**ก้าวหลบข้าง**ตอนเราเริ่มฟัน — ทางแก้: **ฟันหนักทำลายการ์ด** (เซไป 1 วินาที), อ้อมไปฟันด้านข้าง/หลัง, หรือฟันตอนมันเพิ่งต่อยเสร็จ · ดรอปเหรียญรถไฟเก่า หญ้าจันทร์ ยา |
-| **ชุดเกราะไร้ร่าง** | หอระฆัง ลานหินตั้ง กังหันลม มหาวิหารจม ต้นไม้แขวนคอ ถนนสายเหนือ ริมทะเลสาบปราสาท ลานวิหาร · ทุกเวลา (ศัตรูระดับสูง) | ชุดเกราะเหล็กว่างเปล่าที่ยังเดินเวรยามเอง ถือดาบสองมือ มีแสงเย็นเรืองหลังช่องหมวก เดินช้า ตีแรง · **ฟันเบาแทบไม่เข้า** (เข้าแค่ 1 ใน 3 และไม่สะดุ้ง) · **ฟันหนัก**เข้าเต็มและทำให้เซ · **ปัดดาบมันได้ = ช่องโหว่ 1.6 วินาที รับดาเมจ ×2** · ทุกดาบที่ 3 จะยกสองมือฟาดลงพื้นกระแทกรอบตัว (ปัดไม่ได้ ต้องหลบ) · ดรอปแร่เหล็กมืด น้ำมันดาบ บางทีเชิงเทียนเงิน |
-| **ร่างซูบยักษ์** | ริมทะเลสาบปราสาท, ซากตะวันออก, ปากหุบผา · ทุกเวลา | สูง 3 เมตร ช้าแต่หนัก ทุกการโจมตีครั้งที่ 2 คือทุบพื้น (ปัดไม่ได้ ต้องหลบ) |
-| **อัศวินหินผู้เฝ้าสะพาน** (บอส) | สะพานหน้าราชาหิน | ดาบหินยักษ์ ทุกครั้งที่ 3 จะทุบพื้น (ปัดไม่ได้ ต้องหลบให้พ้น) · ชนะแล้วได้ **ดาบแห่งราชาหิน** พลังโจมตี ×1.6 |
+| Marsh Wisp | Marsh, gorge, temple · night | Floats after you and rams you |
+| **Mad Strawman** | Fields around Moon Hill · **day** (at night it stands still on its pole) | Hops after you and swings its arms |
+| **Shadow Wolf** | Western Woods · any time, in packs | Runs fast and lunges to bite |
+| **Giant Leech** | In the marsh water · night | Rises from the water, rears up and strikes; never comes on land |
+| **Gaunt** | Across the map · night (some stay in the Western Woods even by day) | A thin, pale, hunched body with long grey hair. It drags its legs slowly but **charges when close**, raises its arms high and claws |
+| **Crawler** | Marsh and forest edges · night | Crawls on all fours like a spider, very fast, and pounces |
+| **Weeping Woman** | Under the Beast's Ribcage, ruins, the temple · night | **Moves only when you are not looking at her.** Turn your back and she rushes in silently; you hear her sobbing come closer and closer. Hits very hard |
+| **the Lost** | Along roads outside the valley, ruins, the bell tower graveyard, the Hanging Tree, abandoned farms · any time | Travellers who came to the Moonmire before you and got lost here. Naked, charred bodies with eyes like red embers. They still **fight like people**: up close they **raise their guard**; a light attack from the front gets parried and countered at once · **two-punch combos** · sometimes they **sidestep** as you start to attack — answer: **a heavy attack breaks the guard** (1 s stagger), circle round to the side/back, or hit them just after they punch · drop Old Rail Tokens, Moon Herb, draughts |
+| **Empty Armour** | Bell tower, Standing Stones, windmill, sunken cathedral, Hanging Tree, the northern road, the castle lakeshore, the temple court · any time (high-level enemy) | An empty suit of iron armour that still walks its watch, with a two-handed sword and a cold light behind its visor. Slow, but hits hard · **light attacks barely hurt it** (only 1 in 3 lands, and it doesn't flinch) · **heavy attacks** land in full and stagger it · **parry its sword = a 1.6 s opening with ×2 damage** · every 3rd swing it raises the sword in both hands and slams the ground around it (can't be parried — dodge) · drops Dark Iron Ore, blade oil, sometimes a Silver Candlestick |
+| **Gaunt Giant** | Castle lakeshore, eastern ruins, gorge mouth · any time | 3 metres tall, slow but heavy; every 2nd attack is a ground slam (can't be parried — dodge) |
+| **Stone Knight of the Bridge** (boss) | The bridge before the Stone King | A giant stone sword; every 3rd attack is a ground slam (can't be parried — dodge clear) · beat it to get the **Sword of the Stone King**, ×1.6 attack power |
 
-ศัตรูที่ตายจะเกิดใหม่หลังผ่านไปสักพัก (ยกเว้นบอส) ถ้าผู้เล่นตายหรือนอนพัก ศัตรูจะเลิกไล่และกลับไปที่เดิม
+Dead enemies respawn after a while (except bosses). If you die or sleep, enemies stop chasing and return to their spots.
 
-## บอส: ราชันร้อยกร (ต้นไม้แขวนคอ ป่ามืดตะวันตก)
+## Boss: the King of a Hundred Hands (the Hanging Tree, Western Darkwood)
 
-ร่างสูงราว **10 เมตร** ในผ้าคลุมราชาที่เน่าเปื่อย ใบหน้าคนใต้มงกุฎหนาม และ**แขนนับสิบงอกออกจากอก** หมอบอยู่ระหว่างรากของต้นไม้แขวนคอ รังไหมที่ห้อยบนกิ่งคือคนที่มันจับได้ เดินเข้าใกล้ (~26 ม.) หรือฟันมัน → มันลุกขึ้นคำราม จอสั่น หลอดเลือดบอสขึ้น
+A body about **10 metres** tall in a rotting royal cloak, a human face under a crown of thorns, and **dozens of arms growing from its chest**. It crouches among the roots of the Hanging Tree; the cocoons hanging from the branches are people it has caught. Come close (~26 m) or hit it → it rises and roars, the screen shakes, and the boss health bar appears.
 
-| ท่า | สัญญาณเตือน | วิธีหลบ |
+| Move | Warning | How to avoid it |
 |---|---|---|
-| **กวาดมือ** | เหวี่ยงแขนทั้งหมดไปข้างหนึ่ง | ถอยออกนอกระยะ ~13 ม. หรือ**กลิ้งหลบ (C)** ทะลุตอนมันกวาด · ป้องกันได้แต่เปลืองแรงมาก |
-| **ทุบพื้น** | ยกแขนทั้งหมดขึ้นสูง | หลบจุดตกตรงหน้ามัน แล้ว**กระโดดหรือกลิ้งข้ามคลื่นกระแทก**ที่แผ่ออกเป็นวง · ป้องกันไม่ได้ |
-| **คว้าตัว** | วงแดงขึ้นใต้เท้าเรา แขนข้างหนึ่งยืดยาวขึ้น | **วิ่งออกจากวงแดง**ก่อนมือตกลงมา · ถ้าโดน: เจ็บหนัก ถูกโยนลอย |
-| **มือผุดจากดิน** | วงแดงหลายวงไล่ตามเท้าเรา | **วิ่งไม่หยุด** มือจะพุ่งขึ้นจากวงหลัง ~1 วินาที · ป้องกันไม่ได้ |
+| **Sweep** | Swings all its arms to one side | Back out of its ~13 m reach, or **roll (C)** through the sweep · you can block, but it costs a lot of stamina |
+| **Slam** | Raises all its arms high | Stay out of the impact point in front of it, then **jump or roll over the shockwave** that spreads out in a ring · can't be blocked |
+| **Grab** | A red circle appears under your feet; one arm stretches out | **Run out of the red circle** before the hand comes down · if it hits: heavy damage, and you're thrown into the air |
+| **Hands from the ground** | Several red circles follow your feet | **Keep running**; a hand bursts up from the circle behind you after ~1 second · can't be blocked |
 
-- **จังหวะโจมตี:** หลังทุบพื้น หรือคว้าพลาด แขนมันจะติดดินชั่วครู่ ช่วงนี้รับดาเมจ **×1.5** ("จังหวะโจมตี!")
-- **ครึ่งหลัง (เลือดต่ำกว่าครึ่ง):** คำรามอีกครั้ง รังไหมแตกมี**ร่างคลาน 3 ตัว**ร่วงลงมา แล้วมันโจมตีถี่และเร็วขึ้น มือผุดจากดินทีละ 7 จุด
-- ถ้าหนีออกจากลานไกลเกินไป มันจะกลับไปหมอบที่โคนต้นไม้และฟื้นเลือดเต็ม
-- **รางวัล:** มงกุฎหนามราชันร้อยกร (สมบัติราคาสูงสุดในเกม), ยาฟื้นพลังใหญ่, เศษดาวตก ×2, มูนสโตน, เหรียญ 120–160 และ XP ก้อนใหญ่ · ตายแล้วไม่เกิดใหม่ (บันทึกไว้ในเซฟ)
+- **Strike now:** after a slam, or a missed grab, its arms are stuck in the ground for a moment. During this it takes **×1.5** damage ("Strike now!").
+- **Second half (below half health):** it roars again, the cocoons burst and **3 Crawlers** drop down, then it attacks faster and more often, with 7 hands bursting from the ground at a time.
+- If you run too far from the clearing, it goes back to crouch at the foot of the tree and heals fully.
+- **Reward:** Thorn Crown of the Hundred Hands (the most valuable treasure in the game), Great Healing Draught, Star Shard ×2, Moonstone, 120–160 coins and a big chunk of XP · it does not come back once dead (stored in the save)
 
-## เนื้อเรื่องบทที่ 1 — มือที่กอดดวงจันทร์
+## Story, Chapter 1 — The Hands That Hold the Moon
 
-เจ้าตื่นขึ้นกลางบึงที่น้ำท่วมรางรถไฟร้าง ดวงจันทร์คืนนี้ป่วยไข้ แสงของมันจึงเป็นสีฟ้าเย็นเยียบ
+You wake in a marsh that has flooded an abandoned railway. Tonight the moon is sick, so its light is a cold, icy blue.
 
-1. **เสียงกาในทุ่ง:** เดินตามรางรถไฟไปพบ *โกวัก* ผู้เลี้ยงแกะหัวอีกาบนเนินจันทร์
-2. **แกะดำที่หลงทาง:** ตามหาแกะ 3 ตัวที่หลงไปในบึง ป่าตะวันตก และเชิงหุบผา
-3. **ยายคางคกใต้เห็ดยักษ์:** ไปพบแม่มดคางคกในป่าตะวันตก (นางขายยาด้วย)
-4. **ดวงไฟแห่งบึง:** ฟันวิญญาณบึง (will-o'-wisp) เพื่อเก็บแก่นวิญญาณ 5 ดวง
-5. **วิหารจมน้ำ:** ผ่านหุบผาซุ้มประตูหิน นำน้ำมนต์จันทราไปเทลงบนแท่นบูชา → เห็นนิมิต *มือนับร้อยกำแสงจันทร์ไว้* ได้ **ข้อนิ้วที่ 1 (บึง)**
+1. **A Crow's Cry in the Field:** follow the railway to meet *Kowak*, a crow-headed shepherd on Moon Hill.
+2. **The Lost Black Sheep:** find 3 sheep that wandered into the marsh, the Western Woods and the foot of the gorge.
+3. **Granny Toad Beneath the Giant Mushroom:** meet the toad witch in the Western Woods (she also sells draughts).
+4. **Lights of the Marsh:** cut down Marsh Wisps (will-o'-the-wisps) to collect 5 Wisp Essences.
+5. **The Drowned Temple:** pass through Archway Gorge and pour the moon water on the altar → you see a vision of *a hundred hands gripping the moonlight* and get **finger 1 (the Marsh)**.
 
-หลังแท่นบูชา 3 องก์เปิดพร้อมกัน เล่นลำดับไหนก็ได้ แต่ละองก์ให้ข้อนิ้วของราชันร้อยกร 1 ชิ้น (ดูความคืบหน้าที่ `Q`):
+After the altar, 3 acts open at once. Play them in any order. Each act gives 1 finger of the King of a Hundred Hands (see your progress under `Q`):
 
-6. **ที่ราบสูงเหนือ — ระฆังที่ไม่มีใครตี:** หลุมศพคนตีระฆัง (มีตะเกียง) → ปีนหอระฆังไปตีระฆัง → ลานหินตั้ง สู้กับผู้หลงทางที่ตื่นขึ้น → ได้ **ข้อนิ้วแห่งลม** + **ระฆังใบเล็ก** (ไอเทมพิเศษ สั่นแล้วผู้หลงทางรอบตัวชะงัก 4 วิ คูลดาวน์ 90 วิ ใช้ได้ไม่จำกัด · ใช้กับบอสได้ครั้งเดียวต่อการสู้)
-7. **ไร่ร้างตะวันออก — ไร่ที่ไม่มีใครเก็บเกี่ยว:** เด็กผีชื่อ **มิน** (เห็นเฉพาะกลางวัน) ในไร่ข้าวโพด → หาใบพัดกังหันที่หายไป → ใส่ใบพัดคืน → เปิดประตูกังหัน หยิบตุ๊กตาฟางที่ตกจากรังไหม → **ข้อนิ้วแห่งรวงข้าว**
-8. **ทะเลสาบใต้ — เมืองใต้ทะเลสาบ:** คุย **คนแจวเรือ** ที่ท่าเรือผุ → อ่านภาพสลัก 3 แผ่นในมหาวิหารจม → **องครักษ์คนสุดท้าย** (ชุดเกราะไร้ร่างตัวโต) → **ข้อนิ้วแห่งน้ำ** + ดาบขององครักษ์ (เอาไปให้ช่างตีเหล็กหลอมเข้ากับดาบเรา ดาเมจ ×1.25)
-9. **ป่ามืดตะวันตก — ต้นไม้แขวนคอ** (เปิดเมื่อได้ข้อนิ้ว 3 ชิ้น): สมุดบันทึกที่เพิงนายพราน → สู้กับ **นายพรานโอเรน** ที่กลายเป็นผู้หลงทาง (ยังสวมเสื้อคลุมยาว หมวกปีกกว้าง หน้ากากเหล็ก และถือมีดแล่หนัง) → ราชันร้อยกรตื่น
-10. **ราชันร้อยกร:** ก่อนถึงเวลา รากไม้นับร้อยพันร่างไว้ ฟันไม่เข้า · ทุกข้อนิ้วที่เก็บได้ทำให้บอสอ่อนลง (รวงข้าว: เรียกร่างคลาน 1 ตัวแทน 3 · ลม: ท่าคว้าช้าลง · น้ำ: คลื่นกระแทกช้าลง)
+6. **Northern Highlands — The Bell No One Rings:** the bell-ringer's grave (with a lantern) → climb the bell tower and ring the bell → the Standing Stones; fight the Lost who wake up → get **the Finger of Wind** + **the Little Bell** (a special item: ring it and the Lost around you freeze for 4 s; 90 s cooldown; unlimited uses · works on a boss once per fight)
+7. **Eastern Farmlands — The Field No One Harvests:** a ghost child named **Min** (seen only by day) in the cornfield → find the missing windmill sail → put the sail back → open the windmill door and take the straw doll that fell from a cocoon → **the Finger of Grain**
+8. **Southern Lake — The City Under the Lake:** talk to **the Ferryman** at the Rotting Pier → read the 3 murals in the sunken cathedral → **the Last Guard** (a large Empty Armour) → **the Finger of Water** + the Guard's Sword (take it to the smith to forge into your sword, ×1.25 damage)
+9. **Western Darkwood — the Hanging Tree** (opens once you have 3 fingers): the journal at the hunter's camp → fight **Oren the Hunter**, who has become one of the Lost (still wearing his long coat, wide-brimmed hat and iron mask, and holding a skinning knife) → the King of a Hundred Hands wakes
+10. **The King of a Hundred Hands:** before the time comes, hundreds of roots bind its body and no blade gets through · every finger you collected weakens the boss (Grain: it calls 1 Crawler instead of 3 · Wind: its grab is slower · Water: its shockwave is slower)
 
-โค่นบอสแล้ว แสงจากรังไหมลอยขึ้นฟ้า → **"บทที่ 1 — มือที่กอดดวงจันทร์ — จบ"** · หลังจบ อากาศสงบ และดวงตาของราชาหินในหุบเขาตะวันตกเริ่มเรืองแสง (ปูเรื่องบทที่ 2) — ยังเดินเล่นในโลกต่อได้ตามปกติ
-เซฟเก่าที่เคยจบเนื้อเรื่องเดิมจะเริ่มต้นที่ช่วง 3 องก์ใหม่ (หลังแท่นบูชา)
+Once the boss falls, light from the cocoons rises into the sky → **"Chapter 1 — The Hands That Hold the Moon — The End"** · afterwards the weather calms, and the Stone King's eyes in the western valley begin to glow (setting up Chapter 2) — you can keep exploring the world as usual.
+Old saves that finished the earlier story start at the new 3-act part (after the altar).
 
-เกมบันทึกอัตโนมัติ (localStorage) กด "เล่นต่อจากที่บันทึกไว้" ในหน้าแรกเพื่อเล่นต่อ
+The game saves automatically (localStorage). Press "Continue" on the title screen to carry on.
 
-## สถานที่ในโลก (ค้นพบได้ 17 แห่ง)
+## Places in the world (17 to discover)
 
-เข้าใกล้สถานที่ใหม่แล้วจะมีป้าย "ค้นพบสถานที่" ขึ้นกลางจอ ในแผนที่จะเห็นชื่อเฉพาะที่ค้นพบแล้ว ส่วนที่เหลือเป็น "?"
+When you come near a new place, a "Place Discovered" banner appears in the middle of the screen. The map shows names only for places you have found; the rest show as "?".
 
-| สถานที่ | สิ่งที่จะเจอ |
+| Place | What you'll find |
 |---|---|
-| **ปราสาทแขวนฟ้า** (ตะวันออกเฉียงใต้) | ปราสาทโกธิกบนเกาะหินลอยฟ้า สูงกว่า 200 เมตร ล่ามด้วยโซ่ยักษ์ 5 เส้น มีน้ำตกไหลลงทะเลสาบ เกาะหินเล็กพร้อมตะเกียงลอยอยู่รอบ ๆ และวังวนจักรวาลสีชมพูหมุนอยู่บนฟ้า |
-| **ราชาหินผู้หลับใหล** (ตะวันตก) | หัวหินยักษ์สวมมงกุฎสูงราว 60 เมตร ครึ่งหนึ่งจมดิน มีมือยักษ์โผล่จากพื้น สะพานหินข้ามลำธาร และกระถางไฟ |
-| **ซี่โครงอสูร** (บึง) | โครงกระดูกสัตว์ยักษ์ที่รางรถไฟลอดผ่านกลางอก และกะโหลกมีเขาที่ตกอยู่ข้างราง |
-| **หมู่บ้านสถานีร้าง** | บ้านไม้ บ่อน้ำ เสาตะเกียง และ **โรงเตี๊ยมเทียนหลอม** ที่เดินเข้าไปข้างในได้ |
-| เดิมจากบทที่ 1 | บึงแสงจันทร์, เนินจันทร์, เห็ดยักษ์, หุบผาซุ้มประตู, วิหารจมน้ำ |
+| **Sky-Hung Castle** (south-east) | A Gothic castle on a floating rock island over 200 metres up, chained by 5 giant chains. A waterfall pours into the lake, small rock islets with lanterns float around it, and a pink cosmic whirlpool turns in the sky |
+| **The Sleeping Stone King** (west) | A giant crowned stone head about 60 metres tall, half sunk in the ground, with giant hands rising from the earth, a stone bridge over a stream, and braziers |
+| **Beast's Ribcage** (marsh) | The skeleton of a giant beast with the railway running through its chest, and a horned skull fallen beside the tracks |
+| **Abandoned Station Village** | Wooden houses, a well, lamp posts, and **the Molten Candle Inn**, which you can walk into |
+| From the original Chapter 1 | Moonlit Marsh, Moon Hill, Giant Mushroom, Archway Gorge, Drowned Temple |
 
-### ดินแดนนอกหุบเขา — โลกเปิดขนาด 1.6 × 1.6 กม.
+### The lands beyond the valley — an open world of 1.6 × 1.6 km
 
-แผนที่ขยายจาก 640 ม. เป็น **1,600 ม.** (ใหญ่ขึ้น ~6 เท่า) หุบเขาเดิมอยู่ตรงกลางเหมือนเดิมทุกอย่าง ส่วนรอบนอกแบ่งเป็น 4 ภูมิภาค มี **ถนนดิน 8 สาย** ออกจากหุบเขา (เห็นในแผนที่ `M`) และศาลเจ้าริมทางจุดเทียนไว้ตามทาง
+The map grew from 640 m to **1,600 m** (about 6 times bigger). The original valley sits in the middle, exactly as before. The outside is split into 4 regions, with **8 dirt roads** leading out of the valley (shown on the `M` map) and roadside shrines with lit candles along the way.
 
-| ภูมิภาค | สถานที่ | สิ่งที่จะเจอ |
+| Region | Place | What you'll find |
 |---|---|---|
-| **ที่ราบสูงเหนือ** (ป่าสน ลมแรง) | **หอระฆังบนยอดเขา** | หอหินสูง 18 ม. **เดินขึ้นบันไดวนข้างในได้** จนถึงหอระฆังที่มองเห็นทั้งโลก มีหีบสมบัติรออยู่ข้างบน · ซากโบสถ์และสุสาน |
-| | **ลานหินตั้งแห่งลมหนาว** | วงหินตั้ง 13 ก้อน (ล้มไป 2) แท่นบูชาที่อักษรยังเรืองแสง หมอกวน |
-| **ไร่ร้างตะวันออก** (ทุ่งหญ้าแห้ง) | **กังหันลมร้าง** | กังหันหินบนเนิน **ใบพัดยังหมุนอยู่** (ขาดไปหนึ่งใบ) เกวียนพัง กระสอบข้าว |
-| | **ไร่ข้าวโพดร้าง** | บ้านไร่ไร้หลังคา โรงนาหลังคาทรุด แปลงข้าวโพดแห้งล้อมรั้ว กองฟาง บ่อน้ำ — หุ่นฟางยืนปนอยู่ในไร่ |
-| **ทะเลสาบใต้** (น้ำลึกแค่เอว) | **ท่าเรือผุ** | สะพานไม้ยื่นลงทะเลสาบ ตะเกียงปลายท่า เรือจม กระท่อมคนแจวเรือ |
-| | **เมืองจมใต้ทะเลสาบ** | หอคอยหินโผล่พ้นน้ำ 8 หลัง หน้าต่างบางบานมีแสงสีเขียวที่ไม่ใช่เทียน มหาวิหารไร้หลังคากับยอดแหลมสูง 35 ม. · **ทางหินครึ่งจมน้ำ** จากปลายท่าเรือเดินไปถึงหอคอยใหญ่ได้ |
-| **ป่ามืดตะวันตก** (เนินชัน ต้นไม้หนา) | **ต้นไม้แขวนคอ** | ต้นไม้ตายยักษ์กลางลานโล่ง มีรังไหมห่อศพห้อยตามกิ่ง เทียนที่ใครบางคนยังมาจุด |
-| | **เพิงนายพรานที่หายไป** | เต็นท์ กองไฟที่ยังลุก ราวตากหนังสัตว์ เพิงกิ่งไม้ |
+| **Northern Highlands** (pine forest, strong wind) | **Bell Tower on the Peak** | An 18 m stone tower. **You can climb the spiral stairs inside** up to the bell chamber, which looks out over the whole world, with a treasure chest waiting at the top · a ruined church and graveyard |
+| | **Standing Stones of the Cold Wind** | A ring of 13 standing stones (2 have fallen), an altar whose letters still glow, swirling mist |
+| **Eastern Farmlands** (dry grassland) | **Abandoned Windmill** | A stone windmill on a hill. **Its sails still turn** (one is missing). A broken cart, sacks of grain |
+| | **Abandoned Cornfield** | A roofless farmhouse, a barn with a sagging roof, dry corn rows behind a fence, haystacks, a well — Strawmen stand among the corn |
+| **Southern Lake** (waist-deep water) | **Rotting Pier** | A wooden pier reaching into the lake, a lantern at the end, a sunken boat, the ferryman's hut |
+| | **Sunken City** | 8 stone towers rising out of the water; some windows glow with a green light that is not candlelight. A roofless cathedral with a 35 m spire · **a half-sunken stone path** leads from the end of the pier to the great tower |
+| **Western Darkwood** (steep slopes, thick trees) | **Hanging Tree** | A giant dead tree in a clearing, with silk cocoons wrapping corpses hanging from its branches, and candles that someone still comes to light |
+| | **Lost Hunter's Camp** | A tent, a fire still burning, a rack of drying hides, a lean-to of branches |
 
-- **ศัตรูในดินแดนใหม่ 62 ตัว**: ฝูงหมาป่าบนที่ราบสูงและในป่า, ร่างซูบ (บางตัวในป่ามืดออกล่าแม้กลางวัน), ร่างคลานรอบต้นไม้แขวนคอและริมทะเลสาบ, หญิงร่ำไห้ที่หอระฆัง ลานหิน เมืองจม และต้นไม้แขวนคอ, หุ่นฟางในไร่, ร่างซูบยักษ์ 4 ตัว, วิญญาณบึงและปลิงยักษ์ในทะเลสาบ
-- **ของในดินแดนใหม่**: หีบสมบัติเพิ่ม 10 ใบ (บนหอระฆัง ในมหาวิหารจม ที่ตีนหอคอยใหญ่ ฯลฯ — มีของหายากอย่างรูปเคารพราชาหิน เศษดาวตก จี้รูปถ่าย), สมุนไพรเพิ่ม 26 จุด (เหนือ/ตะวันออก), เห็ดเรืองแสง 24 จุด (ตะวันตก/ใต้), สายแร่ 12 จุดบนที่ราบสูง
-- **เดินทางไกล**: ใช้ **แมลงสาบยักษ์ (H)** วิ่งเร็วและบินร่อนข้ามได้ — ข้ามโลกจากเหนือจรดใต้ใช้เวลาราว 2 นาทีบนหลังแมลงสาบ
-- เบื้องหลัง: พื้นดินแบ่งเป็น 100 chunk ที่ซ่อนเมื่ออยู่ไกล พืชพรรณจัดกลุ่มเป็นช่อง 200 ม. ซ่อนตามระยะ ศัตรูไกลตัวหยุดคิด ทำให้โลกใหญ่ขึ้นโดยเฟรมเรตใกล้เดิม
+- **62 enemies in the new lands**: wolf packs on the highlands and in the woods, Gaunts (some in the Darkwood hunt even by day), Crawlers around the Hanging Tree and the lakeshore, Weeping Women at the bell tower, the Standing Stones, the Sunken City and the Hanging Tree, Strawmen in the fields, 4 Gaunt Giants, Marsh Wisps and Giant Leeches in the lake
+- **Items in the new lands**: 10 more treasure chests (on the bell tower, in the sunken cathedral, at the foot of the great tower, etc. — with rare items like the Idol of the Stone King, Star Shards and the Old Portrait Locket), 26 more herb spots (north/east), 24 Glowcap spots (west/south), 12 ore veins on the highlands
+- **Long journeys**: ride the **Giant Cockroach (H)** to run fast and glide across — crossing the world from north to south takes about 2 minutes on its back
+- Behind the scenes: the ground is split into 100 chunks that hide when far away, plants are grouped in 200 m cells that hide by distance, and far-off enemies stop thinking. This makes the world bigger while keeping the frame rate close to before.
 
-### สัตว์ในโลก
-- **หมู 13 ตัว**: 4 ตัวในคอกหมูกลางหมู่บ้าน (ระหว่างบ้านสองหลังทางเหนือ ประตูคอกเปิดออกถนน), 7 ตัวเดินคุ้ยดินรอบไร่ร้างทางตะวันออก, 2 ตัวข้างกระท่อมคนแจวเรือที่ท่าเรือผุ
-- ก้มกินดิน เดินเตาะแตะ ส่งเสียงอู๊ด ๆ เมื่อเราอยู่ใกล้ หลบทางเมื่อเดินชน
-- **วิ่งเข้าหา ขี่แมลงสาบเข้าใส่ หรือฟันดาบใส่** → หมูร้องเสียงแหลมแล้ววิ่งหนีกระเจิง (ฆ่าไม่ได้ เป็นสัตว์ของชาวบ้าน)
+### Animals in the world
+- **13 pigs**: 4 in the pig pen in the middle of the village (between the two houses to the north; the pen gate opens onto the road), 7 rooting around the abandoned farms in the east, 2 beside the ferryman's hut at the Rotting Pier
+- They nose at the dirt, waddle about, oink when you are near, and step aside when you bump into them
+- **Run at them, ride the cockroach into them or swing a sword at them** → the pig squeals and scatters (they can't be killed; they belong to the villagers)
 
-สิ่งก่อสร้างยักษ์ใช้หมอกบางกว่าปกติ ทำให้เห็นเงาทะมึนผ่านสายหมอกได้จากระยะหลายร้อยเมตร (megalophobia)
+The giant structures use thinner fog than usual, so you can see their looming shapes through the mist from hundreds of metres away (megalophobia).
 
-### โรงเตี๊ยมเทียนหลอม
-เจ้าของร้านคือ **เทียนหลอม** สุภาพบุรุษชุดดำที่มีหัวเป็นกองเทียนกำลังละลาย:
-- ดื่มเบียร์แสงเทียน (3 เหรียญ) ฟื้นพลังเต็ม
-- เช่าห้องนอน (5 เหรียญ) ข้ามเวลาไปเช้าหรือค่ำ
-- ซื้อยา และถามตำนานของปราสาท ราชาหิน และกระดูกยักษ์
+### The Molten Candle Inn
+The owner is **Tallow**, a gentleman in black whose head is a pile of melting candles:
+- Drink a Candlelight Ale (3 coins) to restore full health
+- Rent a room (5 coins) to skip to morning or evening
+- Buy draughts, and ask about the legends of the castle, the Stone King and the giant bones
 
-## กลางวัน–กลางคืน
+## Day and night
 
-1 วันในเกม = 15 นาทีจริง มีนาฬิกาอยู่ใต้เข็มทิศ
+1 in-game day = 15 real minutes. There is a clock under the compass.
 
-- **กลางคืน:** แสงจันทร์สีฟ้า ดาว และแสงเหนือสีเขียวเหนือหน้าผาทางเหนือ วิญญาณบึงออกล่า
-- **รุ่งสาง / สนธยา:** ฟ้าสีม่วงกุหลาบ วังวนบนฟ้าเด่นชัดที่สุด
-- **กลางวัน (มืดมน):** เมฆครึ้ม หมอกเทาอมเขียว สีซีด ดวงอาทิตย์ไม่เคยทะลุเมฆ น้ำเรืองแสงจางลง วิญญาณบึงหายไป
+- **Night:** blue moonlight, stars and green northern lights above the northern cliffs. Marsh Wisps come out to hunt.
+- **Dawn / dusk:** a rose-purple sky; the whirlpool in the sky is at its clearest.
+- **Day (gloomy):** heavy clouds, grey-green fog, washed-out colours. The sun never breaks through. The glowing water fades and the Marsh Wisps disappear.
 
-## สไตล์ภาพแบบ PS2 ทำอย่างไร
+## How the PS2 look works
 
-ไฟล์ `src/ps2.js` เป็นหัวใจของลุคนี้:
+`src/ps2.js` is the heart of the look:
 
-- **ความละเอียดภายในต่ำ** (ค่าเริ่มต้น 448 เส้น เท่า PS2 NTSC) แล้วขยายแบบ nearest-neighbor ให้เห็นพิกเซลชัด
-- **Vertex snapping** ปัดตำแหน่งจุดยอดให้ลงกริดพิกเซล โลกจึง "สั่น" เล็กน้อยแบบเครื่องเกมยุคนั้น
-- **Bloom ปลอม** ดึงส่วนที่สว่างมาเบลอแล้วบวกกลับ แบบเดียวกับที่เกม PS2 ใช้ framebuffer blur ทำ "glow"
-- **Color grade โทนแสงจันทร์** ยกเงามืดให้เป็นสีกรมท่า เพิ่มความอิ่มสี และดันไฮไลต์ให้เย็นขึ้น
-- **Ordered dithering + ลดความลึกสี** ทำแถบสีและลาย dither แบบโหมด 16-bit
-- **Fog แบบ exponential สีน้ำเงิน** ซ่อนระยะการมองเห็น (เทคนิคประหยัดทรัพยากรคลาสสิก)
-- **Texture ความละเอียด 32–128px** วาดด้วยโค้ดทั้งหมด (`src/textures.js`)
-- **ใบไม้เป็นแผ่น alpha ไขว้กัน** (crossed cards) โยกตามลมใน vertex shader
-- **เงาเป็นวงกลมดำ (blob shadow)** แทนเงาจริง เหมือนเกมยุค PS2
+- **Low internal resolution** (448 lines by default, the same as PS2 NTSC), then scaled up with nearest-neighbor so the pixels show clearly
+- **Vertex snapping** rounds vertex positions to the pixel grid, so the world "wobbles" a little like consoles of that era
+- **Fake bloom** takes the bright parts, blurs them and adds them back, the same way PS2 games used a framebuffer blur for "glow"
+- **Moonlight color grade** lifts the shadows to navy, boosts saturation and pushes the highlights cooler
+- **Ordered dithering + reduced color depth** gives banding and dither patterns like 16-bit mode
+- **Blue exponential fog** hides the draw distance (a classic resource-saving trick)
+- **32–128px textures**, all drawn in code (`src/textures.js`)
+- **Foliage as crossed alpha cards**, swaying in the wind in the vertex shader
+- **Black circle shadows (blob shadows)** instead of real shadows, like PS2-era games
 
-## โครงสร้างโปรเจกต์
+## Project structure
 
 ```
-electron/           ตัวห่อโปรแกรมบนคอม (หน้าต่าง, เต็มจอ, ออกจากเกม)
-fonts/              ฟอนต์ Pridi + Cinzel (OFL) แนบมาเพื่อเล่นออฟไลน์
-build/icon.png      ไอคอนโปรแกรม
-index.html          หน้าเกม + HUD
-play.bat, serve.ps1 ตัวเปิดเกมบน Windows (เว็บเซิร์ฟเวอร์ด้วย PowerShell)
-css/style.css       สไตล์ UI (ฟอนต์ Pridi + Cinzel)
+electron/           desktop app wrapper (window, fullscreen, quit)
+fonts/              Pridi + Cinzel fonts (OFL), bundled for offline play
+build/icon.png      app icon
+index.html          game page + HUD
+play.bat, serve.ps1 Windows launcher (web server in PowerShell)
+css/style.css       UI styles (Pridi + Cinzel fonts)
 vendor/             three.js r170 (MIT)
 src/
-  main.js           game loop, สถานะเกม, การต่อสู้, เซฟ/โหลด
-  ps2.js            render pipeline สไตล์ PS2 + shader patch
-  terrain.js        สร้างภูมิประเทศ 1.6 กม. (หุบเขาเดิม + 4 ภูมิภาครอบนอก, ถนน, ทางรถไฟ) แบ่งเป็น chunk
-  layout.js         ตำแหน่งสถานที่สำคัญในแผนที่
-  environment.js    ท้องฟ้า (แสงเหนือ, วังวน, จันทร์ยักษ์), น้ำเรืองแสง, ฝน, ฟ้าแลบ
-  daynight.js       วงจรกลางวัน-กลางคืน (สี แสง หมอก ตามช่วงเวลา)
-  giants.js         ปราสาทลอยฟ้า, ราชาหิน, ซี่โครงอสูร
-  village.js        หมู่บ้าน และโรงเตี๊ยมเทียนหลอม (มีภายใน)
-  builder.js        ตัวช่วยรวม mesh ของสิ่งก่อสร้าง
-  wilds.js          สิ่งก่อสร้างนอกหุบเขา: หอระฆัง (ขึ้นได้), หินตั้ง, กังหันลม, ไร่ร้าง, ท่าเรือ, เมืองจม, ต้นไม้แขวนคอ, เพิงนายพราน, ศาลริมทาง
-  structures.js     รางรถไฟ, สถานี, รั้ว, ซุ้มประตู, วิหาร, สะพาน, ซากปรักหักพัง, เห็ดยักษ์
-  vegetation.js     ต้นไม้, เฟิร์น, หญ้า, ก้อนหิน, เห็ดเรืองแสง (instanced)
-  characters.js     NPC, แกะดำ, ศัตรูทุกแบบ (วิญญาณ, หุ่นฟาง, หมาป่า, ปลิง, อัศวินหิน), ดาบและตะเกียงในมือ
-  gaunts.js         เหล่าร่างซีด (ร่างซูบ, ร่างคลาน, หญิงร่ำไห้, ร่างซูบยักษ์): โครงกระดูกจริง + ท่าทาง + เท็กซ์เจอร์ผิว/ผม/หน้า
-  combat.js         ระบบต่อสู้ (stamina, ฟันเบา/หนัก, ป้องกัน/ปัด, หลบ) + AI ศัตรูทุกตัวและบอส
-  entities.js       AI ฝูงแกะ, particle
-  hollow.js         ผู้หลงทาง: ศัตรูจากโมเดล .glb (ท่าเดิน/วิ่ง/การ์ด/ต่อย/เซ/ล้มทำในโค้ด)
-  armour.js         ชุดเกราะไร้ร่าง: ศัตรูจากโมเดล .glb + ดาบสองมือ (ท่าเดิน/เงื้อ/ฟาด/เซ/ทรุดทำในโค้ด)
-  handking.js       บอสราชันร้อยกร: ร่าง 85 กระดูก ท่าโจมตี 4 แบบ วงเตือนบนพื้น คลื่นกระแทก มือผุดจากดิน และสมองของมันเอง
-  rigpose.js        ตัวช่วยโหลดโมเดล .glb ที่มีกระดูกแล้วจัดท่าจากโค้ด (ใช้กับผู้หลงทางและชุดเกราะ)
-  critters.js       สัตว์ในโลก (หมู: โมเดล .glb + ท่าเดินจากโค้ด, เดินเล่น ก้มกิน วิ่งหนี)
-  quests.js         เควสต์และบทสนทนา (ภาษาไทย)
-  player.js         การเคลื่อนที่บุคคลที่หนึ่ง, การชน, ปีนขั้นบันได
-  collision.js      ระบบชนแบบ 2.5D (วงกลม + กล่องหมุนได้)
-  input.js          คีย์บอร์ด/เมาส์ + ปุ่มสัมผัส
-  moba.js           ศึกราชาจันทรา: ฐาน ราชา สิ่งปลูกสร้าง ครีป บอท และการซิงก์ (โฮสต์เป็นผู้ประมวลผล)
-  (assets/heroes/)  โมเดลฮีโร่ที่นำเข้าจากไฟล์ .glb ด้วย tools/import-hero.mjs (ตอนนี้: ผู้พเนจร, หมอปลิง, สัปเหร่อแบกโลง — โมเดลที่มีเท็กซ์เจอร์อยู่แล้วจะเก็บ UV/เท็กซ์เจอร์เดิม และจัดแขนจากท่า A-pose / T-pose ให้ห้อยลงก่อนผูกกระดูก)
-  heroes.js         ฮีโร่ 5 วิถีที่ผู้เล่นคนอื่นเห็นในโหมดออนไลน์ (rig 16 กระดูก, ผ้าสีทีม, ท่าเดิน/ฟัน/ป้องกัน)
-  arena.js          แผนที่สนามศึก: พื้นที่, ถนน + ตะเกียง, ป้ายบอกทาง, ลานราชาคุกเข่า, แคมป์สัตว์ป่า (`?arena`)
-  net.js            เครือข่าย WebRTC ผ่าน PeerJS (สร้าง/เข้าห้องด้วยรหัส 5 ตัว)
-  lobby.js          หน้าล็อบบี้ออนไลน์
-  contracts.js      ใบประกาศล่าค่าหัว (บอร์ด, เบาะแส, มอนสเตอร์ชื่อเฉพาะ + ลักษณะพิเศษ, งานสุ่ม)
-  events.js         เหตุการณ์สุ่มในโลก (จันทร์เลือด, พ่อค้าเร่, หมอกหนา, ดาวตก)
-  classes.js        วิถีทั้ง 5 (อาวุธ, ท่าทาง, สกิล, กติกาเฉพาะ) — combat.js ถามค่าการฟันและเรียก hook จากที่นี่
-  audio.js          เอนจินเสียง: bus เสียง/เพลง, reverb, เสียง 3 มิติ และเสียงเอฟเฟกต์ทั้งหมด
-  music.js          ดนตรีประกอบแบบ adaptive (เครื่องดนตรีสังเคราะห์ + เพลงแต่ละสถานการณ์)
-  ambience.js       เสียงบรรยากาศตามพื้นที่ เวลา และสภาพอากาศ
-  ui.js             เข็มทิศ, เควสต์, บทสนทนา, แผนที่
-  hud.js            แถบสถานะสไตล์ Doom (หน้าตัวละคร, ตัวเลขพิกเซล, ไอคอนอาวุธ)
-  items.js          รายการไอเทมทั้งหมด (ขนาดช่อง, กอง, ราคา) + ไอคอนพิกเซล
-  inventory.js      ตรรกะกระเป๋าแบบตาราง (วาง, หมุน, รวมกอง, จัดอัตโนมัติ, เซฟ)
-  bagui.js          หน้าจอกระเป๋าแบบ RE4 (ลากวาง, เมนูของ, ช่องของรอ)
-  loot.js           ดรอปจากศัตรู, สมุนไพร/เห็ด/แร่ที่งอกใหม่, หีบสมบัติ
-  menus.js          หม้อต้มยา, เตาหลอม, ร้านค้า (สูตรและราคาอยู่ที่นี่)
-docs/GDD.md         เอกสารออกแบบเกม + แผนพัฒนาต่อ
-docs/MODEL_PROMPTS.md  prompt สร้างโมเดลตัวละครด้วย AI ให้คงสไตล์ PS2 + สเปกสำหรับนำเข้าเกม
-docs/HERO_PROMPTS.md   prompt ละเอียดของฮีโร่ 5 วิถีที่ผู้เล่นบังคับ (ออกแบบให้อ่านออกตอนสู้กันออนไลน์)
-docs/model-refs/    ภาพอ้างอิงตัวละครทุกตัว เรนเดอร์จากในเกม
+  main.js           game loop, game state, combat, save/load
+  ps2.js            PS2-style render pipeline + shader patch
+  terrain.js        builds the 1.6 km terrain (original valley + 4 outer regions, roads, railway), split into chunks
+  layout.js         positions of key places on the map
+  environment.js    sky (northern lights, whirlpool, giant moon), glowing water, rain, lightning
+  daynight.js       day-night cycle (colour, light, fog by time of day)
+  giants.js         floating castle, Stone King, Beast's Ribcage
+  village.js        the village and the Molten Candle Inn (with interior)
+  builder.js        helper that merges structure meshes
+  wilds.js          structures beyond the valley: bell tower (climbable), standing stones, windmill, abandoned farm, pier, Sunken City, Hanging Tree, hunter's camp, roadside shrines
+  structures.js     railway, station, fences, archways, temple, bridges, ruins, giant mushroom
+  vegetation.js     trees, ferns, grass, rocks, glowcaps (instanced)
+  characters.js     NPCs, black sheep, every enemy type (wisps, strawmen, wolves, leeches, Stone Knight), sword and lantern in hand
+  gaunts.js         the Pale Ones (Gaunt, Crawler, Weeping Woman, Gaunt Giant): real skeletons + poses + skin/hair/face textures
+  combat.js         combat system (stamina, light/heavy attacks, block/parry, dodge) + AI for every enemy and boss
+  entities.js       sheep flock AI, particles
+  hollow.js         the Lost: enemy from a .glb model (walk/run/guard/punch/stagger/fall made in code)
+  armour.js         Empty Armour: enemy from a .glb model + two-handed sword (walk/wind-up/swing/stagger/collapse made in code)
+  handking.js       the King of a Hundred Hands boss: an 85-bone body, 4 attacks, warning rings on the ground, shockwaves, hands from the ground, and its own brain
+  rigpose.js        helper that loads rigged .glb models and poses them from code (used for the Lost and the armour)
+  critters.js       animals in the world (pigs: .glb model + walk cycle in code; wander, graze, flee)
+  quests.js         quests and dialogue (Thai)
+  player.js         first-person movement, collision, stair climbing
+  collision.js      2.5D collision (circles + rotatable boxes)
+  input.js          keyboard/mouse + touch buttons
+  moba.js           War of the Moon Kings: bases, kings, buildings, creeps, bots and sync (the host runs the game)
+  (assets/heroes/)  hero models imported from .glb files with tools/import-hero.mjs (currently: Wanderer, Leech-Doctor, Coffin-Bearer — models that already have textures keep their UVs/textures, and arms are lowered from A-pose / T-pose before rigging)
+  heroes.js         the 5 path heroes other players see in online mode (16-bone rig, team-coloured cloth, walk/attack/block)
+  arena.js          battlefield map: ground, roads + lanterns, signposts, Court of the Kneeling King, wild camps (`?arena`)
+  net.js            WebRTC networking through PeerJS (create/join a room with a 5-letter code)
+  lobby.js          online lobby screen
+  contracts.js      bounty board (board, clues, named monsters + special traits, random contracts)
+  events.js         random world events (Blood Moon, pedlar, heavy fog, falling star)
+  classes.js        the 5 paths (weapons, moves, skills, special rules) — combat.js asks it for attack values and calls hooks from here
+  audio.js          sound engine: sound/music buses, reverb, 3D sound and all sound effects
+  music.js          adaptive music (synthesized instruments + a piece for each situation)
+  ambience.js       ambient sound by area, time and weather
+  ui.js             compass, quests, dialogue, map
+  hud.js            Doom-style status bar (face, pixel digits, weapon icon)
+  items.js          every item (slot size, stacking, price) + pixel icons
+  inventory.js      grid bag logic (place, rotate, stack, auto-sort, save)
+  bagui.js          RE4-style bag screen (drag and drop, item menu, waiting slot)
+  loot.js           enemy drops, regrowing herbs/mushrooms/ore, treasure chests
+  menus.js          cauldron, forge, shop (recipes and prices live here)
+docs/GDD.md         game design document + development plan
+docs/MODEL_PROMPTS.md  prompts for making character models with AI in a consistent PS2 style + specs for importing into the game
+docs/HERO_PROMPTS.md   detailed prompts for the 5 playable path heroes (designed to read clearly in online fights)
+docs/model-refs/    reference images of every character, rendered in-game
 ```
 
-## เปิดเล่นผ่าน GitHub Pages
+## Play through GitHub Pages
 
-มี workflow `.github/workflows/pages.yml` เตรียมไว้แล้ว:
-ไปที่ **Settings → Pages → Build and deployment → Source** แล้วเลือก **GitHub Actions**
-หลังจาก push เข้า branch หลักจะได้ลิงก์ `https://<ชื่อผู้ใช้>.github.io/<ชื่อ repo>/` ไว้เล่นบนมือถือ
+The workflow `.github/workflows/pages.yml` is ready:
+go to **Settings → Pages → Build and deployment → Source** and choose **GitHub Actions**.
+After you push to the main branch, you get a link `https://<username>.github.io/<repo name>/` to play on phones.
 
-## พารามิเตอร์สำหรับนักพัฒนา
+## Developer parameters
 
-- `?autostart` ข้ามหน้าแรก
-- `?at=x,z,yaw,pitch` วาร์ปไปตำแหน่งนั้น (เช่น `?autostart&at=0,-226,0,0.1` = หน้าวิหาร)
-- `?stage=4` เริ่มที่ขั้นเควสต์นั้น
-- `?time=0.5` ตั้งเวลา (0 = เที่ยงคืน, 0.25 = รุ่งสาง, 0.5 = เที่ยง, 0.75 = สนธยา)
-- `?peer=localhost:9000` ใช้เซิร์ฟเวอร์จับคู่ PeerJS ของตัวเองแทนเซิร์ฟเวอร์สาธารณะ (เช่น `npx peerjs --port 9000`)
-- `?event=bloodmoon` บังคับให้เกิดเหตุการณ์ทันที (`bloodmoon`, `merchant`, `fog`, `star`)
-- `window.__game` ใน console เข้าถึง state ทั้งหมด
+- `?autostart` skip the title screen
+- `?at=x,z,yaw,pitch` warp to that position (e.g. `?autostart&at=0,-226,0,0.1` = in front of the temple)
+- `?stage=4` start at that quest stage
+- `?time=0.5` set the time (0 = midnight, 0.25 = dawn, 0.5 = noon, 0.75 = dusk)
+- `?peer=localhost:9000` use your own PeerJS matchmaking server instead of the public one (e.g. `npx peerjs --port 9000`)
+- `?event=bloodmoon` force an event right away (`bloodmoon`, `merchant`, `fog`, `star`)
+- `window.__game` in the console gives access to the whole state
 
-## เครดิต
+## Credits
 
-- โมเดล **"Giant cockroach"** โดย [Drillimpact](https://sketchfab.com/Drillimpact) ([Sketchfab](https://sketchfab.com/3d-models/giant-cockroach-4b19ed8851f74c278eef835250a82896)) ใช้ภายใต้สัญญาอนุญาต [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · ปรับวัสดุให้รับแสงและหมอกของเกม และย่อขยายขนาด
-- โมเดล **"PS1 Pig"** โดย [joann5632](https://sketchfab.com/ioann5632) ([Sketchfab](https://sketchfab.com/3d-models/ps1-pig-cb937687727d44319a04d10afdcb0863)) ใช้ภายใต้สัญญาอนุญาต [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · ปรับสีให้มอมแมม และทำท่าเดิน/ก้มกินในโค้ด
-- โมเดล **"Lowpoly Male Base Mesh"** โดย [arsenios](https://sketchfab.com/arsenikos) ([Sketchfab](https://sketchfab.com/3d-models/lowpoly-male-base-mesh-306da5c94111424b8017617b885f1a13)) ใช้ภายใต้ Sketchfab Standard License · ใช้เป็นร่างของ "ผู้หลงทาง" ท่าทางทั้งหมดทำในโค้ด
-- โมเดล **"PS1/PSX style low poly plate armor"** โดย [annaumurn](https://sketchfab.com/annaumurn) ([Sketchfab](https://sketchfab.com/3d-models/ps1psx-style-low-poly-plate-armor-8eb583c1a9594f999f476d1871d07d8b)) ใช้ภายใต้สัญญาอนุญาต [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · ปรับสีเหล็กให้หม่น เพิ่มดาบสองมือ และทำท่าทางทั้งหมดในโค้ด
-- โมเดล **"Psx hands monster (ps2 style)"** โดย [petya-petyavich](https://sketchfab.com/petya-petyavich) ([Sketchfab](https://sketchfab.com/3d-models/psx-hands-monster-ps2-style-0a6e7d2ae4844b88967d8c5163d72815)) ใช้ภายใต้สัญญาอนุญาต [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · ขยาย 9 เท่าเป็นบอสราชันร้อยกร ท่าทางทั้งหมดทำในโค้ด
-- โมเดล **"Low Poly Micolash"** โดย [ratmeaty](https://sketchfab.com/ratmeaty) ([Sketchfab](https://sketchfab.com/3d-models/low-poly-micolash-35dd000256d74cf596d79067b5c304c8)) ใช้ภายใต้สัญญาอนุญาต [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · ใช้เป็นร่างของสัปเหร่อแบกโลง จัดแขนลง ผูกเข้ากับโครงกระดูกของเกม เพิ่มโลงศพและผ้าสีทีม
-- โมเดล **"BOUNTY HUNTER"** โดย [EZ-GAZI](https://sketchfab.com/EZ-GAZI) ([Sketchfab](https://sketchfab.com/3d-models/bounty-hunter-1b78c05dd09245a9a2b2906e12b1dc08)) ใช้ภายใต้สัญญาอนุญาต [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · ใช้เป็นร่างของนายพรานโอเรน สร้างโครงกระดูกและท่าทางทั้งหมดในโค้ด เพิ่มมีดแล่หนัง
-- โมเดล **"Knight Set Dark Souls 1 - PS1 Style"** โดย [MoiDev](https://sketchfab.com/moidev) ([Sketchfab](https://sketchfab.com/3d-models/knight-set-dark-souls-1-ps1-style-cded980e88324f758f5ca32033a71548)) ใช้ภายใต้สัญญาอนุญาต [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · ใช้เป็นร่างของผู้พเนจร จัดแขนลงจากท่า T ผูกเข้ากับโครงกระดูกของเกม เพิ่มดาบยาว ตะเกียง และผ้าสีทีม
-- [three.js](https://threejs.org) และ GLTFLoader / SkeletonUtils (MIT) · [PeerJS](https://peerjs.com) (MIT)
-
+- **"Giant cockroach"** model by [Drillimpact](https://sketchfab.com/Drillimpact) ([Sketchfab](https://sketchfab.com/3d-models/giant-cockroach-4b19ed8851f74c278eef835250a82896)), used under [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · materials adjusted to take the game's light and fog, and rescaled
+- **"PS1 Pig"** model by [joann5632](https://sketchfab.com/ioann5632) ([Sketchfab](https://sketchfab.com/3d-models/ps1-pig-cb937687727d44319a04d10afdcb0863)), used under [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · colours dirtied up, and the walk/graze animation made in code
+- **"Lowpoly Male Base Mesh"** model by [arsenios](https://sketchfab.com/arsenikos) ([Sketchfab](https://sketchfab.com/3d-models/lowpoly-male-base-mesh-306da5c94111424b8017617b885f1a13)), used under the Sketchfab Standard License · used as the body of "the Lost"; all animation made in code
+- **"PS1/PSX style low poly plate armor"** model by [annaumurn](https://sketchfab.com/annaumurn) ([Sketchfab](https://sketchfab.com/3d-models/ps1psx-style-low-poly-plate-armor-8eb583c1a9594f999f476d1871d07d8b)), used under [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · iron dulled, a two-handed sword added, and all animation made in code
+- **"Psx hands monster (ps2 style)"** model by [petya-petyavich](https://sketchfab.com/petya-petyavich) ([Sketchfab](https://sketchfab.com/3d-models/psx-hands-monster-ps2-style-0a6e7d2ae4844b88967d8c5163d72815)), used under [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · scaled up 9 times as the King of a Hundred Hands boss; all animation made in code
+- **"Low Poly Micolash"** model by [ratmeaty](https://sketchfab.com/ratmeaty) ([Sketchfab](https://sketchfab.com/3d-models/low-poly-micolash-35dd000256d74cf596d79067b5c304c8)), used under [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · used as the body of the Coffin-Bearer; arms lowered, bound to the game's skeleton, coffin and team-coloured cloth added
+- **"BOUNTY HUNTER"** model by [EZ-GAZI](https://sketchfab.com/EZ-GAZI) ([Sketchfab](https://sketchfab.com/3d-models/bounty-hunter-1b78c05dd09245a9a2b2906e12b1dc08)), used under [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · used as the body of Oren the Hunter; skeleton and all animation made in code, skinning knife added
+- **"Knight Set Dark Souls 1 - PS1 Style"** model by [MoiDev](https://sketchfab.com/moidev) ([Sketchfab](https://sketchfab.com/3d-models/knight-set-dark-souls-1-ps1-style-cded980e88324f758f5ca32033a71548)), used under [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · used as the body of the Wanderer; arms lowered from T-pose, bound to the game's skeleton, longsword, lantern and team-coloured cloth added
+- [three.js](https://threejs.org) and GLTFLoader / SkeletonUtils (MIT) · [PeerJS](https://peerjs.com) (MIT)

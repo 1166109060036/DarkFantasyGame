@@ -11,9 +11,10 @@ import { GLTFLoader } from '../vendor/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from '../vendor/addons/utils/SkeletonUtils.js';
 import { ps2ify } from './ps2.js';
 import { clamp } from './util.js';
+import { L } from './i18n.js';
 
 export const MOUNT = {
-  name: 'แมลงสาบยักษ์',
+  name: L('แมลงสาบยักษ์', 'Giant Cockroach'),
   scale: 1.7,
   seat: new THREE.Vector3(0, 1.0, 0.12),    // where the rider sits, in the mount's own space (forward is -z)
   eyeLift: 0.95,                            // rider's eye above the seat
@@ -116,7 +117,7 @@ export class Mount {
   // H: whistle for it, climb on, or get off
   toggle() {
     const g = this.g, p = g.player;
-    if (!this.ensureBody()) { g.ui.toast('แมลงสาบยักษ์ยังมาไม่ถึง...'); return; }
+    if (!this.ensureBody()) { g.ui.toast(L('แมลงสาบยักษ์ยังมาไม่ถึง...', 'The Giant Cockroach has not yet come...')); return; }
     if (this.ridden) { this.dismount(); return; }
     const d = this.state === 'away' ? Infinity : Math.hypot(this.pos.x - p.pos.x, this.pos.z - p.pos.z);
     if (d < 4.5 && this.state !== 'coming') { this.mount(); return; }
@@ -125,7 +126,7 @@ export class Mount {
 
   whistle() {
     const g = this.g, p = g.player;
-    if (g.indoor > 0.5) { g.ui.toast('มันเข้ามาในนี้ไม่ได้'); return; }
+    if (g.indoor > 0.5) { g.ui.toast(L('มันเข้ามาในนี้ไม่ได้', 'It cannot come in here')); return; }
     if (this.whistleT > 0) return;
     this.whistleT = 1.2;
     const a = g.audio;
@@ -142,7 +143,7 @@ export class Mount {
     }
     this.state = 'coming';
     this.body.root.visible = true;
-    g.ui.combatText('ฟี้ว~', 'info');
+    g.ui.combatText(L('ฟี้ว~', 'Fweet~'), 'info');
   }
 
   mount() {
@@ -154,7 +155,7 @@ export class Mount {
     this.wing = MOUNT.wings;
     g.audio.thump({ freq: 120, dur: 0.2, gain: 0.25 });
     this.skitter(6, 0.6);
-    if (!this.hinted) { this.hinted = true; g.ui.toast('ขี่อยู่ · Shift วิ่ง · Space กางปีก (ค้างเพื่อร่อน) · คลิกขวา ให้มันกัด · H ลง'); }
+    if (!this.hinted) { this.hinted = true; g.ui.toast(L('ขี่อยู่ · Shift วิ่ง · Space กางปีก (ค้างเพื่อร่อน) · คลิกขวา ให้มันกัด · H ลง', 'Riding · Shift run · Space spread wings (hold to glide) · Right-click bite · H dismount')); }
   }
 
   dismount(thrown = false) {
@@ -168,7 +169,7 @@ export class Mount {
     p.pos.y = p.groundAt(p.pos.x, p.pos.z, p.pos.y + 2);
     p.camY = p.pos.y;
     p.vel.set(thrown ? sx * 3 : 0, thrown ? 3 : 0, thrown ? sz * 3 : 0);
-    if (thrown) { g.combat.staggerT = 0.9; g.ui.combatText('ตกจากหลัง!', 'bad'); }
+    if (thrown) { g.combat.staggerT = 0.9; g.ui.combatText(L('ตกจากหลัง!', 'Thrown off!'), 'bad'); }
   }
 
   // what the rider's body is told (src/player.js reads this through combat.playerMods)
@@ -246,7 +247,7 @@ export class Mount {
         this.pos.x += dx / d * step; this.pos.z += dz / d * step;
         g.collision.resolve(this.pos, 0.9, 1.2);
         this.yaw += Math.atan2(Math.sin(Math.atan2(-dx, -dz) - this.yaw), Math.cos(Math.atan2(-dx, -dz) - this.yaw)) * Math.min(1, dt * 5);
-      } else if (this.state === 'coming') { this.state = 'waiting'; g.ui.combatText('[H] ขึ้นขี่', 'info'); }
+      } else if (this.state === 'coming') { this.state = 'waiting'; g.ui.combatText(L('[H] ขึ้นขี่', '[H] Mount'), 'info'); }
       this.pos.y = this.ground(this.pos.x, this.pos.z, this.pos.y + 2);
       this.airborne = false;
       // left far behind: it wanders off home until whistled for
@@ -264,8 +265,8 @@ export class Mount {
   static seatWorld(root, out) { return out.copy(MOUNT.seat).applyMatrix4(root.matrixWorld); }
 
   chips() {
-    if (this.ridden) return [`🪳 ${MOUNT.name} · ปีก ${'▮'.repeat(Math.round(this.wing / MOUNT.wings * 5))}${'▯'.repeat(5 - Math.round(this.wing / MOUNT.wings * 5))}`];
-    if (this.state === 'waiting') return [`🪳 ${MOUNT.name} รออยู่ [H]`];
+    if (this.ridden) return [`🪳 ${MOUNT.name} · ${L('ปีก', 'Wings')} ${'▮'.repeat(Math.round(this.wing / MOUNT.wings * 5))}${'▯'.repeat(5 - Math.round(this.wing / MOUNT.wings * 5))}`];
+    if (this.state === 'waiting') return [L(`🪳 ${MOUNT.name} รออยู่ [H]`, `🪳 ${MOUNT.name} waits [H]`)];
     return [];
   }
 }

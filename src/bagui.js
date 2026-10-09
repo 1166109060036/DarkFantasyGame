@@ -5,6 +5,7 @@
 //  - when the case is full, a new pickup waits in the side tray until you make room
 import { ITEMS, itemIconURL } from './items.js';
 import { Inventory } from './inventory.js';
+import { L } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -60,7 +61,7 @@ export class BagUI {
     if (this.held) this.returnHeld();
     this.hideMenu();
     if (this.pending) {
-      this.g.ui.toast(`วาง${ITEMS[this.pending.id].name}ไว้บนพื้น`);
+      this.g.ui.toast(L(`วาง${ITEMS[this.pending.id].name}ไว้บนพื้น`, `Left ${ITEMS[this.pending.id].name} on the ground`));
       this.pending.onLeft?.(this.pending.count);
       this.pending = null;
     }
@@ -130,10 +131,10 @@ export class BagUI {
   select(it) {
     this.selected = it;
     const def = it ? ITEMS[it.id] : this.held ? ITEMS[this.held.id] : this.pending ? ITEMS[this.pending.id] : null;
-    this.info.querySelector('.name').textContent = def ? def.name : 'กระเป๋าเดินทาง';
+    this.info.querySelector('.name').textContent = def ? def.name : L('กระเป๋าเดินทาง', 'Travelling Case');
     this.info.querySelector('.desc').textContent = def
-      ? `${def.desc}${def.value ? ` · ขายได้ ${def.value} เหรียญ` : ''}`
-      : 'ลากของเพื่อจัดเรียง · คลิกของเพื่อใช้หรือทิ้ง · R หรือคลิกขวาเพื่อหมุน';
+      ? `${def.desc}${def.value ? L(` · ขายได้ ${def.value} เหรียญ`, ` · Sells for ${def.value} coins`) : ''}`
+      : L('ลากของเพื่อจัดเรียง · คลิกของเพื่อใช้หรือทิ้ง · R หรือคลิกขวาเพื่อหมุน', 'Drag to arrange · Click to use or discard · R or right-click to rotate');
   }
 
   // ---------------------------------------------------------------- picking up
@@ -335,13 +336,13 @@ export class BagUI {
     } else {
       this.g.loot.dropNearPlayer(h.id, h.count);
     }
-    this.g.ui.toast(`ทิ้ง${ITEMS[h.id].name}${h.count > 1 ? ` ×${h.count}` : ''}`);
+    this.g.ui.toast(L(`ทิ้ง${ITEMS[h.id].name}${h.count > 1 ? ` ×${h.count}` : ''}`, `Discarded ${ITEMS[h.id].name}${h.count > 1 ? ` ×${h.count}` : ''}`));
     this.render();
   }
 
   sort() {
     if (this.held) this.returnHeld();
-    if (!this.inv.autoSort()) this.g.ui.toast('จัดอัตโนมัติไม่ได้ — ของเยอะเกินไป');
+    if (!this.inv.autoSort()) this.g.ui.toast(L('จัดอัตโนมัติไม่ได้ — ของเยอะเกินไป', 'Cannot sort — too much to carry'));
     this.g.audio.ui();
     this.render();
   }
@@ -358,16 +359,16 @@ export class BagUI {
       b.addEventListener('pointerdown', (ev) => ev.stopPropagation());
       m.appendChild(b);
     };
-    if (def.kind === 'use') add('ใช้', () => { if (this.g.useItem(it)) this.render(); });
-    add('ย้าย', () => { this.mouse = { x: e.clientX, y: e.clientY }; this.pickUp(it, 0, 0, false); });
-    if (def.w !== def.h) add('หมุน', () => {
+    if (def.kind === 'use') add(L('ใช้', 'Use'), () => { if (this.g.useItem(it)) this.render(); });
+    add(L('ย้าย', 'Move'), () => { this.mouse = { x: e.clientX, y: e.clientY }; this.pickUp(it, 0, 0, false); });
+    if (def.w !== def.h) add(L('หมุน', 'Rotate'), () => {
       if (this.inv.move(it, it.x, it.y, !it.rot)) this.render();
-      else this.g.ui.toast('หมุนตรงนี้ไม่ได้ — ที่ไม่พอ');
+      else this.g.ui.toast(L('หมุนตรงนี้ไม่ได้ — ที่ไม่พอ', 'Cannot rotate here — no room'));
     });
-    add('ทิ้ง', () => {
+    add(L('ทิ้ง', 'Discard'), () => {
       this.inv.removeItem(it);
       this.g.loot.dropNearPlayer(it.id, it.count);
-      this.g.ui.toast(`ทิ้ง${def.name}${it.count > 1 ? ` ×${it.count}` : ''}`);
+      this.g.ui.toast(L(`ทิ้ง${def.name}${it.count > 1 ? ` ×${it.count}` : ''}`, `Discarded ${def.name}${it.count > 1 ? ` ×${it.count}` : ''}`));
       this.select(null);
       this.render();
     });

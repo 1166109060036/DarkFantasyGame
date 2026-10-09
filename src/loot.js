@@ -6,6 +6,7 @@ import { part, mergeGeometries, polylineXAtZ, distToPolyline } from './util.js';
 import { rng } from './noise.js';
 import { regionWeights } from './terrain.js';
 import { wildChests } from './wilds.js';
+import { L } from './i18n.js';
 import { RIVER, TEMPLE, TOAD, HEAD, CASTLE, RIBCAGE, PATHS, PASTURE, FENCE_R, TAVERN, HOUSES, CANYON_ARCH_Z } from './layout.js';
 
 const C = (r, g, b) => new THREE.Color(r, g, b);
@@ -26,9 +27,9 @@ export const DROPS = {
 };
 
 const NODE_TYPES = {
-  herb: { item: 'moon_herb', count: [1, 2], regrow: 360, label: 'เก็บหญ้าจันทร์' },
-  mushroom: { item: 'mushroom', count: [1, 2], regrow: 360, label: 'เก็บเห็ดเรืองแสง' },
-  ore: { item: 'ore', count: [1, 1], regrow: 600, label: 'ขุดแร่เหล็กมืด' },
+  herb: { item: 'moon_herb', count: [1, 2], regrow: 360, label: L('เก็บหญ้าจันทร์', `Gather ${ITEMS.moon_herb.name}`) },
+  mushroom: { item: 'mushroom', count: [1, 2], regrow: 360, label: L('เก็บเห็ดเรืองแสง', `Gather ${ITEMS.mushroom.name}`) },
+  ore: { item: 'ore', count: [1, 1], regrow: 600, label: L('ขุดแร่เหล็กมืด', `Mine ${ITEMS.ore.name}`) },
 };
 
 const KIND_GLOW = { use: C(0.5, 0.18, 0.16), mat: C(0.22, 0.32, 0.5), treasure: C(0.55, 0.42, 0.14) };
@@ -164,7 +165,7 @@ export class Loot {
     if (left === 0) { this.removePickup(pk); return true; }
     pk.count = left;
     if (!openBagIfFull) return false;
-    g.ui.toast('กระเป๋าเต็ม — จัดกระเป๋าเพื่อหาที่ว่าง');
+    g.ui.toast(L('กระเป๋าเต็ม — จัดกระเป๋าเพื่อหาที่ว่าง', 'Bag full — arrange your bag to make room'));
     g.openBag({
       id: pk.id,
       count: left,
@@ -336,7 +337,7 @@ export class Loot {
       if (this.g.bag.canAdd(id, n)) this.take(pk, { openBagIfFull: false });
       else left = true;
     });
-    if (left) this.g.ui.toast('กระเป๋าเต็ม — ของบางชิ้นยังวางอยู่หน้าหีบ');
+    if (left) this.g.ui.toast(L('กระเป๋าเต็ม — ของบางชิ้นยังวางอยู่หน้าหีบ', 'Bag full — some things still lie by the chest'));
   }
 
   // ---------------------------------------------------------------- per-frame
@@ -349,9 +350,9 @@ export class Loot {
       if (d > 0.9 && (dx * fx + dz * fz) / d < 0.3) return;
       if (!best || d < best.d) best = { d, label, act };
     };
-    for (const pk of this.pickups) consider(pk.pos, 2.0, `เก็บ ${ITEMS[pk.id].name}${pk.count > 1 ? ` ×${pk.count}` : ''}`, () => this.take(pk));
+    for (const pk of this.pickups) consider(pk.pos, 2.0, L(`เก็บ ${ITEMS[pk.id].name}${pk.count > 1 ? ` ×${pk.count}` : ''}`, `Take ${ITEMS[pk.id].name}${pk.count > 1 ? ` ×${pk.count}` : ''}`), () => this.take(pk));
     for (const n of this.nodes) if (!n.harvested) consider(n.pos, 2.2, n.def.label, () => this.harvest(n));
-    for (const ch of this.chests) if (!ch.open) consider(ch.pos, 2.4, 'เปิดหีบ', () => this.openChest(ch));
+    for (const ch of this.chests) if (!ch.open) consider(ch.pos, 2.4, L('เปิดหีบ', 'Open chest'), () => this.openChest(ch));
     return best;
   }
 

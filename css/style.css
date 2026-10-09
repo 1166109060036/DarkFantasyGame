@@ -597,3 +597,8 @@ body.moba .story-only { display: none !important; }
 .gothic .lb-codebox b { color: var(--g-hi); letter-spacing: 0.3em; }
 #title.gothic .g-menu-col { background: radial-gradient(ellipse at center, rgba(4, 3, 6, 0.72), rgba(4, 3, 6, 0.35) 55%, transparent 72%); padding: 18px 90px; }
 #title.gothic button, #title.gothic .chapter, #title.gothic .subtitle, #title.gothic .title-hint { text-shadow: 0 2px 6px #000, 0 0 3px #000; }
+
+/* the title's language switch */
+.lang-switch { display: flex; gap: 6px; justify-content: center; align-items: center; margin-top: 14px; color: var(--g-dim); }
+.gothic .lang-switch button { font-size: 14px; padding: 4px 14px; color: var(--g-dim); letter-spacing: 0.08em; }
+.gothic .lang-switch button.on { color: var(--g-hi); }

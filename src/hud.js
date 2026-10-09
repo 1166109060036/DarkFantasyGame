@@ -2,6 +2,7 @@
 // digits, the hero's face (bloodier as health drops, glancing around, flinching toward whoever
 // hit you, grinning after a kill, panting when exhausted) and stamina.
 import { rng } from './noise.js';
+import { L } from './i18n.js';
 
 // 5x7 glyphs, drawn bold (each lit pixel doubled to the right) like Doom's chunky status digits
 const GLYPHS = {
@@ -284,7 +285,7 @@ export class DoomHud {
     if (!kit || kit.id === 'wanderer') this.paint('wpn', `${kingly}|${s.attacking}`, () => drawSword(this.wpn, kingly, s.attacking));
     else this.paint('wpn', `${kit.id}|${s.attacking}|${kit.snuffed}|${kit.slots?.length}`, () => kit.drawIcon(this.wpn, s.attacking));
     const wname = !kit || kit.id === 'wanderer'
-      ? `${kingly ? 'ดาบแห่งราชาหิน' : 'ดาบเก่า'}${s.swordLv ? ` +${s.swordLv}` : ''} ×${(s.damageMul ?? s.swordMul).toFixed(1)}`
+      ? `${kingly ? L('ดาบแห่งราชาหิน', 'Sword of the Stone King') : L('ดาบเก่า', 'Old Sword')}${s.swordLv ? ` +${s.swordLv}` : ''} ×${(s.damageMul ?? s.swordMul).toFixed(1)}`
       : kit.label();
     this.paint('wname', wname, () => { this.wpnName.textContent = wname; });
     this.paint('items', `${s.potions}|${s.coins}`, () => { this.potions.textContent = s.potions; this.coins.textContent = s.coins; });
