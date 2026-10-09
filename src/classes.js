@@ -562,7 +562,7 @@ class LeechDoctor extends Kit {
   get frenzy() { const p = this.g.player; return 1 + (1 - p.hp / p.maxHp) * (this.perk('bloodlust') ? 2.0 : 1.4); }
   get maxOut() { return (this.perk('swarm') ? 5 : LEECH_MAX_OUT) - (this.perk('l_queen') ? 1 : 0); }
   get hpBonus() { return this.perk('l_tough') ? 10 : 0; }
-  get attached() { return this.leeches.filter((L) => L.state === 'drink').length; }
+  get attached() { return this.leeches.filter((lc) => lc.state === 'drink').length; }
   // the mark of blood: whatever is bleeding is easier to cut
   targetMul(e) { return this.perk('l_mark') && e.dots?.bleed ? 1.15 : 1; }
   onHurt(dmg) { const p = this.g.player; return this.perk('l_clot') && p.hp < p.maxHp * 0.2 ? dmg * 0.8 : dmg; }
@@ -647,22 +647,22 @@ class LeechDoctor extends Kit {
   skill() {
     if (!this.leeches.length) { this.combat.say(L('ไม่มีปลิงอยู่ข้างนอก', 'No leeches are out')); return; }
     const burst = this.perk('burst');
-    for (const L of this.leeches) {
-      if (L.state === 'drink' && L.e?.alive && L.e.state !== 'dying') {
-        V.set(L.e.pos.x - this.g.player.pos.x, 0, L.e.pos.z - this.g.player.pos.z).normalize();
-        L.blood += burst ? 1.2 : 0.6;
+    for (const lc of this.leeches) {
+      if (lc.state === 'drink' && lc.e?.alive && lc.e.state !== 'dying') {
+        V.set(lc.e.pos.x - this.g.player.pos.x, 0, lc.e.pos.z - this.g.player.pos.z).normalize();
+        lc.blood += burst ? 1.2 : 0.6;
         // the burst: the leech bursts on its host and sprays everyone around
         if (burst) {
-          const host = L.e, at = host.pos.clone();
+          const host = lc.e, at = host.pos.clone();
           this.combat.damageEnemy(host, true, V, 2);
           for (const o of this.combat.enemies) {
             if (!o.alive || o.state === 'dying' || o.pos.distanceTo(at) > 3) continue;
             o.dots = o.dots || {}; o.dots.bleed = { dps: 0.5, t: 5 };
           }
           this.g.particles.burst(at.setY(at.y + host.def.height * 0.6), 20, 4, 0.7);
-        } else this.combat.damageEnemy(L.e, false, V, 0.6);
+        } else this.combat.damageEnemy(lc.e, false, V, 0.6);
       }
-      L.state = 'home';
+      lc.state = 'home';
     }
     if (burst) this.g.audio.burst({ dur: 0.4, freq: 300, q: 1, gain: 0.3 });
     this.g.audio.voice({ freq: 160, dur: 0.4, gain: 0.08, slide: 1.6, formant: 700, vibrato: 20, type: 'square' });
@@ -670,59 +670,59 @@ class LeechDoctor extends Kit {
 
   update(dt) {
     const g = this.g, c = this.combat, cam = g.camera.position, T = g.terrain;
-    for (const L of this.leeches) {
-      L.t += dt;
-      if (L.state === 'fly') {
-        L.vel.y -= 9 * dt;
-        L.pos.addScaledVector(L.vel, dt);
+    for (const lc of this.leeches) {
+      lc.t += dt;
+      if (lc.state === 'fly') {
+        lc.vel.y -= 9 * dt;
+        lc.pos.addScaledVector(lc.vel, dt);
         for (const e of c.enemies) {
           if (!e.alive || e.state === 'dying' || !e.obj.visible) continue;
           const cy = e.pos.y + (e.def.fly ? 0 : e.def.height * 0.6);
-          if (Math.hypot(L.pos.x - e.pos.x, L.pos.y - cy, L.pos.z - e.pos.z) < e.def.radius + 0.55) {
-            L.state = 'drink'; L.e = e; L.t = 0;
+          if (Math.hypot(lc.pos.x - e.pos.x, lc.pos.y - cy, lc.pos.z - e.pos.z) < e.def.radius + 0.55) {
+            lc.state = 'drink'; lc.e = e; lc.t = 0;
             const a = Math.random() * Math.PI * 2;
-            L.off = new THREE.Vector3(Math.cos(a) * e.def.radius * 0.9, cy - e.pos.y + (Math.random() - 0.3) * 0.3, Math.sin(a) * e.def.radius * 0.9);
+            lc.off = new THREE.Vector3(Math.cos(a) * e.def.radius * 0.9, cy - e.pos.y + (Math.random() - 0.3) * 0.3, Math.sin(a) * e.def.radius * 0.9);
             g.audio.burst({ dur: 0.2, freq: 700, q: 2, gain: 0.18, pos: e.pos });
             if (e.state === 'idle' || e.state === 'return') e.state = 'chase';
             break;
           }
         }
-        if (L.state === 'fly' && (L.pos.y < T.getHeight(L.pos.x, L.pos.z) || L.t > 2)) { L.state = 'home'; L.t = 0; }
-      } else if (L.state === 'drink') {
-        let e = L.e;
+        if (lc.state === 'fly' && (lc.pos.y < T.getHeight(lc.pos.x, lc.pos.z) || lc.t > 2)) { lc.state = 'home'; lc.t = 0; }
+      } else if (lc.state === 'drink') {
+        let e = lc.e;
         if (!e.alive || e.state === 'dying' || !e.obj.visible) {
           // the plague: a leech whose host has died jumps to the next one near
-          const next = this.perk('l_plague') && L.t < 14 && c.enemies.find((o) => o !== e && o.alive && o.state !== 'dying' && o.obj.visible && o.pos.distanceTo(e.pos) < 8);
-          if (!next) { L.state = 'home'; continue; }
-          L.e = e = next;
+          const next = this.perk('l_plague') && lc.t < 14 && c.enemies.find((o) => o !== e && o.alive && o.state !== 'dying' && o.obj.visible && o.pos.distanceTo(e.pos) < 8);
+          if (!next) { lc.state = 'home'; continue; }
+          lc.e = e = next;
         }
-        if (L.t > (this.perk('l_cling') ? 14 : 8)) { L.state = 'home'; continue; }
-        L.pos.copy(e.pos).add(L.off);
+        if (lc.t > (this.perk('l_cling') ? 14 : 8)) { lc.state = 'home'; continue; }
+        lc.pos.copy(e.pos).add(lc.off);
         if (this.perk('l_venom')) c.debuff(e, 'slow', 0.3, 0.6);
         if (this.perk('l_numb')) c.debuff(e, 'sap', 0.3, 0.7);
-        const d = Math.min(e.hp, LEECH_DRAIN * (this.perk('fat') ? 1.5 : 1) * (L.big ? 2 : 1) * dt);
+        const d = Math.min(e.hp, LEECH_DRAIN * (this.perk('fat') ? 1.5 : 1) * (lc.big ? 2 : 1) * dt);
         e.hp -= d;
-        L.blood += d;
+        lc.blood += d;
         if (e.hp <= 0.001) c.kill(e);
-      } else if (L.state === 'home') {
-        V.copy(cam).sub(L.pos);
+      } else if (lc.state === 'home') {
+        V.copy(cam).sub(lc.pos);
         const d = V.length();
-        L.pos.addScaledVector(V.normalize(), Math.min(d, 16 * dt));
-        if (d < 0.9) this.collect(L);
+        lc.pos.addScaledVector(V.normalize(), Math.min(d, 16 * dt));
+        if (d < 0.9) this.collect(lc);
       }
-      L.m.position.copy(L.pos);
-      L.m.lookAt(L.state === 'home' ? cam : L.state === 'fly' ? V.copy(L.pos).add(L.vel) : L.e.pos);
-      const fat = 1 + L.blood * 0.45;
-      L.m.scale.set(fat, fat, 1 + Math.sin(g.time * 9 + L.t) * 0.15);
+      lc.m.position.copy(lc.pos);
+      lc.m.lookAt(lc.state === 'home' ? cam : lc.state === 'fly' ? V.copy(lc.pos).add(lc.vel) : lc.e.pos);
+      const fat = 1 + lc.blood * 0.45;
+      lc.m.scale.set(fat, fat, 1 + Math.sin(g.time * 9 + lc.t) * 0.15);
     }
-    this.leeches = this.leeches.filter((L) => !L.done);
+    this.leeches = this.leeches.filter((lc) => !lc.done);
   }
 
-  collect(L) {
+  collect(lc) {
     const g = this.g, p = g.player;
-    L.done = true;
-    this.removeWorld(L.m);
-    const heal = L.blood * BLOOD_TO_HP * (this.perk('homing') ? 1.5 : 1);
+    lc.done = true;
+    this.removeWorld(lc.m);
+    const heal = lc.blood * BLOOD_TO_HP * (this.perk('homing') ? 1.5 : 1);
     if (heal > 0.5) this.feat(Math.round(heal));
     if (heal > 0.5) {
       p.hp = Math.min(p.maxHp, p.hp + heal);
@@ -750,7 +750,7 @@ class LeechDoctor extends Kit {
 
   dispose() {
     // leeches out in the world come home to the bag
-    for (const L of this.leeches) if (!L.done) this.g.bag.add('leech_live', 1);
+    for (const lc of this.leeches) if (!lc.done) this.g.bag.add('leech_live', 1);
     this.leeches = [];
     super.dispose();
   }

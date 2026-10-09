@@ -515,7 +515,7 @@ body.moba .story-only { display: none !important; }
 /* ---- pause ---- */
 #pause.gothic { background: radial-gradient(ellipse at center, rgba(8, 7, 11, 0.55), rgba(4, 3, 6, 0.9)); }
 .pause-panel { width: min(820px, 94vw); }
-.pause-cols { display: grid; grid-template-columns: 240px 1fr; gap: 28px; align-items: start; }
+.pause-cols { display: grid; grid-template-columns: 290px 1fr; gap: 28px; align-items: start; }
 .pause-cols .g-menu-col { align-items: stretch; border-right: 1px solid rgba(201, 165, 90, 0.18); padding-right: 18px; }
 .pause-cols .g-menu-col button { text-align: left; padding-left: 30px; }
 .pause-cols .g-menu-col button::after { display: none; }

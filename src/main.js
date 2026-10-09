@@ -314,6 +314,7 @@ class Game {
     const page = (arena) => {
       const q = new URLSearchParams();
       if (params.get('peer')) q.set('peer', params.get('peer'));
+      if (params.get('lang')) q.set('lang', params.get('lang'));
       if (arena) q.set('arena', '');
       const qs = q.toString().replace(/arena=(&|$)/, 'arena$1');
       location.href = location.pathname + (qs ? `?${qs}` : '');
