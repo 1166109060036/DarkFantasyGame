@@ -17,7 +17,9 @@
 // between them every frame, and while a hand lies on the ground the arm is a ramp the player can
 // walk on (Player.surfaces).
 import * as THREE from 'three';
+import { GLTFLoader } from '../vendor/addons/loaders/GLTFLoader.js';
 import { part, mergeGeometries, clamp, lerp } from './util.js';
+import { ps2ify } from './ps2.js';
 import { L } from './i18n.js';
 
 const ROCK = new THREE.Color(0.66, 0.7, 0.86);
@@ -32,6 +34,33 @@ const UP = V(0, 1, 0);
 const SHOULDER = 7.6, SH_Y = 12.4, HEAD_Y = 17.2;
 const REST = { e: V(10.5, 8.5, 4), h: V(9, 5.5, 9.5) };
 const ARM_R = [1.5, 1.25];          // thickness of upper arm, forearm (the ramp is a little wider)
+const UPPER = 10, FORE = 11;        // the arm's bones, as built by tools/build-colossus.py
+
+// the model (tools/build-colossus.py): torso, head, arm pieces, hands, the elbow's ball and the gold
+// in its cracks. Until it has loaded the body is the rough stand-in built below.
+let asset = null;
+export function loadColossusAsset() {
+  asset ||= new GLTFLoader().loadAsync('assets/enemies/colossus.glb').then((gltf) => {
+    const parts = {};
+    let stone = null, glow = null;
+    gltf.scene.traverse((o) => {
+      if (!o.isMesh) return;
+      if (o.name === 'glow') {
+        glow ||= new THREE.MeshBasicMaterial({ vertexColors: true, fog: false });
+        parts.glow = { geometry: o.geometry, material: glow };
+        return;
+      }
+      if (!stone) {
+        const map = o.material.map;
+        map.magFilter = THREE.NearestFilter; map.colorSpace = THREE.NoColorSpace;
+        stone = ps2ify(new THREE.MeshLambertMaterial({ map, vertexColors: true, color: new THREE.Color(1.25, 1.22, 1.2) }), { fogScale: 0.6 });
+      }
+      parts[o.name] = { geometry: o.geometry, material: stone };
+    });
+    return parts;
+  }).catch(() => null);
+  return asset;
+}
 
 // ---------------------------------------------------------------- the body
 export function createColossus(M) {
@@ -87,11 +116,33 @@ export function createColossus(M) {
   ud.torso = torso;
   ud.head = head;
   ud.eyeMat = eyeMat;
+  // the real body, once loaded: same pieces, laid between the same points without stretching
+  loadColossusAsset().then((parts) => {
+    if (!parts) return;
+    const swap = (mesh, p) => { mesh.geometry = p.geometry; mesh.material = p.material; };
+    swap(torso, parts.torso);
+    swap(head.children.find((c) => c.isMesh), parts.head);
+    for (const a of ud.arms) {
+      swap(a.upper, parts.arm_upper);
+      swap(a.fore, parts.arm_fore);
+      swap(a.hand, a.side > 0 ? parts.hand_r : parts.hand_l);
+      a.joint = new THREE.Mesh(parts.joint.geometry, parts.joint.material);
+      obj.add(a.joint);
+    }
+    obj.add(new THREE.Mesh(parts.glow.geometry, parts.glow.material));
+    ud.modeled = true;
+  });
   ud.animate = (e) => {
     // lay the arm pieces between their points
     for (const a of ud.arms) {
-      place(a.upper, a.s, a.e, ARM_R[0]);
-      place(a.fore, a.e, a.h, ARM_R[1]);
+      if (ud.modeled) {
+        bone(a.upper, a.s, a.e);
+        bone(a.fore, a.e, a.h);
+        a.joint.position.copy(a.e);
+      } else {
+        place(a.upper, a.s, a.e, ARM_R[0]);
+        place(a.fore, a.e, a.h, ARM_R[1]);
+      }
       a.hand.position.copy(a.h);
       const d = V(a.h.x - a.e.x, 0, a.h.z - a.e.z);
       a.hand.rotation.set(0, Math.atan2(d.x, d.z), 0);
@@ -106,6 +157,32 @@ export function createColossus(M) {
 }
 
 const _q = new THREE.Quaternion(), _d = new THREE.Vector3();
+// a modelled arm piece: its root at a, its length along +y pointing at b
+function bone(mesh, a, b) {
+  mesh.position.copy(a);
+  mesh.quaternion.setFromUnitVectors(UP, _d.subVectors(b, a).normalize());
+  mesh.scale.setScalar(1);
+}
+
+// two-bone reach: keep the hand within the arm's length of the shoulder and put the elbow where the
+// bones meet, bent toward where the pose wanted it (a.e on the way in)
+const _t = new THREE.Vector3(), _p = new THREE.Vector3();
+export function solveArm(a) {
+  _d.subVectors(a.h, a.s);
+  let dist = _d.length();
+  const max = UPPER + FORE - 0.05, min = Math.abs(UPPER - FORE) + 0.5;
+  if (dist > max) { a.h.copy(a.s).addScaledVector(_d, max / dist); dist = max; }
+  if (dist < min) { a.h.copy(a.s).addScaledVector(_d, min / Math.max(dist, 1e-3)); dist = min; }
+  _d.subVectors(a.h, a.s).normalize();
+  const along = (UPPER * UPPER - FORE * FORE + dist * dist) / (2 * dist);
+  const out = Math.sqrt(Math.max(0, UPPER * UPPER - along * along));
+  // the bend: the wanted elbow, less its part along the arm; if that is nothing, out and down
+  _p.subVectors(a.e, a.s);
+  _p.addScaledVector(_d, -_p.dot(_d));
+  if (_p.lengthSq() < 1e-4) _p.set(a.side, -0.5, 0).addScaledVector(_d, -_d.dot(_t.set(a.side, -0.5, 0)));
+  _p.normalize();
+  a.e.copy(a.s).addScaledVector(_d, along).addScaledVector(_p, out);
+}
 function place(mesh, a, b, r) {
   _d.subVectors(b, a);
   const len = _d.length();
@@ -237,6 +314,9 @@ export function updateColossus(e, dt, c, { playerOk }) {
     }
   }
 
+  // the arms' bones keep their length: the elbow goes where they meet
+  for (const a of arms) solveArm(a);
+
   // ---- the ramps: while a hand lies on the ground its arm can be walked; the shoulders always
   // (only floors at or a step above feetY count, so the upper arm's top never hides the forearm's)
   ai.surface = (x, z, feetY = Infinity) => {
@@ -288,7 +368,7 @@ export function updateColossus(e, dt, c, { playerOk }) {
       // the arm on the player's side
       const local = toLocal(p.pos.x, p.pos.z);
       const a = arms[local.x >= 0 ? 1 : 0];
-      const reach = Math.hypot(local.x, local.z), maxR = 20;
+      const reach = Math.hypot(local.x, local.z), maxR = 17;
       const k = reach > maxR ? maxR / reach : 1;
       const target = V(clamp(local.x * k, a.side > 0 ? 2 : -16, a.side > 0 ? 16 : -2), 0, clamp(local.z * k, 7, maxR));
       const tw = toWorld(target);
