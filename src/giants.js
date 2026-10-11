@@ -292,7 +292,9 @@ function buildStoneKing(B, C2, terrain, scene, M, fx) {
   // turned three-quarters toward the bridge so the nose reads in silhouette
   const S = 26, rot = [0, Math.PI / 2 + 0.55, 0.28];
   const center = [hx, 16, hz];
-  B.add('giantRock', placeGeom(kingHeadGeometry(), center, rot, [S, S, S]));
+  // the head and its crown are their own meshes: in chapter 2 the King rises from here (src/colossus.js)
+  const KB = new StaticBuilder();
+  KB.add('giantRock', placeGeom(kingHeadGeometry(), center, rot, [S, S, S]));
   // crown: a crenellated band like a tower top
   const crown = [];
   crown.push(part(cyl(0.72, 0.82, 0.38, 20, 0.5), C(0.55, 0.66, 0.5), { pos: [0, 0.98, -0.02] }));
@@ -301,7 +303,10 @@ function buildStoneKing(B, C2, terrain, scene, M, fx) {
     const h = i === 4 ? 0.12 : 0.34;
     crown.push(part(new THREE.BoxGeometry(0.32, h, 0.16), C(0.5, 0.62, 0.46), { pos: [Math.sin(a) * 0.78, 1.17 + h / 2, Math.cos(a) * 0.78], rot: [0, a, 0] }));
   }
-  for (const g of crown) B.add('giantStone', placeGeom(g, center, rot, [S, S, S]));
+  for (const g of crown) KB.add('giantStone', placeGeom(g, center, rot, [S, S, S]));
+  fx.kingHead = new THREE.Group();
+  KB.build(fx.kingHead, M);
+  scene.add(fx.kingHead);
   C2.addCircle(hx, hz, 22);
   C2.addCircle(hx - 6, hz - 14, 16);
 

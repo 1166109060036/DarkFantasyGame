@@ -43,7 +43,8 @@ export const CANYON_STEPS_Z = -185;
 // ---- Giants & new places ----
 export const CASTLE = { x: 196, z: 172, top: 92 };   // floating castle island over its own lake
 export const HEAD = { x: -218, z: -62 };              // the sleeping stone king, half buried
-export const STONEKING = { x: -142, z: -62 };       // where the King's colossus rises (chapter 2)
+// the field before the Stone King's face where his colossus fights (chapter 2): kept clear of trees
+export const KING_FIELD = { x: -128, z: -62, rx: 95, rz: 80 };
 export const STREAM = [[-186, -132], [-183, -95], [-181, -62], [-186, -28], [-200, 4], [-214, 30]];
 export const RIBCAGE = { x: -22, z: 178 };            // colossal skeleton straddling the railway
 export const TAVERN = { x: 78, z: 22 };               // "The Melting Candle" inn

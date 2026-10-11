@@ -42,7 +42,7 @@ export const ENEMY_TYPES = {
   regent: { name: L('ผู้สำเร็จราชการไร้มือ', 'the Handless Regent'), hp: 60, speed: 3.2, range: 0, windup: 1, recover: 1, damage: 26, aggro: 22, leash: 60, radius: 0.7, height: 3.0, hitY: 1.5, weight: 8, active: 'always', boss: true, custom: true, coins: [150, 200], cull: 200, scale: 1 },
   colossus: { name: L('ร่างศิลาของราชาหิน', 'the Stone King\'s Colossus'), hp: 3, speed: 0, range: 0, windup: 1, recover: 1, damage: 30, aggro: 50, leash: 1e9, radius: 1, height: 20, hitY: 10, weight: 99, active: 'always', boss: true, custom: true, pinned: true, invuln: true, fly: true, coins: [300, 300], cull: 400, scale: 1 },
   // a glowing seal on the colossus: struck like any foe, but it rides on the stone body
-  seal: { name: L('ตราหิน', 'Stone Seal'), hp: 8, speed: 0, range: 0, windup: 1, recover: 1, damage: 0, aggro: 0, leash: 1e9, radius: 1.5, height: 1.6, hitY: 0, weight: 99, active: 'always', custom: true, pinned: true, fly: true, coins: [0, 0], cull: 400, scale: 1 },
+  seal: { name: L('ตราหิน', 'Stone Seal'), hp: 8, speed: 0, range: 0, windup: 1, recover: 1, damage: 0, aggro: 0, leash: 1e9, radius: 3.4, height: 1.6, hitY: 0, weight: 99, active: 'always', custom: true, pinned: true, fly: true, coins: [0, 0], cull: 400, scale: 1 },
   knight: { name: L('อัศวินหินผู้เฝ้าสะพาน', 'Stone Knight of the Bridge'), hp: 32, speed: 2.5, range: 3.8, windup: 1.05, recover: 1.4, damage: 28, aggro: 22, leash: 40, radius: 1.1, height: 4.2, weight: 6, active: 'always', boss: true, slamEvery: 3, coins: [60, 60] },
 };
 

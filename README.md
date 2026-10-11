@@ -368,11 +368,11 @@ Opens once Chapter 1 is over. The chain that snapped, the Stone King's open eyes
    - **Granny Toad** → three living stone scales from the Petrified at the giant ribcage → **Stoneskin Draught** (their blows no longer stiffen you)
    - **Kowak** (once the King's herald crow) → guard his flock for one night, two waves → the **Herald's Feather** (long falls become a slow glide)
 4. **Sky-Hung Castle:** climb the chain at the anchor by the village → the island has a floor now: towers, walls, guards, the **statue of the kneeling boy** (a memory), and the throne terrace → **the Handless Regent** (mid-chapter boss) → the **Stone Crown** and the whole truth · climb back down, or step off the edge and glide
-5. **The Colossus:** in the field east of the stone bridge the King's dream rises out of the earth, waist-deep and twenty metres tall → break its **three seals** → it kneels → **[E] crown it** → the end of Chapter 2 (and a black bird for Chapter 3)
+5. **The Colossus:** the King himself rises where his head lay sleeping — as tall as the castle, the head as big as the one that slept there → break its **three seals** → it bows and stays bowed → **[E] crown it** → the end of Chapter 2 (and a black bird for Chapter 3)
 
 **The Handless Regent:** two or three cuts in a row (block them, or parry one and he reels) · a leap onto a red circle with a small wave (he is open after landing) · a whirl all round him (back off) · under half strength he tears the chain loose: a long lash along a red line, two Petrified join him, and he is faster.
 
-**The Stone King's Colossus:** blades do nothing to the stone · **hand slam**: a red circle, then the hand stays on the ground a few seconds — strike the **seal on the back of the hand**, and **the arm lying on the ground can be walked up** · **sweep** (jump or roll) · **falling rocks** · **stand on it too long and it throws you off** · once both hand seals are gone the **seal on its brow** opens: run up a slammed arm to the shoulders and strike it from there (the crossbow can shoot it from the ground) · every seal broken makes it slower.
+**The Stone King's Colossus:** blades do nothing to the stone · **hand slam**: a red circle, then the hand (about 30 m across) stays on the ground for a while — **run up its fingers onto the back of the hand** and strike the **seal** there · **quake**: both fists pound the earth before it and rings roll out (jump them, or roll) · **falling rocks** · **stand on it too long and it throws you off** · once both hand seals are gone **the King bows, his brow to the earth**: **climb his beard** to the bridge of his nose and strike the **seal on his brow** before he rises again (he bows again every so often; the crossbow can shoot it from the ground) · every seal broken makes it slower.
 
 **New foe — the Petrified:** people the creeping stone has taken; slow and heavy, light blows only chip them, and until you drink the Stoneskin Draught each blow stiffens you (you slow down for 2 s).
 **Rewards:** Regent's Plate (−22% damage, never staggered), Crown-Bearer's Mantle (−20% damage, faster stamina, healing), coins and experience — and Sky-Hung Castle stays open, up the chain.
@@ -477,7 +477,7 @@ src/
   chapter2.js       Chapter 2: its stages, dialogue, the chain climb, rewards (quests.js hands over once Chapter 1 ends)
   skycastle.js      Sky-Hung Castle made walkable: the island's floor, walls, the throne terrace, the climbable chain
   regent.js         the Handless Regent boss (combos, leap, whirl, chain lash)
-  colossus.js       the Stone King's Colossus: arms laid between points each frame, walkable while down, three seals
+  colossus.js       the Stone King's Colossus: shown 8x the model's size, arms solved with fixed-length bones, fingers / back of the hand / beard walkable while down, three seals
   stoneborn.js      the Petrified: the Lost turned to stone
   rigpose.js        helper that loads rigged .glb models and poses them from code (used for the Lost and the armour)
   critters.js       animals in the world (pigs: .glb model + walk cycle in code; wander, graze, flee)
@@ -487,7 +487,7 @@ src/
   input.js          keyboard/mouse + touch buttons
   moba.js           War of the Moon Kings: bases, kings, buildings, creeps, bots and sync (the host runs the game)
   (assets/heroes/)  hero models imported from .glb files with tools/import-hero.mjs (currently: Wanderer, Leech-Doctor, Coffin-Bearer — models that already have textures keep their UVs/textures, and arms are lowered from A-pose / T-pose before rigging)
-  (assets/enemies/colossus.glb)  the Stone King's Colossus, built by tools/build-colossus.py (Python + numpy + Pillow): PS2-style low-poly parts (~1,800 triangles), a hand-painted 128 px stone texture and shading painted into vertex colours — run `python3 tools/build-colossus.py` to rebuild it
+  (assets/enemies/colossus.glb)  the Stone King's Colossus, built by tools/build-colossus.py (Python + numpy + Pillow): PS2-style low-poly parts (~1,400 triangles, smooth shading with hard creases), a hand-painted 128 px stone texture and shading painted into vertex colours — run `python3 tools/build-colossus.py` to rebuild it
   heroes.js         the 5 path heroes other players see in online mode (16-bone rig, team-coloured cloth, walk/attack/block)
   arena.js          battlefield map: ground, roads + lanterns, signposts, Court of the Kneeling King, wild camps (`?arena`)
   net.js            WebRTC networking through PeerJS (create/join a room with a 5-letter code)

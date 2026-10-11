@@ -116,7 +116,7 @@ def rock(r, seed, detail=1):
             nf += [(a, ab, ca), (b, bc, ab), (c, ca, bc), (ab, bc, ca)]
         v, f = np.array(v_list), nf
     v = v / np.linalg.norm(v, axis=1, keepdims=True) * r
-    return jitter(v, r * 0.16, seed), f
+    return jitter(v, r * 0.07, seed), f
 
 
 def cone(r, h, sides):
@@ -129,36 +129,33 @@ def cone(r, h, sides):
 def torso():
     p = Part()
     # the body: broad chest, narrow waist, sunk into the ground below y=0
-    v, f = lathe([(4.4, -7), (4.6, -1), (4.9, 2.5), (5.6, 5.5), (6.4, 8.5), (6.7, 10.6), (6.0, 12.4), (3.4, 13.8)], 10, 1.18, 0.74, twist=0.5)
-    p.add(jitter(v, 0.28, 1), f)
+    v, f = lathe([(4.4, -7), (4.7, 1.0), (5.6, 5.5), (6.6, 9.5), (6.0, 12.4), (3.4, 13.8)], 9, 1.18, 0.74)
+    p.add(jitter(v, 0.1, 1), f)
     # the yoke across the shoulders, and the great pauldrons in three plates each
-    v, f = box(16.5, 2.8, 5.8); p.add(jitter(transform(v, (0, 12.0, -0.2)), 0.2, 2), f)
+    v, f = box(16.5, 2.8, 5.8); p.add(jitter(transform(v, (0, 12.0, -0.2)), 0.08, 2), f)
     for s in (-1, 1):
         v, f = rock(2.9, 10 + s); p.add(transform(v, (s * 7.8, 13.0, 0), scale=(1.15, 0.8, 1.2)), f)
-        for i in range(3):
-            v, f = box(4.6 - i * 0.4, 0.75, 5.0 - i * 0.3)
-            p.add(jitter(transform(v, (s * (8.7 + i * 0.25), 11.0 - i * 0.95, 0), (0, 0, s * (0.42 + i * 0.12))), 0.12, 20 + i), f, (0.92, 0.92, 0.95))
+        for i in range(2):
+            v, f = box(4.6 - i * 0.5, 0.8, 5.0 - i * 0.4)
+            p.add(jitter(transform(v, (s * (8.7 + i * 0.3), 11.0 - i * 1.1, 0), (0, 0, s * (0.42 + i * 0.16))), 0.05, 20 + i), f, (0.92, 0.92, 0.95))
     # the neck
-    v, f = lathe([(2.3, 13.0), (2.0, 14.6), (1.8, 15.8)], 8, cap_bottom=False); p.add(jitter(v, 0.12, 3), f)
+    v, f = lathe([(2.3, 13.0), (1.9, 15.8)], 7, cap_bottom=False); p.add(v, f)
     # the breastplate carved into the stone: a keel and two slabs, and a belt of blocks at the waist
-    v, f = box(1.1, 6.5, 1.3); p.add(jitter(transform(v, (0, 7.6, 4.55), (-0.12, 0, 0)), 0.1, 4), f, (0.95, 0.95, 1))
+    v, f = box(1.1, 6.5, 1.3); p.add(transform(v, (0, 7.6, 4.55), (-0.12, 0, 0)), f, (0.95, 0.95, 1))
     for s in (-1, 1):
-        v, f = box(4.8, 3.4, 1.1); p.add(jitter(transform(v, (s * 2.7, 9.4, 4.25), (-0.1, -s * 0.28, 0)), 0.15, 5 + s), f, (0.97, 0.97, 1))
-    for i in range(12):
-        a = i / 12 * math.tau
-        v, f = box(2.6, 1.3, 1.6)
-        p.add(jitter(transform(v, (math.cos(a) * 5.1, 1.6, math.sin(a) * 3.6), (0, -a + math.pi / 2, 0)), 0.15, 30 + i), f, (0.85, 0.86, 0.9))
+        v, f = box(4.8, 3.4, 1.1); p.add(transform(v, (s * 2.7, 9.4, 4.25), (-0.1, -s * 0.28, 0)), f, (0.97, 0.97, 1))
+    for i in range(7):
+        a = i / 7 * math.tau
+        v, f = box(4.0, 1.4, 1.8)
+        p.add(transform(v, (math.cos(a) * 5.1, 1.6, math.sin(a) * 3.6), (0, -a + math.pi / 2, 0)), f, (0.85, 0.86, 0.9))
     # a slab of stone cloak hanging down the back
-    v, f = box(11, 10, 1.1); p.add(jitter(transform(v, (0, 6.5, -4.1), (0.14, 0, 0)), 0.3, 6), f, (0.9, 0.9, 0.94))
+    v, f = box(11, 10, 1.1); p.add(transform(v, (0, 6.5, -4.1), (0.14, 0, 0)), f, (0.9, 0.9, 0.94))
     # rubble and moss heaped round the waist where it broke out of the earth
-    for i in range(14):
-        a = i / 14 * math.tau + rnd.uniform(-0.2, 0.2)
+    for i in range(8):
+        a = i / 8 * math.tau + rnd.uniform(-0.2, 0.2)
         r = rnd.uniform(1.0, 2.2)
         v, f = rock(r, 50 + i)
         p.add(transform(v, (math.cos(a) * rnd.uniform(5.2, 7.5), r * 0.25, math.sin(a) * rnd.uniform(3.8, 5.5))), f, (0.82, 0.85, 0.8))
-    # a few stones still clinging to the chest
-    for i, (x, y) in enumerate([(-3.8, 6.0), (3.2, 4.4), (-1.6, 3.2), (4.4, 7.4)]):
-        v, f = rock(0.8, 70 + i); p.add(transform(v, (x, y, 4.4)), f)
     return p
 
 
@@ -189,18 +186,18 @@ def head():
 
 def arm_upper():
     p = Part()
-    v, f = lathe([(1.35, 0.0), (1.55, 1.6), (1.75, 4.2), (1.6, 6.8), (1.35, 9.0), (1.25, UPPER_LEN)], 8, twist=0.5)
-    p.add(jitter(v, 0.12, 201), f)
-    v, f = lathe([(1.8, 5.5), (1.85, 6.4)], 8, cap_top=False, cap_bottom=False); p.add(v, f, (0.85, 0.85, 0.9))   # a carved band
+    v, f = lathe([(1.35, 0.0), (1.75, 4.2), (1.35, 9.0), (1.25, UPPER_LEN)], 7)
+    p.add(jitter(v, 0.04, 201), f)
+    v, f = lathe([(1.8, 5.5), (1.85, 6.4)], 7, cap_top=False, cap_bottom=False); p.add(v, f, (0.85, 0.85, 0.9))   # a carved band
     return p
 
 
 def arm_fore():
     p = Part()
-    v, f = lathe([(1.15, 0.0), (1.35, 1.8), (1.4, 4.5), (1.2, 8.0), (1.05, FORE_LEN)], 8, twist=0.5)
-    p.add(jitter(v, 0.1, 301), f)
+    v, f = lathe([(1.15, 0.0), (1.4, 4.0), (1.2, 8.0), (1.05, FORE_LEN)], 7)
+    p.add(jitter(v, 0.04, 301), f)
     # a stone bracer on the forearm
-    v, f = lathe([(1.5, 6.2), (1.55, 7.6), (1.45, 8.6)], 8, cap_top=False, cap_bottom=False); p.add(jitter(v, 0.06, 302), f, (0.9, 0.9, 0.95))
+    v, f = lathe([(1.5, 6.2), (1.45, 8.6)], 7, cap_top=False, cap_bottom=False); p.add(v, f, (0.9, 0.9, 0.95))
     return p
 
 
@@ -212,12 +209,12 @@ def joint():
 
 def hand(mirror=False):
     p = Part()
-    v, f = box(3.6, 1.35, 3.0); p.add(jitter(transform(v, (0, 0.05, 0.6)), 0.1, 501), f)          # palm
-    v, f = box(3.2, 1.1, 1.0); p.add(jitter(transform(v, (0, 0.2, 2.25)), 0.08, 502), f)          # knuckles
+    v, f = box(3.6, 1.35, 3.0); p.add(transform(v, (0, 0.05, 0.6)), f)          # palm
+    v, f = box(3.2, 1.1, 1.0); p.add(transform(v, (0, 0.2, 2.25)), f)          # knuckles
     for i, x in enumerate((-1.2, -0.4, 0.4, 1.2)):
         ln = 1.25 - abs(x) * 0.15
-        v, f = box(0.72, 0.8, ln); p.add(jitter(transform(v, (x, 0.1, 2.75 + ln / 2), (0.25, 0, 0)), 0.05, 510 + i), f)
-        v, f = box(0.66, 0.7, 1.15); p.add(jitter(transform(v, (x, -0.45, 3.75 + ln * 0.6), (0.85, 0, 0)), 0.05, 520 + i), f)
+        v, f = box(0.72, 0.8, ln); p.add(transform(v, (x, 0.1, 2.75 + ln / 2), (0.25, 0, 0)), f)
+        v, f = box(0.66, 0.7, 1.15); p.add(transform(v, (x, -0.45, 3.75 + ln * 0.6), (0.85, 0, 0)), f)
     v, f = box(0.8, 0.8, 1.8); p.add(jitter(transform(v, (-2.05, -0.1, 1.0), (0.2, 0.7, 0)), 0.05, 530), f)    # thumb
     v, f = lathe([(1.15, -0.9), (1.25, 0.2)], 8); p.add(transform(v, (0, 0, -0.6), (math.pi / 2, 0, 0)), f)       # wrist
     if mirror:
@@ -244,33 +241,47 @@ def glow():
 
 
 # ------------------------------------------------------------------ shading painted into the vertices
-def shade(part, lo, hi, base=(0.86, 0.9, 1.0), moss=(0.62, 0.78, 0.52), ao_floor=0.55, moss_on=True, unlit=False):
-    pos, nor, col = [], [], []
+def shade(part, lo, hi, base=(0.86, 0.9, 1.0), moss=(0.62, 0.78, 0.52), ao_floor=0.55, moss_on=True, unlit=False, crease=50):
+    """normals smoothed across gentle angles (hard edges kept past `crease` degrees), and the
+    shading painted per vertex: dark toward the ground, darker underneath, moss where it faces up"""
+    tris, tints, fn = [], [], []
     for tri, tint in zip(part.tris, part.cols):
         n = np.cross(tri[1] - tri[0], tri[2] - tri[0]); ln = np.linalg.norm(n)
         if ln < 1e-9:
             continue
-        n /= ln
-        if unlit:
-            c = np.array(tint)
-        else:
-            cy = tri[:, 1].mean()
-            ao = ao_floor + (1 - ao_floor) * min(1, max(0, (cy - lo) / (hi - lo)))
-            under = 0.72 if n[1] < -0.55 else 1.0
-            var = rnd.uniform(0.9, 1.06)
-            c = np.array(base) * ao * under * var * np.array(tint)
-            if moss_on and n[1] > 0.55 and rnd.random() < 0.7:
-                c = c * 0.45 + np.array(moss) * ao * 0.55
+        tris.append(tri); tints.append(tint); fn.append(n / ln)
+    share = {}
+    key = lambda v: (round(float(v[0]), 3), round(float(v[1]), 3), round(float(v[2]), 3))
+    for i, tri in enumerate(tris):
         for v in tri:
+            share.setdefault(key(v), []).append(i)
+    cos_lim = math.cos(math.radians(crease))
+    pos, nor, col = [], [], []
+    for i, tri in enumerate(tris):
+        for v in tri:
+            n = np.zeros(3)
+            for j in share[key(v)]:
+                if np.dot(fn[j], fn[i]) >= cos_lim:
+                    n += fn[j]
+            n /= max(np.linalg.norm(n), 1e-9)
+            if unlit:
+                c = np.array(tints[i])
+            else:
+                ao = ao_floor + (1 - ao_floor) * min(1, max(0, (v[1] - lo) / (hi - lo)))
+                under = 0.75 + 0.25 * min(1, max(0, n[1] + 1))
+                c = np.array(base) * ao * under * np.array(tints[i])
+                if moss_on and n[1] > 0.45:
+                    k = min(1, (n[1] - 0.45) / 0.4) * 0.55
+                    c = c * (1 - k) + np.array(moss) * ao * k
             pos.append(v); nor.append(n); col.append(c)
     pos, nor, col = np.array(pos, np.float32), np.array(nor, np.float32), np.clip(np.array(col, np.float32), 0, 2)
-    # box-projected UVs in metres: the stone keeps the same size everywhere
+    # box-projected UVs: the stone keeps the same size everywhere (the model is shown 8x larger)
     uv = []
-    for i in range(0, len(pos), 3):
-        n = np.abs(nor[i]); ax = int(np.argmax(n))
-        for v in pos[i:i + 3]:
-            a, b = [(1, 2), (0, 2), (0, 1)][ax]
-            uv.append((v[a] * 0.2, v[b] * 0.2))
+    for i, tri in enumerate(tris):
+        ax = int(np.argmax(np.abs(fn[i])))
+        a, b = [(1, 2), (0, 2), (0, 1)][ax]
+        for v in tri:
+            uv.append((v[a] * 0.7, v[b] * 0.7))
     return pos, nor, np.array(uv, np.float32), col
 
 

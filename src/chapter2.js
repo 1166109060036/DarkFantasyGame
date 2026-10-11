@@ -11,7 +11,7 @@
 //   6 the colossus by the bridge: break its three seals, then crown it
 //   7 the chapter is over
 import * as THREE from 'three';
-import { HEAD, RIBCAGE, STONEKING, CASTLE } from './layout.js';
+import { HEAD, RIBCAGE, CASTLE } from './layout.js';
 import { ENEMY_TYPES } from './combat.js';
 import { buildSkyCastle, buildFallenChain, onIsland } from './skycastle.js';
 import { wrapAngle } from './util.js';
@@ -59,8 +59,7 @@ export class Chapter2 {
       brazier: at(HEAD.x + 22, HEAD.z),
       camp: at(RIBCAGE.x + 6, RIBCAGE.z - 4),
       pasture: g.npcs.crow.pos,
-      colossus: at(STONEKING.x, STONEKING.z),
-      crown: at(STONEKING.x + 13, STONEKING.z),
+      colossus: at(HEAD.x, HEAD.z),          // the King rises where his head lay
     };
     // the colossus's arms are floors while they lie on the ground
     g.player.surfaces.push((x, z, feetY) => this.live.colossus?.ai?.surface?.(x, z, feetY) ?? -Infinity);
@@ -86,7 +85,7 @@ export class Chapter2 {
       case 3: return { title: t, text: L('ไปที่หัวราชาหินทางตะวันตก จุดกระถางไฟหน้าพระพักตร์', 'Go to the Stone King\'s head in the west and relight the brazier before his face') };
       case 4: return { title: L(`เตรียมขึ้นฟ้า (${['hook', 'skin', 'feather'].filter((w) => this.has(w)).length}/3)`, `Preparing to Climb (${['hook', 'skin', 'feather'].filter((w) => this.has(w)).length}/3)`), text: this.steps().map((s) => s.text).join(' · ') };
       case 5: return { title: L('ปราสาทแขวนฟ้า', 'Sky-Hung Castle'), text: this.steps().map((s) => s.text).join(' · ') };
-      case 6: return { title: L('ร่างศิลา', 'The Colossus'), text: L('ไปที่ลานหน้าสะพานหิน ทำลายตราหินทั้งสามของร่างศิลา แล้วสวมมงกุฎให้ราชา', 'Go to the field before the stone bridge, break the colossus\'s three seals, and crown the King') };
+      case 6: return { title: L('ร่างศิลา', 'The Colossus'), text: L('ไปที่หัวราชาหินทางตะวันตก ทำลายตราหินทั้งสาม (ปีนนิ้วขึ้นหลังมือ · ปีนเคราตอนราชาก้มหัว) แล้วสวมมงกุฎให้ราชา', 'Go to the Stone King\'s head in the west and break the three seals (up the fingers onto the back of each hand · up the beard while he bows), then crown the King') };
       default: return { title: L('บทที่ 2 จบแล้ว', 'Chapter 2 Complete'), text: L('ราชาหินได้สติคืน · ปราสาทแขวนฟ้ายังขึ้นไปได้ทางโซ่ · บทที่ 3 ยังมาไม่ถึง', 'The Stone King\'s mind is his own again · Sky-Hung Castle can still be climbed by the chain · Chapter 3 is yet to come') };
     }
   }
@@ -123,7 +122,7 @@ export class Chapter2 {
     if (this.stage === 0) return [{ x: this.g.npcs.keeper.pos.x, z: this.g.npcs.keeper.pos.z, label: L('เทียนหลอม', 'Tallow') }];
     if (this.stage === 1 || this.stage === 2) return [{ x: this.fallen.mid.x, z: this.fallen.mid.z, label: L('โซ่ที่ขาด', 'The snapped chain') }];
     if (this.stage === 3) return [{ x: this.spots.brazier.x, z: this.spots.brazier.z, label: L('ราชาหิน', 'The Stone King') }];
-    if (this.stage === 6) return [{ x: STONEKING.x, z: STONEKING.z, label: L('ร่างศิลา', 'The Colossus') }];
+    if (this.stage === 6) return [{ x: HEAD.x, z: HEAD.z, label: L('ร่างศิลา', 'The Colossus') }];
     return this.steps().filter((s) => s.at).map((s) => ({ x: s.at.x, z: s.at.z, label: s.label }));
   }
 
@@ -140,7 +139,8 @@ export class Chapter2 {
       add('story:c2statue', this.sky.statue, L('ดูรูปปั้นเด็กหนุ่มคุกเข่า', 'Look at the statue of the kneeling boy'), 3.2);
     }
     if (this.stage === 4 && this.feather === 1 && !this.wave) add('story:c2flock', S.pasture, L('เฝ้าฝูงแกะ', 'Keep watch over the flock'), 6);
-    if (this.stage === 6 && this.live.colossus?.knelt) add('story:c2crown', S.crown, L('สวมมงกุฎหินให้ราชา', 'Crown the King with the stone crown'), 9);
+    const K = this.live.colossus;
+    if (this.stage === 6 && K?.knelt && K.crownAt) add('story:c2crown', K.crownAt, L('สวมมงกุฎหินให้ราชา', 'Crown the King with the stone crown'), 16);
     return out;
   }
 
@@ -391,7 +391,7 @@ export class Chapter2 {
       [N, L('เกาะทั้งเกาะสั่นสะเทือน ทางตะวันตก ฝุ่นพวยพุ่งขึ้นจากแผ่นดินหน้าสะพานหิน... ความฝันของราชากำลังลุกขึ้นยืน', 'The whole island shudders. In the west, dust bursts from the earth before the stone bridge... the King\'s dream is getting to its feet.')],
     ], () => {
       this.set('stage', 6, L('ได้มงกุฎหิน', 'Obtained the Stone Crown'));
-      g.ui.banner(L('ร่างศิลาลุกขึ้นแล้ว', 'The Colossus Rises'), L('ลงจากเกาะ แล้วไปที่ลานหน้าสะพานหิน', 'Get down from the island and go to the field before the stone bridge'));
+      g.ui.banner(L('ร่างศิลาลุกขึ้นแล้ว', 'The Colossus Rises'), L('ลงจากเกาะ แล้วไปที่หัวราชาหินทางตะวันตก', 'Get down from the island and go to the Stone King\'s head in the west'));
     }), 1800);
   }
 
@@ -479,21 +479,28 @@ export class Chapter2 {
     if (this.stage === 4 && this.skin === 1 && !this.live.camp && near(this.spots.camp, 110)) this.raise('camp');
     if (this.stage >= 5 && !this.live.guards && onIsland(p.pos.x, p.pos.z, p.pos.y)) this.raise('guards');
     if (this.stage === 5 && !this.live.regent && near(CASTLE, 140) && p.pos.y > CASTLE.top - 20) this.raise('regent');
-    if (this.stage === 6 && !this.live.colossus && near(this.spots.colossus, 220)) this.raise('colossus');
+    if (this.stage === 6 && !this.live.colossus && near(this.spots.colossus, 420)) this.raise('colossus');
     // the regent rises when you come onto the terrace
     const R = this.live.regent;
     if (R?.alive && R.ai?.mode === 'dormant' && !R.ai.awake && !R.ai.talking && near(this.sky.regentAt, 15) && Math.abs(p.pos.y - this.sky.regentAt.y) < 5 && !g.ui.dialogueOpen) {
       if (R.ai.talked) R.ai.awake = true;
       else this.regentSpeaks(R);
     }
-    // the colossus wakes when you come to the field
+    // the colossus wakes when you come near the sleeping head, and the head is gone: it is the colossus
     const K = this.live.colossus;
-    if (K && this.stage === 6 && K.ai.mode === 'buried' && near(this.spots.colossus, 55)) K.ai.awake = true;
+    if (K && this.stage === 6 && K.ai.mode === 'buried' && near(this.spots.colossus, 170)) { K.ai.awake = true; this.headAsleep(false); }
     if (K && K.ai.mode === 'gone') {
       K.ai.t += dt;
-      K.ai.sink = -7 - K.ai.t * 4;
-      if (K.ai.t > 6) { K.obj.visible = false; K.alive = false; K.ai.mode = 'away'; for (const s of K.ai.seals) { s.alive = false; s.obj.visible = false; } }
+      K.ai.sink = -K.ai.t * 3;
+      if (K.ai.t > 8) { K.obj.visible = false; K.alive = false; K.ai.mode = 'away'; for (const s of K.ai.seals) { s.alive = false; s.obj.visible = false; } this.headAsleep(true); }
     }
+  }
+
+  // the sleeping head (src/giants.js) and its lit eyes, shown or not
+  headAsleep(on) {
+    const g = this.g;
+    if (g.fx.kingHead) g.fx.kingHead.visible = on;
+    for (const s of g.kingEyes || []) s.visible = on;
   }
 
   regentSpeaks(R) {
@@ -512,7 +519,7 @@ export class Chapter2 {
     this.ambient = true;
     if (this.done) return;
     const m = this.fallen.mid;
-    for (const [x, z] of [[m.x + 30, m.z - 20], [m.x - 25, m.z + 30], [120, 40], [-60, -20], [STONEKING.x + 40, STONEKING.z + 30], [STONEKING.x + 45, STONEKING.z - 30]]) {
+    for (const [x, z] of [[m.x + 30, m.z - 20], [m.x - 25, m.z + 30], [120, 40], [-60, -20], [HEAD.x + 120, HEAD.z + 40], [HEAD.x + 125, HEAD.z - 40]]) {
       const e = c.spawn('petrified', x, z);
       e.def = { ...e.def, respawn: 600 };
     }
@@ -521,6 +528,7 @@ export class Chapter2 {
   // after a load: anything mid-fight starts over (the update raises them again as you come near)
   restore() {
     this.applyWorld();
+    this.headAsleep(true);
     if (this.wave) this.wave = 0;
   }
 }
