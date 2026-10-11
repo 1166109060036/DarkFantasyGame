@@ -18,6 +18,7 @@ import * as THREE from 'three';
 import { LOST_SHEEP, HANGTREE, HUNTER } from './layout.js';
 import { ENEMY_TYPES } from './combat.js';
 import { createOren } from './oren.js';
+import { Chapter2 } from './chapter2.js';
 import { L } from './i18n.js';
 
 export const POTION_PRICE = 8;
@@ -30,11 +31,12 @@ export class Quests {
     this.sheepFound = [false, false, false];
     this.essence = 0;
     Object.assign(this, { bell: 0, farm: 0, lake: 0, hunt: 0, murals: [false, false, false], guardForged: false, bellReadyAt: 0 });
+    this.ch2 = new Chapter2(game, this);      // the second chapter (src/chapter2.js), once this one ends
   }
 
   serialize() {
     const { stage, sheepFound, essence, bell, farm, lake, hunt, murals, guardForged } = this;
-    return { v: 2, stage, sheepFound, essence, bell, farm, lake, hunt, murals, guardForged };
+    return { v: 2, stage, sheepFound, essence, bell, farm, lake, hunt, murals, guardForged, ch2: this.ch2.serialize() };
   }
   load(d) {
     Object.assign(this, {
@@ -43,6 +45,7 @@ export class Quests {
     });
     // an old save that finished the first chapter's old ending picks up at the vision's end
     if (d.v !== 2 && this.stage >= 7) this.stage = 7;
+    this.ch2.load(d.ch2 || {});
   }
 
   get sheepCount() { return this.sheepFound.filter(Boolean).length; }
@@ -71,7 +74,8 @@ export class Quests {
       case 5: return { title: L('ดวงไฟแห่งบึง', 'Lights of the Marsh'), text: L('นำแก่นวิญญาณกลับไปให้ยายคางคก', 'Bring the wisp essence back to Granny Toad') };
       case 6: return { title: L('วิหารจมน้ำ', 'The Drowned Temple'), text: L('ผ่านหุบผาซุ้มประตูหินทางเหนือ เทน้ำมนต์จันทราลงบนแท่นบูชา', 'Pass through Archway Gorge to the north and pour the moon water on the altar') };
       case 7: return { title: L(`มือที่กอดดวงจันทร์ — ข้อนิ้ว ${this.fingers.length}/4`, `The Hands That Hold the Moon — Fingers ${this.fingers.length}/4`), text: this.steps().map((x) => x.text).join(' · ') };
-      default: return { title: L('บทที่ 1 จบแล้ว', 'Chapter 1 Complete'), text: L('ดวงจันทร์ได้หายใจอีกครั้ง · ท่องไปในบึงจันทราได้อย่างอิสระ', 'The moon breathes again · Wander the Moonmire as you will') };
+      default: if (this.ch2.open) return this.ch2.objective();
+        return { title: L('บทที่ 1 จบแล้ว', 'Chapter 1 Complete'), text: L('ดวงจันทร์ได้หายใจอีกครั้ง · ท่องไปในบึงจันทราได้อย่างอิสระ', 'The moon breathes again · Wander the Moonmire as you will') };
     }
   }
 
@@ -126,7 +130,7 @@ export class Quests {
       }
       case 6: return [{ x: altar.x, z: altar.z, label: L('แท่นบูชา', 'Altar') }];
       case 7: return this.steps().filter((x) => x.at).map((x) => ({ x: x.at.x, z: x.at.z, label: x.label }));
-      default: return [];
+      default: return this.ch2.open ? this.ch2.markers() : [];
     }
   }
 
@@ -147,13 +151,14 @@ export class Quests {
     add('ferryman', S.ferryman, L('คุยกับคนแจวเรือ', 'Talk to the ferryman'), 3.2);
     if (this.lake === 1) S.murals.forEach((m, i) => { if (!this.murals[i]) add(`story:mural${i}`, m, L('ดูภาพบนผนัง', 'Study the mural'), 3.5); });
     if (this.huntOpen && this.hunt === 0) add('story:journal', S.journal, L('อ่านสมุดของนายพราน', 'Read the hunter\'s journal'));
-    return out;
+    return [...out, ...this.ch2.spotsNow()];
   }
 
   // a story place examined: [[speaker, text]...] and what happens
   inspect(id) {
     const g = this.g, N = '';
     const say = (lines, then) => g.ui.openDialogue({ lines, options: [{ label: L('ต่อไป', 'Continue'), fn: then || (() => {}) }] }, () => g.updateHud());
+    if (id.startsWith('story:c2')) return this.ch2.inspect(id);
     switch (id) {
       case 'story:grave': return say([
         [N, L('หลุมศพที่สูงกว่าหลุมอื่น ป้ายสลักว่า "ผู้ตีระฆังคนสุดท้าย"', 'A grave raised higher than the rest. The stone reads "The Last Bell-Ringer".')],
@@ -287,6 +292,7 @@ export class Quests {
 
   onEnemyKilled(e) {
     if (!e.storyTag) return;
+    if (e.storyTag.startsWith('c2')) { this.ch2.onEnemyKilled(e); return; }
     const g = this.g, left = g.combat.enemies.some((o) => o !== e && o.storyTag === e.storyTag && o.alive && o.state !== 'dying');
     if (e.storyTag === 'stones' && !left && this.bell === 3) this.step('bell', 4);
     if (e.storyTag === 'guard' && this.lake === 2) this.step('lake', 3);
@@ -334,6 +340,8 @@ export class Quests {
   // Each talk returns { lines: [[speaker, text]...], options: [{label, fn}] }
   talk(npc) {
     const g = this.g;
+    const ch2 = this.ch2.talk(npc);
+    if (ch2) return ch2;
     const advance = (s) => () => { this.stage = s; g.onQuestChanged(); };
     const close = { label: L('ลาก่อน', 'Farewell'), fn: () => {} };
     const brew = { label: L('ปรุงยา (หม้อต้มยา)', 'Brew (cauldron)'), fn: () => g.openMenu('alchemy') };

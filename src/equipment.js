@@ -76,6 +76,8 @@ export const ARMOURS = Object.fromEntries([
   A('arm_shroud', 'ผ้าห่อศพสัปเหร่อ', 'Gravedigger\'s Shroud', 'ผ้าห่อศพสีเทาที่กลิ่นเหมือนดิน ศัตรูสังเกตเห็นเจ้าได้ใกล้ลง', 'A grey shroud that smells of earth. Foes notice you from nearer.', { armour: 0.06, fx: 'silent' }, '#5a5a58', 90),
   A('arm_plate', 'เกราะองครักษ์', 'Guard\'s Plate', 'เกราะเหล็กของผู้เฝ้ามหาวิหารจม หนักมาก แต่การโจมตีไม่ทำให้เสียหลัก', 'The drowned cathedral\'s guard-plate. Very heavy, but blows never knock you off balance.', { armour: 0.28, speed: 0.9, dodge: 1.25, fx: 'poise' }, '#8a8c90', 150),
   A('arm_moon', 'อาภรณ์แสงจันทร์', 'Moonlit Raiment', 'ผ้าทอจากแสงที่หลุดจากมือนับร้อย แรงไม่เคยหมด', 'Woven of the light the hundred hands let go. Your strength never runs dry.', { armour: 0.18, stamina: 1.25, fx: 'regen' }, '#a8c8f0', 200),
+  A('arm_regent', 'เกราะผู้สำเร็จราชการ', 'Regent\'s Plate', 'เกราะของขุนนางผู้ตัดมือตัวเองทิ้ง ไม่มีอะไรทำให้ผู้สวมเซได้', 'The plate of the lord who cut off his own hands. Nothing makes its wearer stagger.', { armour: 0.22, stamina: 1.1, fx: 'poise' }, '#7a2a28', 220),
+  A('arm_crown', 'ผ้าคลุมผู้ถือมงกุฎ', 'Crown-Bearer\'s Mantle', 'ผ้าคลุมของมหาดเล็กคนสุดท้ายของราชาหิน คืนให้เจ้าของเดิมหลังสามร้อยปี', 'The mantle of the Stone King\'s last squire, returned to its owner after three hundred years.', { armour: 0.2, stamina: 1.3, fx: 'regen' }, '#c8a050', 260),
 ].map((a) => [a.id, a]));
 
 export const ARMOUR_FX = {

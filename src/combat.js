@@ -10,6 +10,9 @@ import { createGaunt, createCrawler, createWeeper, createBrute } from './gaunts.
 import { createHollow } from './hollow.js';
 import { createArmour } from './armour.js';
 import { createHandKing, updateHandKing } from './handking.js';
+import { createPetrified } from './stoneborn.js';
+import { createRegent, updateRegent } from './regent.js';
+import { createColossus, updateColossus, createSeal } from './colossus.js';
 import { clamp, lerp, wrapAngle } from './util.js';
 import { rng } from './noise.js';
 import { L } from './i18n.js';
@@ -33,10 +36,19 @@ export const ENEMY_TYPES = {
   armour: { name: L('ชุดเกราะไร้ร่าง', 'Empty Armour'), hp: 12, speed: 1.6, range: 2.9, windup: 0.95, recover: 1.2, damage: 24, aggro: 16, leash: 40, radius: 0.5, height: 2.0, weight: 3, active: 'always', armour: true, slamEvery: 3, coins: [12, 20], respawn: 400, cull: 100, freq: 1, elite: true },
   // the King of a Hundred Hands (src/handking.js): a boss with its own brain and attacks
   handking: { name: L('ราชันร้อยกร', 'the King of a Hundred Hands'), hp: 80, speed: 2.5, range: 0, windup: 1, recover: 1, damage: 30, aggro: 26, leash: 60, radius: 3.0, height: 9.6, hitY: 2.4, weight: 25, active: 'always', boss: true, custom: true, coins: [120, 160], cull: 260 },
+  // chapter 2 (src/chapter2.js): people the creeping stone has taken; light blows only chip them
+  petrified: { name: L('ร่างหิน', 'Petrified'), hp: 9, speed: 1.9, sprint: 5, range: 2.1, windup: 0.75, recover: 1.1, damage: 18, aggro: 18, leash: 60, radius: 0.45, height: 2.0, weight: 2, active: 'always', stone: true, coins: [6, 10], respawn: 1e9, cull: 110, freq: 0.8 },
+  // the Handless Regent (src/regent.js) and the Stone King's colossus (src/colossus.js): their own brains
+  regent: { name: L('ผู้สำเร็จราชการไร้มือ', 'the Handless Regent'), hp: 60, speed: 3.2, range: 0, windup: 1, recover: 1, damage: 26, aggro: 22, leash: 60, radius: 0.7, height: 3.0, hitY: 1.5, weight: 8, active: 'always', boss: true, custom: true, coins: [150, 200], cull: 200, scale: 1 },
+  colossus: { name: L('ร่างศิลาของราชาหิน', 'the Stone King\'s Colossus'), hp: 3, speed: 0, range: 0, windup: 1, recover: 1, damage: 30, aggro: 50, leash: 1e9, radius: 1, height: 20, hitY: 10, weight: 99, active: 'always', boss: true, custom: true, pinned: true, invuln: true, fly: true, coins: [300, 300], cull: 400, scale: 1 },
+  // a glowing seal on the colossus: struck like any foe, but it rides on the stone body
+  seal: { name: L('ตราหิน', 'Stone Seal'), hp: 8, speed: 0, range: 0, windup: 1, recover: 1, damage: 0, aggro: 0, leash: 1e9, radius: 1.5, height: 1.6, hitY: 0, weight: 99, active: 'always', custom: true, pinned: true, fly: true, coins: [0, 0], cull: 400, scale: 1 },
   knight: { name: L('อัศวินหินผู้เฝ้าสะพาน', 'Stone Knight of the Bridge'), hp: 32, speed: 2.5, range: 3.8, windup: 1.05, recover: 1.4, damage: 28, aggro: 22, leash: 40, radius: 1.1, height: 4.2, weight: 6, active: 'always', boss: true, slamEvery: 3, coins: [60, 60] },
 };
 
 const COST = { light: 10, heavy: 26, dodge: 22 };
+// bosses with a brain of their own (a seal has none: the colossus moves it)
+const CUSTOM = { handking: updateHandKing, regent: updateRegent, colossus: updateColossus, seal: () => {} };
 const PALE_ONES = new Set(['gaunt', 'crawler', 'weeper', 'brute']);
 const PARRY_WINDOW = 0.3;
 const CULL = 115;
@@ -138,16 +150,17 @@ export class Combat {
     }
   }
 
-  spawn(type, x, z) {
+  // y: a height to stand at when it is not the ground (the sky island)
+  spawn(type, x, z, y) {
     const def = ENEMY_TYPES[type], M = this.g.M;
-    const obj = { wisp: createWisp, straw: createStrawman, wolf: createWolf, leech: createLeech, knight: createStoneKnight, gaunt: createGaunt, crawler: createCrawler, weeper: createWeeper, brute: createBrute, hollow: createHollow, armour: createArmour, handking: createHandKing }[type](M);
+    const obj = { wisp: createWisp, straw: createStrawman, wolf: createWolf, leech: createLeech, knight: createStoneKnight, gaunt: createGaunt, crawler: createCrawler, weeper: createWeeper, brute: createBrute, hollow: createHollow, armour: createArmour, handking: createHandKing, petrified: createPetrified, regent: createRegent, colossus: createColossus, seal: createSeal }[type](M);
     this.g.scene.add(obj);
     let shadow = null;
     if (!def.fly && !def.water) {
       shadow = blobShadow(M, def.radius * 3);
       this.g.scene.add(shadow);
     }
-    const home = new THREE.Vector3(x, this.groundY(x, z, def), z);
+    const home = new THREE.Vector3(x, this.groundY(x, z, def, y), z);
     const e = {
       type, def, obj, shadow, home, pos: home.clone(), vel: new THREE.Vector3(), ry: Math.random() * 6.28,
       hp: def.hp, state: 'idle', t: Math.random() * 3, alive: true, respawn: 0, phase: Math.random() * 10,
@@ -157,11 +170,12 @@ export class Combat {
     return e;
   }
 
-  groundY(x, z, def) {
+  // y: where it stands now, so a floor high above the terrain (the sky island) holds it up
+  groundY(x, z, def, y = -Infinity) {
     const h = this.g.terrain.getHeight(x, z);
     if (def.fly) return Math.max(h, 0) + 1.5;
     if (def.water) return 0;
-    return Math.max(h, this.g.collision.groundAt(x, z, h + 2, 0.65));
+    return Math.max(h, this.g.collision.groundAt(x, z, Math.max(h + 2, y + 0.5), 0.65));
   }
 
   isActive(e) {
@@ -223,7 +237,7 @@ export class Combat {
 
   playerMods() {
     return {
-      speedMul: (this.blocking && !this.g.kit.speedBoost ? this.g.kit.blockSpeed ?? 0.45 : this.charging ? 0.6 : 1) * this.g.kit.speedMul * (this.g.equipment?.speedMul ?? 1),
+      speedMul: (this.blocking && !this.g.kit.speedBoost ? this.g.kit.blockSpeed ?? 0.45 : this.charging ? 0.6 : 1) * this.g.kit.speedMul * (this.g.equipment?.speedMul ?? 1) * (this.stoneT > 0 ? 0.55 : 1),
       sprintOk: !this.exhausted && !this.blocking,
       dodgeVel: this.dodgeT > 0 ? this.dodgeVel : null,
       locked: this.staggerT > 0,
@@ -236,6 +250,7 @@ export class Combat {
     this.iframes = Math.max(0, this.iframes - dt);
     this.dodgeT = Math.max(0, this.dodgeT - dt);
     this.staggerT = Math.max(0, this.staggerT - dt);
+    this.stoneT = Math.max(0, (this.stoneT || 0) - dt);
     this.targetT = Math.max(0, this.targetT - dt);
 
     if (p.sprinting && g.kit.sprintCost) this.spend(13 * dt * g.kit.sprintCost);
@@ -373,6 +388,13 @@ export class Combat {
       }
       if (front && heavy) { e.state = 'stagger'; e.t = 1.0; e.guarding = false; e.comboN = 0; g.ui.combatText(L('ทำลายการ์ด!', 'Guard broken!'), 'parry'); }
     }
+    // the colossus's stone body, a seal while its hand is raised: only the glowing seals give
+    if (e.invuln || def.invuln) {
+      g.audio.metal?.({ freq: 300 + Math.random() * 120, dur: 0.4, gain: 0.08, partials: [1, 2.3], pos: e.pos });
+      if ((this.stoneHint = (this.stoneHint || 0) + 1) % 4 === 1) g.ui.combatText(e.type === 'seal' ? L('ตรายกขึ้นสูงเกินไป — รอให้มือกระแทกพื้น', 'The seal is out of reach — wait for the hand to come down') : L('หินแข็งเกินไป — ตีตราที่เรืองแสง', 'The stone is too hard — strike the glowing seals'), 'bad');
+      return;
+    }
+    if (def.stone && !heavy) dmg *= 0.5;
     // the King of a Hundred Hands sleeps sealed in roots until the story comes for him
     if (e.type === 'handking' && g.quests && !g.quests.bossReady()) {
       g.ui.combatText(L('รากไม้นับร้อยพันร่างนั้นไว้ — ฟันไม่เข้า', 'A hundred roots bind it — your blade cannot bite'), 'bad');
@@ -443,7 +465,7 @@ export class Combat {
       g.equipment.reward(['arm_moon', pathWeapons(g.kit.id)[3]?.id]);
       if (g.quests) setTimeout(() => g.quests.onBossDefeated(), 1600);
       g.save();
-    } else if (def.boss) {
+    } else if (e.type === 'knight') {
       this.bossDefeated = true;
       this.swordMul = 1.6;
       g.ui.banner(L('ชนะ', 'Victory'), L(`${def.name} พ่ายแพ้`, `${def.name} has fallen`));
@@ -512,6 +534,11 @@ export class Combat {
     dmg = g.kit.onHurt(dmg * g.armorMul * g.kit.armorMul, e);
     p.hurt(dmg, g.time);
     g.equipment?.onHurt(dmg, e);
+    // the creeping stone: a blow from one of the Petrified stiffens you, unless your skin is stone already
+    if (def.stone && !g.quests?.ch2?.has('skin')) {
+      if (this.stoneT <= 0) g.ui.combatText(L('หินเกาะตัว! ขยับช้าลง', 'Stone creeps over you! You slow'), 'bad');
+      this.stoneT = 2;
+    }
     g.mount?.onRiderHurt(dmg);
     // the status-bar face flinches toward whoever landed the blow
     const rightDot = (-dx * Math.cos(p.yaw) + dz * Math.sin(p.yaw)) / Math.max(d, 1e-3);
@@ -526,21 +553,21 @@ export class Combat {
   // dodging, parrying and blocking work just as they do against the wild
   takeHit(dmg, from, by = null, { unblockable = false } = {}) {
     const g = this.g, p = g.player;
-    if (p.hp <= 0 || g.state !== 'play') return;
-    if (this.iframes > 0) { this.say(L('หลบ!', 'Dodged!')); return; }
+    if (p.hp <= 0 || g.state !== 'play') return 'none';
+    if (this.iframes > 0) { this.say(L('หลบ!', 'Dodged!')); return 'dodged'; }
     const dx = p.pos.x - from.x, dz = p.pos.z - from.z, d = Math.max(Math.hypot(dx, dz), 1e-3);
     const facing = (-dx * -Math.sin(p.yaw) - dz * -Math.cos(p.yaw)) / d > 0.3 || !!g.kit.allRound;
     if (this.blocking && facing && !unblockable) {
       if (g.kit.blockMode === 'wall') {
         this.spend(dmg * 0.6 * (g.kit.wallCostMul ?? 1)); g.audio.block();
         g.kit.onWallBlock(null, dmg, by);
-        if (this.stamina > 0 || g.kit.holdFirm?.()) return;
+        if (this.stamina > 0 || g.kit.holdFirm?.()) return 'blocked';
         dmg *= 0.5; this.staggerT = g.equipment?.poise ? 0 : 0.8; this.blocking = false;
       } else if (g.time - this.blockStart < PARRY_WINDOW + g.kit.parryBonus) {
         this.stamina = Math.min(this.maxStamina, this.stamina + 15);
         g.audio.parry(); g.ui.combatText(L('ปัดสำเร็จ!', 'Parried!'), 'parry'); g.hud.grin();
         g.kit.onParry(null, by);
-        return;
+        return 'parried';
       } else {
         this.spend(dmg * 1.2); g.audio.block();
         if (this.stamina > 0) dmg *= 0.12 * (g.kit.blockLeak ?? 1);
@@ -681,7 +708,7 @@ export class Combat {
       if (e.named) g.contracts?.updateNamed(e, dt, dist);
       e.frozen = seen && (e.state === 'chase' || e.state === 'idle' || e.state === 'return');
 
-      if (def.custom) updateHandKing(e, dt, this, { dist, toPlayer, playerOk });
+      if (def.custom) (CUSTOM[e.type] || updateHandKing)(e, dt, this, { dist, toPlayer, playerOk });
       else switch (e.state) {
         case 'idle':
           if (e.t <= 0) {
@@ -779,7 +806,7 @@ export class Combat {
       if (moveSpeed > 0) this.moveEnemy(e, Math.sin(moveAngle) * moveSpeed * dt, Math.cos(moveAngle) * moveSpeed * dt);
       // keep out of the player
       const minD = def.radius + 0.45;
-      if (dist < minD && dist > 1e-3) { e.pos.x -= dx / dist * (minD - dist); e.pos.z -= dz / dist * (minD - dist); }
+      if (!def.pinned && dist < minD && dist > 1e-3) { e.pos.x -= dx / dist * (minD - dist); e.pos.z -= dz / dist * (minD - dist); }
 
       this.animate(e, dt, t, active);
     }
@@ -814,8 +841,14 @@ export class Combat {
     const moving = e.state === 'chase' || e.state === 'return' ? 1 : (e.state === 'idle' ? 0.3 : 0);
     e.flash = Math.max(0, e.flash - dt * 5);
 
+    // carried by something else (a seal on the colossus): stays where it was put
+    if (def.pinned) {
+      o.position.copy(e.pos);
+      ud.animate?.(e, dt, t, { windup, striking, stagger: stag, moving: 0, speed: 0 });
+      return;
+    }
     if (ud.animate) {
-      e.pos.y = this.groundY(e.pos.x, e.pos.z, def);
+      e.pos.y = this.groundY(e.pos.x, e.pos.z, def, e.pos.y);
       o.position.copy(e.pos);
       o.rotation.y = e.ry;
       if (e.shadow) e.shadow.position.set(e.pos.x, e.pos.y + 0.04, e.pos.z);
@@ -835,7 +868,7 @@ export class Combat {
       return;
     }
 
-    e.pos.y = this.groundY(e.pos.x, e.pos.z, def);
+    e.pos.y = this.groundY(e.pos.x, e.pos.z, def, e.pos.y);
     o.position.copy(e.pos);
     o.rotation.y = e.ry;
     if (e.shadow) { e.shadow.position.set(e.pos.x, e.pos.y + 0.04, e.pos.z); }

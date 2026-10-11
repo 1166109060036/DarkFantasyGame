@@ -357,6 +357,26 @@ Old saves that finished the earlier story start at the new 3-act part (after the
 
 The game saves automatically (localStorage). Press "Continue" on the title screen to carry on.
 
+## Story, Chapter 2 — The Stone King Wakes
+
+Opens once Chapter 1 is over. The chain that snapped, the Stone King's open eyes and the cocoon that went missing the night you arrived all lead here. **You are the Crown-Bearer**: three hundred years ago the Stone King sent you up the chain to his son with the stone crown and his last word, "a king must know how to open his hand", and Avorn's hands caught you on the way.
+
+1. **The Snapping Chain:** speak with **Tallow** → examine the **snapped chain** on the shore below the castle (a memory) → defeat the **Petrified** that rise there
+2. **The Stone King:** relight the brazier before his face → he wakes long enough to ask you for his crown, still up in his house in the sky
+3. **Preparing to climb** (any order, all three needed):
+   - **Old Anvil** → defeat the **Chainwarden** (a giant armour) at the chain anchor by the village → he forges a **Chain Hook**
+   - **Granny Toad** → three living stone scales from the Petrified at the giant ribcage → **Stoneskin Draught** (their blows no longer stiffen you)
+   - **Kowak** (once the King's herald crow) → guard his flock for one night, two waves → the **Herald's Feather** (long falls become a slow glide)
+4. **Sky-Hung Castle:** climb the chain at the anchor by the village → the island has a floor now: towers, walls, guards, the **statue of the kneeling boy** (a memory), and the throne terrace → **the Handless Regent** (mid-chapter boss) → the **Stone Crown** and the whole truth · climb back down, or step off the edge and glide
+5. **The Colossus:** in the field east of the stone bridge the King's dream rises out of the earth, waist-deep and twenty metres tall → break its **three seals** → it kneels → **[E] crown it** → the end of Chapter 2 (and a black bird for Chapter 3)
+
+**The Handless Regent:** two or three cuts in a row (block them, or parry one and he reels) · a leap onto a red circle with a small wave (he is open after landing) · a whirl all round him (back off) · under half strength he tears the chain loose: a long lash along a red line, two Petrified join him, and he is faster.
+
+**The Stone King's Colossus:** blades do nothing to the stone · **hand slam**: a red circle, then the hand stays on the ground a few seconds — strike the **seal on the back of the hand**, and **the arm lying on the ground can be walked up** · **sweep** (jump or roll) · **falling rocks** · **stand on it too long and it throws you off** · once both hand seals are gone the **seal on its brow** opens: run up a slammed arm to the shoulders and strike it from there (the crossbow can shoot it from the ground) · every seal broken makes it slower.
+
+**New foe — the Petrified:** people the creeping stone has taken; slow and heavy, light blows only chip them, and until you drink the Stoneskin Draught each blow stiffens you (you slow down for 2 s).
+**Rewards:** Regent's Plate (−22% damage, never staggered), Crown-Bearer's Mantle (−20% damage, faster stamina, healing), coins and experience — and Sky-Hung Castle stays open, up the chain.
+
 ## Places in the world (17 to discover)
 
 When you come near a new place, a "Place Discovered" banner appears in the middle of the screen. The map shows names only for places you have found; the rest show as "?".
@@ -454,6 +474,11 @@ src/
   hollow.js         the Lost: enemy from a .glb model (walk/run/guard/punch/stagger/fall made in code)
   armour.js         Empty Armour: enemy from a .glb model + two-handed sword (walk/wind-up/swing/stagger/collapse made in code)
   handking.js       the King of a Hundred Hands boss: an 85-bone body, 4 attacks, warning rings on the ground, shockwaves, hands from the ground, and its own brain
+  chapter2.js       Chapter 2: its stages, dialogue, the chain climb, rewards (quests.js hands over once Chapter 1 ends)
+  skycastle.js      Sky-Hung Castle made walkable: the island's floor, walls, the throne terrace, the climbable chain
+  regent.js         the Handless Regent boss (combos, leap, whirl, chain lash)
+  colossus.js       the Stone King's Colossus: arms laid between points each frame, walkable while down, three seals
+  stoneborn.js      the Petrified: the Lost turned to stone
   rigpose.js        helper that loads rigged .glb models and poses them from code (used for the Lost and the armour)
   critters.js       animals in the world (pigs: .glb model + walk cycle in code; wander, graze, flee)
   quests.js         quests and dialogue (Thai)

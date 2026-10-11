@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { fbm, rng } from './noise.js';
 import { part, colorize, smoothstep } from './util.js';
-import { block, slab } from './builder.js';
+import { block, slab, StaticBuilder } from './builder.js';
 import { CASTLE, HEAD, RIBCAGE } from './layout.js';
 import { ps2Uniforms, GLSL_NOISE, SNAP_GLSL } from './ps2.js';
 
@@ -163,7 +163,6 @@ function buildFloatingCastle(B, C2, terrain, scene, M, fx) {
   tower(-15, -11, 5, 48, 30); tower(15, -11, 5, 40, 26); tower(-15, 14, 5, 56, 34); tower(15, 14, 5, 44, 28);
   tower(-3, -6, 7, 82, 44);
   tower(7, -2, 3, 96, 20);
-  tower(6, 21, 4, 30, 18);
   // curtain walls with crenellations
   const wall = (ax, az, bx, bz) => {
     const len = Math.hypot(bx - ax, bz - az), ry = Math.atan2(bx - ax, bz - az) + 0.3;
@@ -215,7 +214,14 @@ function buildFloatingCastle(B, C2, terrain, scene, M, fx) {
     B.add('giantMetal', part(new THREE.TorusGeometry(2.4, 0.6, 5, 12), C(0.6, 0.62, 0.7), { pos: [gx, gy + 7, gz], rot: [0, -a + Math.PI / 2, 0] }));
     const from = V(gx, gy + 8, gz);
     const to = V(cx + Math.cos(a) * 33, top - 12, cz + Math.sin(a) * 33 * 0.84);
-    chain(B, from, to, { link: 1.15, sag: 16 });
+    // the chain that snaps when the first chapter ends is built on its own, so it can go
+    if (a === 2.3) {
+      const sb = new StaticBuilder(), grp = new THREE.Group();
+      chain(sb, from, to, { link: 1.15, sag: 16 });
+      sb.build(grp, M);
+      scene.add(grp);
+      fx.snapChain = grp;
+    } else chain(B, from, to, { link: 1.15, sag: 16 });
   }
 
   // little floating islets with lanterns, chained to the big one

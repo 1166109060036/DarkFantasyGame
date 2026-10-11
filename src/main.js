@@ -158,6 +158,7 @@ class Game {
     this.bag.add('potion', 1);
     this.loot = new Loot(this);
     this.bagUI = new BagUI(this);
+    if (!ARENA) this.quests.ch2.setup();       // chapter 2's places: the sky island's floor, the fallen chain
     this.menus = new Menus(this);
     this.classGear = new Set();     // paths whose starting gear was already handed out
     this.useProgress(new Progress());
@@ -356,6 +357,7 @@ class Game {
       else if (this.state === 'paused' && shown('pause')) this.resume();
       else if (shown('classpick')) document.getElementById('classpick-cancel').click();
       else if (shown('ending')) document.getElementById('btn-ending-continue').click();
+      else if (shown('ending2')) document.getElementById('btn-ending2-continue').click();
       else this.input.actions.add('escape');
     };
     this.gamepads.onStart = () => {
@@ -399,6 +401,7 @@ class Game {
       on('btn-fullscreen', () => window.desktop.toggleFullscreen());
     }
     on('btn-ending-continue', () => { document.getElementById('ending').classList.add('hidden'); this.resume(); });
+    on('btn-ending2-continue', () => { document.getElementById('ending2').classList.add('hidden'); this.resume(); });
     const bind = (id, key, parse = Number) => {
       const el = document.getElementById(id);
       el.value = this.settings[key];
@@ -497,7 +500,7 @@ class Game {
     store.set(SAVE_KEY, {
       quests: this.quests.serialize(), combat: this.combat.serialize(), coins: this.coins, hp: this.player.hp,
       bag: this.bag.serialize(), gear: this.gear, equip: this.equipment.serialize(), loot: this.loot.serialize(),
-      pos: { x: this.player.pos.x, z: this.player.pos.z }, yaw: this.player.yaw, checkpoint: this.checkpoint,
+      pos: { x: this.player.pos.x, y: this.player.pos.y, z: this.player.pos.z }, yaw: this.player.yaw, checkpoint: this.checkpoint,
       time: this.dayNight.t, discovered: [...this.discovered],
       cls: this.kit.id, kit: this.kit.serialize(), classGear: [...this.classGear], events: this.events.serialize(), contracts: this.contracts.serialize(),
       progress: this.progress.serialize(), questStage: this.lastStage,
@@ -530,7 +533,7 @@ class Game {
     }
     this.events.load(d.events || {});
     this.contracts.load(d.contracts || {});
-    if (d.pos) this.player.place(d.pos.x, d.pos.z, d.yaw ?? 0);
+    if (d.pos) this.player.place(d.pos.x, d.pos.z, d.yaw ?? 0, d.pos.y);
     this.player.hp = Math.max(30, d.hp ?? 100);
     this.quests.sheepFound.forEach((f, i) => {
       if (!f) return;
@@ -539,7 +542,7 @@ class Game {
     });
     // lost sheep that were never searched for go home once the quest is past them
     if (this.quests.stage >= 2) this.lostSheep.forEach((s, i) => { if (s.mode === 'lost') { s.x = PASTURE.x + i * 3; s.z = PASTURE.z - 5; s.mode = 'graze'; } });
-    if (this.quests.done) this.chapterAftermath();
+    if (this.quests.done) { this.chapterAftermath(); this.quests.ch2.restore(); }
     else this.quests.restore();
   }
 
@@ -740,8 +743,21 @@ class Game {
     }, 12500);
   }
 
+  // the second chapter is over: the King has his crown and his mind again
+  endChapter2() {
+    this.audio.discover();
+    setTimeout(() => this.ui.banner(L('ราชาหินหลับลงอีกครั้ง', 'The Stone King Sleeps Again'), L('คราวนี้ด้วยใจของพระองค์เอง', 'this time with his own mind')), 1500);
+    setTimeout(() => {
+      this.state = 'paused';
+      if (document.pointerLockElement) document.exitPointerLock();
+      document.getElementById('ending2').classList.remove('hidden');
+      this.save();
+    }, 7000);
+  }
+
   // the world after the chapter: the stone king's eyes are lit
   chapterAftermath() {
+    this.quests.ch2?.applyWorld();
     if (this.kingEyes) return;
     const f = new THREE.Vector3(0.85, 0, -0.52), sd = new THREE.Vector3(-0.52, 0, -0.85);
     this.kingEyes = [-1, 1].map((k) => {
@@ -1094,7 +1110,7 @@ class Game {
   updatePlay(dt) {
     const p = this.player, input = this.input, ui = this.ui;
     const mapOpen = !document.getElementById('map').classList.contains('hidden');
-    const frozen = ui.dialogueOpen || mapOpen;
+    const frozen = ui.dialogueOpen || mapOpen || !!this.quests.ch2?.busy;
 
     if (ui.dialogueOpen) ui.updateDialogue(dt, input);
     if (input.consume('map') && !ui.dialogueOpen) ui.show('map', mapOpen ? false : true);
@@ -1104,6 +1120,7 @@ class Game {
     if (this.moba && this.updatePlacing(input)) return;
     c.updatePlayer(dt, input, frozen);
     p.update(dt, input, this.time, frozen, c.playerMods());
+    if (!ARENA) this.quests.ch2.update(dt);
 
     if (input.consume('view')) this.toggleView();
     if (!frozen) {
@@ -1209,7 +1226,7 @@ class Game {
       this.pipeline.uniforms.uFade.value = clamp(this.deadT / 1.5, 0, 1);
       if (this.deadT > (this.moba ? 6 : 2)) {
         if (this.moba) { const [sx, sz] = baseSpawn(this.moba.me); this.checkpoint = { x: sx, z: sz }; }
-        p.place(this.checkpoint.x, this.checkpoint.z, p.yaw);
+        p.place(this.checkpoint.x, this.checkpoint.z, p.yaw, this.checkpoint.y);
         p.hp = p.maxHp;
         this.combat.resetAggro();
         this.combat.stamina = this.combat.maxStamina;

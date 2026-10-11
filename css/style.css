@@ -157,7 +157,7 @@ button.ghost { background: transparent; font-size: 15px; color: var(--dim); }
 #pause { background: rgba(2, 4, 14, 0.55); z-index: 30; }
 #map { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(2, 4, 14, 0.5); pointer-events: none; z-index: 15; }
 #map-canvas { width: min(480px, 78vh, 86vw); height: auto; image-rendering: pixelated; border: 1px solid var(--edge); display: block; }
-#ending { background: rgba(2, 4, 16, 0.78); z-index: 40; }
+#ending, #ending2 { background: rgba(2, 4, 16, 0.78); z-index: 40; }
 .ending-text { font-size: 19px; line-height: 1.7; max-width: 560px; margin: 0 auto 20px; }
 #fade { position: fixed; inset: 0; pointer-events: none; background: #000; opacity: 0; }
 
@@ -586,10 +586,10 @@ body.moba .story-only { display: none !important; }
 }
 
 /* ---- chapter end, loading, lobby ---- */
-#ending.gothic { background: radial-gradient(ellipse at center, rgba(8, 7, 11, 0.6), rgba(4, 3, 6, 0.95)); }
+#ending.gothic, #ending2.gothic { background: radial-gradient(ellipse at center, rgba(8, 7, 11, 0.6), rgba(4, 3, 6, 0.95)); }
 .end-title { font-size: clamp(34px, 6vw, 64px); }
-#ending.gothic .chapter { color: var(--g-gold); letter-spacing: 0.2em; margin: 2px 0 6px; }
-#ending.gothic .ending-text { color: var(--g-ink); font-style: italic; }
+#ending.gothic .chapter, #ending2.gothic .chapter { color: var(--g-gold); letter-spacing: 0.2em; margin: 2px 0 6px; }
+#ending.gothic .ending-text, #ending2.gothic .ending-text { color: var(--g-ink); font-style: italic; }
 #loading.gothic { background: radial-gradient(ellipse at center, #0e0b10, #030205); }
 .load-box { text-align: center; }
 .load-title { font-family: 'Cinzel', serif; font-size: clamp(28px, 5vw, 48px); letter-spacing: 0.3em; color: var(--g-gold); }

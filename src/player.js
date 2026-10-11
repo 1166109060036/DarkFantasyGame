@@ -32,11 +32,16 @@ export class Player {
     this.roll = 0;
     this.regenMul = 1;     // the leech-doctor and the wick-bearer do not heal on their own
     this.climb = 1.25;     // steepest slope you can walk up (a crawler in the coffin raises it)
+    // moving floors the story adds (the colossus's arms): f(x, z, feetY) -> height of the highest
+    // top within a step of feetY, or -Infinity
+    this.surfaces = [];
+    this.glide = null;     // () => true while a long fall should be a slow glide (the herald's feather)
   }
 
-  place(x, z, yaw = 0) {
+  // y: stand on a floor at about this height (the sky island) instead of the ground
+  place(x, z, yaw = 0, y) {
     this.pos.set(x, 0, z);
-    this.pos.y = this.groundAt(x, z, this.terrain.getHeight(x, z) + 4);
+    this.pos.y = this.groundAt(x, z, y != null ? y + 1 : this.terrain.getHeight(x, z) + 4);
     this.camY = this.pos.y;
     this.vel.set(0, 0, 0);
     this.yaw = yaw;
@@ -44,7 +49,12 @@ export class Player {
   }
 
   groundAt(x, z, feetY) {
-    return Math.max(this.terrain.getHeight(x, z), this.collision.groundAt(x, z, feetY, 0.65));
+    let best = Math.max(this.terrain.getHeight(x, z), this.collision.groundAt(x, z, feetY, 0.65));
+    for (const f of this.surfaces) {
+      const y = f(x, z, feetY);
+      if (y > best && y <= feetY + 0.65) best = y;
+    }
+    return best;
   }
 
   get forwardVec() {
@@ -103,6 +113,8 @@ export class Player {
       this.onGround = false;
     }
     this.vel.y -= 21 * dt;
+    // a feather of the King's herald: a long fall becomes a glide
+    if (!this.onGround && this.vel.y < -4 && this.glide?.()) { this.vel.y = Math.max(this.vel.y, -4); this.gliding = true; } else this.gliding = false;
     this.pos.y += this.vel.y * dt;
     const g = this.groundAt(this.pos.x, this.pos.z, this.pos.y);
     if (this.pos.y <= g) {

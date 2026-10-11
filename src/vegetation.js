@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { rng, fbm } from './noise.js';
 import { part, mergeGeometries, cylinderBetween, distToPolyline, colorize } from './util.js';
-import { PASTURE, FENCE_R, TOAD, TEMPLE, RIVER, PATHS, TAVERN, HOUSES, HEAD, SMITH, PIGPEN, BELLTOWER, STONES, WINDMILL, FARMS, PIER, HANGTREE, HUNTER, DROWNED } from './layout.js';
+import { PASTURE, FENCE_R, TOAD, TEMPLE, RIVER, PATHS, TAVERN, HOUSES, HEAD, STONEKING, SMITH, PIGPEN, BELLTOWER, STONES, WINDMILL, FARMS, PIER, HANGTREE, HUNTER, DROWNED } from './layout.js';
 import { regionWeights } from './terrain.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -175,6 +175,7 @@ export function buildVegetation(scene, terrain, M, collision, quality) {
   const built = (x, z, pad = 0) => (Math.abs(x - TAVERN.x) < 9 + pad && Math.abs(z - TAVERN.z) < 7 + pad)
     || HOUSES.some(([hx, hz]) => Math.hypot(x - hx, z - hz) < 5.5 + pad)
     || Math.hypot(x - HEAD.x - 12, z - HEAD.z) < 38 + pad
+    || Math.hypot(x - STONEKING.x - 6, z - STONEKING.z) < 34 + pad    // the field where the King's colossus rises
     || Math.hypot(x - 62, z - 8) < 2.5
     || Math.hypot(x - SMITH.x, z - SMITH.z) < 6 + pad
     || (Math.abs(x - PIGPEN.x) < 10 + pad && Math.abs(z - PIGPEN.z) < 10 + pad);

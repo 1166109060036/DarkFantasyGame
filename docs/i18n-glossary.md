@@ -102,3 +102,21 @@ Use these names everywhere so every screen agrees. Tone: terse, old-fashioned da
 | กระแทก | Concussion |
 | จุดตาย | Precision |
 | แสงจันทร์ (ผลของอาวุธ) | Moonlight |
+
+## Chapter 2 (src/chapter2.js)
+| Thai | English |
+|---|---|
+| ราชาหินตื่น | The Stone King Wakes |
+| ผู้ถือมงกุฎ | the Crown-Bearer (the player) |
+| มงกุฎหิน | the Stone Crown |
+| ร่างหิน | the Petrified |
+| ผู้คุมโซ่ | the Chainwarden |
+| ผู้สำเร็จราชการไร้มือ | the Handless Regent |
+| ร่างศิลาของราชาหิน | the Stone King's Colossus |
+| ตราหิน | Stone Seal |
+| ตะขอเกี่ยวโซ่ | Chain Hook |
+| ยาผิวหิน | Stoneskin Draught |
+| ขนนกราชสาส์น | the Herald's Feather |
+| เกล็ดหินที่ยังเต้น | living stone scale |
+| ลานบัลลังก์ | the throne terrace |
+| ราชาอีกา (บทที่ 3) | the Crow King (Chapter 3) |
