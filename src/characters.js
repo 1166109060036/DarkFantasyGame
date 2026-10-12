@@ -1,6 +1,8 @@
 // Low-poly characters assembled from primitives (PS2 budget: a few hundred triangles each).
 import * as THREE from 'three';
 import { part, mergeGeometries } from './util.js';
+import { GLTFLoader } from '../vendor/addons/loaders/GLTFLoader.js';
+import { ps2ify } from './ps2.js';
 
 const C = (r, g, b) => new THREE.Color(r, g, b);
 const sphere = (r, w = 10, h = 8) => new THREE.SphereGeometry(r, w, h);
@@ -59,7 +61,22 @@ export function createToad(M) {
   return g;
 }
 
-// Hooded crow-headed shepherd with glowing eyes (image 4).
+// Kowak's model (tools/build-kowak.py): his body, and his eyes drawn unlit so they glow
+let kowakAsset = null;
+function loadKowak() {
+  kowakAsset ||= new GLTFLoader().loadAsync('assets/npcs/kowak.glb').then((gltf) => {
+    const out = {};
+    gltf.scene.traverse((o) => { if (o.isMesh) out[o.name] = o; });
+    const map = out.body.material.map;
+    map.magFilter = THREE.NearestFilter; map.colorSpace = THREE.NoColorSpace;
+    out.cloth = ps2ify(new THREE.MeshLambertMaterial({ map, vertexColors: true, color: new THREE.Color(1.3, 1.3, 1.3) }));
+    return out;
+  }).catch(() => null);
+  return kowakAsset;
+}
+
+// Hooded crow-headed shepherd with glowing eyes (image 4); the temple's statues of him are stone.
+// A rough stand-in until the model (above) has loaded.
 export function createCrow(M, { statue = false } = {}) {
   const g = new THREE.Group();
   const featherMat = statue ? M.stone : M.feather;
@@ -91,6 +108,17 @@ export function createCrow(M, { statue = false } = {}) {
   }
   g.add(eyes);
   g.userData.head = [eyes];
+  loadKowak().then((k) => {
+    if (!k) return;
+    for (const c of [...g.children]) g.remove(c);
+    const mat = statue
+      ? ps2ify(new THREE.MeshLambertMaterial({ map: M.stone.map, color: new THREE.Color(0.95, 0.98, 1.08) }))
+      : k.cloth;
+    g.add(new THREE.Mesh(k.body.geometry, mat));
+    const e = new THREE.Mesh(k.eyes.geometry, M.eyes);
+    g.add(e);
+    g.userData.head = [e];
+  });
   return g;
 }
 

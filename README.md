@@ -488,6 +488,7 @@ src/
   moba.js           War of the Moon Kings: bases, kings, buildings, creeps, bots and sync (the host runs the game)
   (assets/heroes/)  hero models imported from .glb files with tools/import-hero.mjs (currently: Wanderer, Leech-Doctor, Coffin-Bearer — models that already have textures keep their UVs/textures, and arms are lowered from A-pose / T-pose before rigging)
   (assets/enemies/colossus.glb)  the Stone King's Colossus, built by tools/build-colossus.py (Python + numpy + Pillow): PS2-style low-poly parts (~1,400 triangles, smooth shading with hard creases), a hand-painted 128 px stone texture and shading painted into vertex colours — run `python3 tools/build-colossus.py` to rebuild it
+  (assets/npcs/kowak.glb)  Kowak the Shepherd (and the temple's stone statues of him), built by tools/build-kowak.py (~1,100 triangles, a painted cloth texture); the shared model helpers are in tools/ps2model.py
   heroes.js         the 5 path heroes other players see in online mode (16-bone rig, team-coloured cloth, walk/attack/block)
   arena.js          battlefield map: ground, roads + lanterns, signposts, Court of the Kneeling King, wild camps (`?arena`)
   net.js            WebRTC networking through PeerJS (create/join a room with a 5-letter code)
