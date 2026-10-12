@@ -13,6 +13,7 @@ import { createHandKing, updateHandKing } from './handking.js';
 import { createPetrified } from './stoneborn.js';
 import { createRegent, updateRegent } from './regent.js';
 import { createColossus, updateColossus, createSeal } from './colossus.js';
+import { createWendigo } from './wendigo.js';
 import { clamp, lerp, wrapAngle } from './util.js';
 import { rng } from './noise.js';
 import { L } from './i18n.js';
@@ -43,6 +44,8 @@ export const ENEMY_TYPES = {
   colossus: { name: L('ร่างศิลาของราชาหิน', 'the Stone King\'s Colossus'), hp: 3, speed: 0, range: 0, windup: 1, recover: 1, damage: 30, aggro: 50, leash: 1e9, radius: 1, height: 20, hitY: 10, weight: 99, active: 'always', boss: true, custom: true, pinned: true, invuln: true, fly: true, coins: [300, 300], cull: 400, scale: 1 },
   // a glowing seal on the colossus: struck like any foe, but it rides on the stone body
   seal: { name: L('ตราหิน', 'Stone Seal'), hp: 8, speed: 0, range: 0, windup: 1, recover: 1, damage: 0, aggro: 0, leash: 1e9, radius: 3.4, height: 1.6, hitY: 0, weight: 99, active: 'always', custom: true, pinned: true, fly: true, coins: [0, 0], cull: 400, scale: 1 },
+  // the yellow halls inside Sky-Hung Castle (src/backrooms.js): looked at, it only creeps; look away and it runs
+  wendigo: { name: L('เวนดิโก', 'Wendigo'), hp: 16, speed: 2.4, sprint: 16, range: 2.6, windup: 0.6, recover: 1.0, damage: 24, aggro: 30, leash: 300, radius: 0.5, height: 2.6, weight: 3, active: 'always', shy: true, coins: [20, 30], respawn: 1e9, cull: 90, freq: 1.6 },
   knight: { name: L('อัศวินหินผู้เฝ้าสะพาน', 'Stone Knight of the Bridge'), hp: 32, speed: 2.5, range: 3.8, windup: 1.05, recover: 1.4, damage: 28, aggro: 22, leash: 40, radius: 1.1, height: 4.2, weight: 6, active: 'always', boss: true, slamEvery: 3, coins: [60, 60] },
 };
 
@@ -153,7 +156,7 @@ export class Combat {
   // y: a height to stand at when it is not the ground (the sky island)
   spawn(type, x, z, y) {
     const def = ENEMY_TYPES[type], M = this.g.M;
-    const obj = { wisp: createWisp, straw: createStrawman, wolf: createWolf, leech: createLeech, knight: createStoneKnight, gaunt: createGaunt, crawler: createCrawler, weeper: createWeeper, brute: createBrute, hollow: createHollow, armour: createArmour, handking: createHandKing, petrified: createPetrified, regent: createRegent, colossus: createColossus, seal: createSeal }[type](M);
+    const obj = { wisp: createWisp, straw: createStrawman, wolf: createWolf, leech: createLeech, knight: createStoneKnight, gaunt: createGaunt, crawler: createCrawler, weeper: createWeeper, brute: createBrute, hollow: createHollow, armour: createArmour, handking: createHandKing, petrified: createPetrified, regent: createRegent, colossus: createColossus, seal: createSeal, wendigo: createWendigo }[type](M);
     this.g.scene.add(obj);
     let shadow = null;
     if (!def.fly && !def.water) {
@@ -698,15 +701,18 @@ export class Combat {
       e.t -= dt;
       // stalkers: is the player looking at this one right now?
       let seen = false;
-      if (def.stalker && playerOk && dist < 70 && dist > 1e-3) {
+      if ((def.stalker || def.shy) && playerOk && dist < 70 && dist > 1e-3) {
         const look = (-Math.sin(p.yaw) * -dx - Math.cos(p.yaw) * -dz) / dist;
         seen = look > 0.74;
         if (seen && !e.wasSeen && e.state === 'chase' && dist < 8) { g.audio.sting(); g.player.shake = Math.max(g.player.shake, 0.15); }
-        if (!seen && e.state === 'chase' && dist < 24 && (e.sobT = (e.sobT || 0) - dt) <= 0) { g.audio.sob(e.pos); e.sobT = 3 + Math.random() * 3; }
+        if (def.stalker && !seen && e.state === 'chase' && dist < 24 && (e.sobT = (e.sobT || 0) - dt) <= 0) { g.audio.sob(e.pos); e.sobT = 3 + Math.random() * 3; }
       }
       e.wasSeen = seen;
       if (e.named) g.contracts?.updateNamed(e, dt, dist);
-      e.frozen = seen && (e.state === 'chase' || e.state === 'idle' || e.state === 'return');
+      e.frozen = def.stalker && seen && (e.state === 'chase' || e.state === 'idle' || e.state === 'return');
+      e.creep = def.shy && seen && e.state === 'chase';
+      // something far above or below (the sky island, the halls inside it) cannot reach you
+      const reach = playerOk && (def.custom || Math.abs(p.pos.y - e.pos.y) < 25);
 
       if (def.custom) (CUSTOM[e.type] || updateHandKing)(e, dt, this, { dist, toPlayer, playerOk });
       else switch (e.state) {
@@ -718,9 +724,9 @@ export class Combat {
           }
           if (active && !def.stalker) {   // dormant scarecrows stand on their poles; she just waits
             const wd = Math.hypot(e.wander.x - e.pos.x, e.wander.z - e.pos.z);
-            if (wd > 0.6) { moveSpeed = def.speed * 0.3; moveAngle = Math.atan2(e.wander.x - e.pos.x, e.wander.z - e.pos.z); }
+            if (wd > 0.6) { moveSpeed = def.speed * 0.3; moveAngle = e.route?.(e, e.wander) ?? Math.atan2(e.wander.x - e.pos.x, e.wander.z - e.pos.z); }
           }
-          if (active && playerOk && dist < def.aggro * (g.events?.aggroMul ?? 1) * (g.equipment?.aggroMul ?? 1) && !g.kit.hidden) {
+          if (active && reach && dist < def.aggro * (g.events?.aggroMul ?? 1) * (g.equipment?.aggroMul ?? 1) && !g.kit.hidden) {
             e.state = 'chase';
             g.audio.enemyCue(e.type, 'aggro', e.pos);
             if (!this.hintShown) {
@@ -731,14 +737,16 @@ export class Combat {
           }
           break;
         case 'chase':
-          if (!playerOk || !active || fromHome > def.leash || (g.kit.hidden && dist > 2.5)) { e.state = 'return'; break; }
+          if (!reach || !active || fromHome > def.leash || (g.kit.hidden && dist > 2.5)) { e.state = 'return'; break; }
           moveSpeed = def.speed;
-          moveAngle = toPlayer;
+          moveAngle = e.route?.(e, p.pos) ?? toPlayer;      // (in a maze, the way round the walls)
           // gaunts shamble, then break into a sprint once they are close
           e.running = !!def.sprint && dist < def.sprint;
           if (e.running) moveSpeed *= 2.2;
           // the weeper cannot move, turn or begin an attack while you are looking at her
-          if (seen) { moveSpeed = 0; break; }
+          if (seen && def.stalker) { moveSpeed = 0; break; }
+          // the wendigo, looked at, slows to a creep with its head on one side
+          if (e.creep) { moveSpeed = def.speed * 0.3; e.running = false; }
           if (dist < def.range) {
             e.state = 'windup';
             e.t = def.windup;
@@ -747,9 +755,9 @@ export class Combat {
           break;
         case 'return': {
           moveSpeed = def.speed * 0.8;
-          moveAngle = Math.atan2(e.home.x - e.pos.x, e.home.z - e.pos.z);
+          moveAngle = e.route?.(e, e.home) ?? Math.atan2(e.home.x - e.pos.x, e.home.z - e.pos.z);
           if (fromHome < 1) { e.state = 'idle'; e.hp = def.hp; e.t = 2; }
-          if (active && playerOk && dist < def.aggro * 0.6 * (g.equipment?.aggroMul ?? 1) && fromHome < def.leash * 0.7 && !g.kit.hidden) e.state = 'chase';
+          if (active && reach && dist < def.aggro * 0.6 * (g.equipment?.aggroMul ?? 1) && fromHome < def.leash * 0.7 && !g.kit.hidden) e.state = 'chase';
           break;
         }
         case 'windup':
@@ -771,7 +779,7 @@ export class Combat {
           break;
         case 'recover':
         case 'stagger':
-          if (e.t <= 0) e.state = playerOk && active ? 'chase' : 'return';
+          if (e.t <= 0) e.state = reach && active ? 'chase' : 'return';
           break;
       }
       if (def.armour) e.exposedT = (e.exposedT || 0) - dt;
@@ -823,7 +831,7 @@ export class Combat {
     const def = e.def, T = this.g.terrain;
     const nx = e.pos.x + mx, nz = e.pos.z + mz;
     if (def.water && T.getHeight(nx, nz) > 0.1) return;          // leeches never leave the water
-    if (!def.fly && !def.water) {
+    if (!def.fly && !def.water && e.pos.y < T.getHeight(e.pos.x, e.pos.z) + 3) {     // (up on a floor high above, the land below doesn't matter)
       const h0 = T.getHeight(e.pos.x, e.pos.z), h1 = T.getHeight(nx, nz);
       if (h1 - h0 > Math.hypot(mx, mz) * 1.3 + 0.05) return;      // no cliff climbing
     }

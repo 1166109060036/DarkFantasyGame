@@ -188,14 +188,15 @@ export class Ambience {
 
     // --- inside the inn: murmuring patrons, mugs, the odd laugh
     const inn = g.village.indoor;
+    const inInn = inside > 0.5 && !g.quests?.ch2?.rooms?.inside;     // (the Waiting Halls have their own sounds)
     const innSpot = () => ({ x: inn.minX + 1 + rnd() * (inn.maxX - inn.minX - 2), y: inn.maxY - 4, z: inn.minZ + 1 + rnd() * (inn.maxZ - inn.minZ - 2) });
-    this.every('murmur', dt, inside > 0.5, 0.6, 2.2, () => {
+    this.every('murmur', dt, inInn, 0.6, 2.2, () => {
       const at = innSpot(), base = 110 + rnd() * 120;
       const n = 3 + Math.floor(rnd() * 5);
       for (let i = 0; i < n; i++) a.voice({ freq: base * (0.9 + rnd() * 0.25), dur: 0.12 + rnd() * 0.18, gain: 0.03, slide: 0.9 + rnd() * 0.2, formant: 500 + rnd() * 900, q: 2, vibrato: 4, delay: i * 0.2 + rnd() * 0.05, pos: at, verb: 0.3 });
     });
-    this.every('clink', dt, inside > 0.5, 2, 6, () => a.metal({ freq: 2400 + rnd() * 900, dur: 0.25, gain: 0.025, partials: [1, 2.6], pos: innSpot(), verb: 0.3 }));
-    this.every('laugh', dt, inside > 0.5, 10, 25, () => {
+    this.every('clink', dt, inInn, 2, 6, () => a.metal({ freq: 2400 + rnd() * 900, dur: 0.25, gain: 0.025, partials: [1, 2.6], pos: innSpot(), verb: 0.3 }));
+    this.every('laugh', dt, inInn, 10, 25, () => {
       const at = innSpot(), f = 230 + rnd() * 80;
       for (let i = 0; i < 5; i++) a.voice({ freq: f * (1 - i * 0.05), dur: 0.13, gain: 0.04, formant: 900, q: 2, vibrato: 6, delay: i * 0.17, pos: at, verb: 0.3 });
     });

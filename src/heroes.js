@@ -357,6 +357,20 @@ export async function loadHeroAssets() {
   }));
   return Object.keys(ASSETS);
 }
+// a model that is not a path's hero (an enemy built on the same rig: the wendigo)
+const EXTRA_LOADS = {};
+export function loadRiggedModel(kind) {
+  EXTRA_LOADS[kind] ||= (async () => {
+    try {
+      const res = await fetch(`assets/heroes/${kind}.json`);
+      if (!res.ok) return false;
+      ASSETS[kind] = await res.json();
+      if (ASSETS[kind].tex) await texMat({ url: `assets/heroes/${ASSETS[kind].tex}`, alphaTest: ASSETS[kind].alphaTest }).map.loadPromise;
+      return true;
+    } catch { return false; }
+  })();
+  return EXTRA_LOADS[kind];
+}
 const unb64 = (s, T) => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new T(u.buffer); };
 
 // things the model lacks that the game adds (the wanderer's moon-lantern, the coffin and a team sash)
@@ -541,6 +555,12 @@ export function animateHero(obj, dt, s) {
   if (kind === 'coffin') { b.shR.rotation.z = -0.22; b.elR.rotation.x = -0.1; }
   if (kind === 'wick') { b.shR.rotation.x -= 0.15; b.elR.rotation.x = -0.9; }      // the censer held out in front
   if (kind === 'leech') { b.spine.rotation.x += 0.12; b.neck.rotation.x = 0.15; }   // the stoop
+  if (kind === 'wendigo') {         // hunched, the skull thrust forward, the long arms loose
+    b.spine.rotation.x += 0.22 + 0.12 * run; b.chest.rotation.x += 0.12; b.neck.rotation.x = -0.25; b.head.rotation.x = -0.1;
+    b.shL.rotation.x = sw * 0.35 * mm - 0.25 * run; b.shR.rotation.x = -sw * 0.35 * mm - 0.25 * run;
+    b.elL.rotation.x = -0.2 - 0.5 * run; b.elR.rotation.x = -0.2 - 0.5 * run;
+    b.head.rotation.z = Math.sin(u.t * 0.9) * 0.12 * (1 - mm);   // a slow, wrong tilt of the head
+  }
   if (kind === 'hunter') {           // the crossbow held across the body, both hands on it
     b.shR.rotation.x = -0.75 - sw * 0.1 * mm; b.shR.rotation.z = 0.15; b.elR.rotation.x = -0.75;
     b.shL.rotation.x = -0.95; b.shL.rotation.z = -0.35; b.elL.rotation.x = -0.6;
@@ -553,7 +573,13 @@ export function animateHero(obj, dt, s) {
     const p = 1 - u.swing, big = u.heavy ? 1.25 : 1;
     const up = p < 0.35 ? ease(p / 0.35) : 1 - ease(Math.min(1, (p - 0.35) / 0.35));
     const cut = p < 0.35 ? 0 : ease(Math.min(1, (p - 0.35) / 0.4));
-    if (kind === 'hunter') {
+    if (kind === 'wendigo') {
+      // both claws raised high, then raked down and across
+      b.shR.rotation.x = -0.4 - up * 2.4 + cut * 1.6; b.shR.rotation.z = -0.4 * up + cut * 0.5;
+      b.shL.rotation.x = -0.4 - up * 2.2 * big + cut * 1.5; b.shL.rotation.z = 0.4 * up - cut * 0.5;
+      b.elR.rotation.x = -0.6 * up; b.elL.rotation.x = -0.6 * up;
+      b.spine.rotation.x += cut * 0.35; b.chest.rotation.y = up * 0.2 - cut * 0.3;
+    } else if (kind === 'hunter') {
       // a shot: the crossbow comes up to the eye, kicks, and comes down again
       const aim = Math.min(1, p / 0.2), kick = p > 0.3 ? Math.max(0, 1 - (p - 0.3) / 0.3) : 0;
       b.shR.rotation.x = -1.45 * aim + kick * 0.3; b.elR.rotation.x = -0.2;

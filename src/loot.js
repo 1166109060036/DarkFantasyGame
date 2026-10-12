@@ -141,14 +141,18 @@ export class Loot {
     let i = 0;
     for (const [id, n] of got) {
       const a = i++ * 2.1 + Math.random();
-      this.spawnPickup(id, n, { x: enemy.pos.x + Math.cos(a) * 0.9, z: enemy.pos.z + Math.sin(a) * 0.9 }, { fromEnemy: !enemy.def.boss });
+      const x = enemy.pos.x + Math.cos(a) * 0.9, z = enemy.pos.z + Math.sin(a) * 0.9;
+      // (on a floor high above the land — the sky island, the halls inside it — it lands there)
+      const y = enemy.pos.y > this.g.terrain.getHeight(enemy.pos.x, enemy.pos.z) + 3 ? enemy.pos.y : undefined;
+      this.spawnPickup(id, n, { x, y, z }, { fromEnemy: !enemy.def.boss });
     }
   }
 
   dropNearPlayer(id, count) {
     const p = this.g.player;
     const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
-    const spot = this.freeSpot(p.pos.x + fx * 1.2, p.pos.z + fz * 1.2, 0.3, true);
+    const reach = Math.max(1.2, p.pos.y - this.g.terrain.getHeight(p.pos.x, p.pos.z) + 1.2);   // (standing up high: drop it at your feet)
+    const spot = this.freeSpot(p.pos.x + fx * 1.2, p.pos.z + fz * 1.2, 0.3, true, reach);
     this.spawnPickup(id, count, spot);
   }
 

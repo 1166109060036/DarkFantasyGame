@@ -14,6 +14,7 @@ import * as THREE from 'three';
 import { HEAD, RIBCAGE, CASTLE } from './layout.js';
 import { ENEMY_TYPES } from './combat.js';
 import { buildSkyCastle, buildFallenChain, onIsland } from './skycastle.js';
+import { Backrooms } from './backrooms.js';
 import { wrapAngle } from './util.js';
 import { L } from './i18n.js';
 
@@ -29,14 +30,16 @@ export class Chapter2 {
     this.climbing = null;
     this.wave = 0;
     this.live = {};          // enemies this session has raised: warden, camp, guards, regent, colossus
+    this.rooms = new Backrooms(game, this);   // the Waiting Halls behind the small door in the keep
   }
 
   serialize() {
     const { stage, hook, skin, feather, scales, announced, statue } = this;
-    return { stage, hook, skin, feather, scales, announced, statue };
+    return { stage, hook, skin, feather, scales, announced, statue, rooms: this.rooms.serialize() };
   }
   load(d = {}) {
     Object.assign(this, { stage: d.stage ?? 0, hook: d.hook ?? 0, skin: d.skin ?? 0, feather: d.feather ?? 0, scales: d.scales ?? 0, announced: !!d.announced, statue: !!d.statue });
+    this.rooms.load(d.rooms);
   }
 
   get open() { return this.q.stage >= 8; }
@@ -53,6 +56,7 @@ export class Chapter2 {
     const g = this.g;
     this.sky = buildSkyCastle(g.scene, g.M, g.collision, g.terrain, g.fx);
     this.fallen = buildFallenChain(g.scene, g.M, g.terrain);
+    this.rooms.setup();
     const T = (x, z) => g.terrain.getHeight(x, z);
     const at = (x, z) => new THREE.Vector3(x, T(x, z), z);
     this.spots = {
@@ -112,7 +116,8 @@ export class Chapter2 {
     }
     if (this.stage === 5) {
       const up = onIsland(g.player.pos.x, g.player.pos.z, g.player.pos.y);
-      if (!up) out.push({ text: L('ปีนโซ่ที่หมุดข้างหมู่บ้านขึ้นไปบนปราสาท', 'Climb the chain from the anchor by the village up to the castle'), at: this.sky.chain.base, label: L('โซ่', 'The chain') });
+      if (this.rooms.inside) out.push({ text: L('หาทางออกจากห้องโถงรอเฝ้า — ประตูบานไกลสุดทางตะวันออก', 'Find the way out of the Waiting Halls — the farthest door, to the east'), at: this.rooms.exitAt, label: L('ทางออก', 'Way out') });
+      else if (!up) out.push({ text: L('ปีนโซ่ที่หมุดข้างหมู่บ้านขึ้นไปบนปราสาท', 'Climb the chain from the anchor by the village up to the castle'), at: this.sky.chain.base, label: L('โซ่', 'The chain') });
       else out.push({ text: L('ไปที่ลานบัลลังก์หน้าหอกลาง', 'Go to the throne terrace before the keep'), at: this.sky.regentAt, label: L('บัลลังก์', 'Throne') });
     }
     return out.filter(Boolean);
@@ -139,6 +144,7 @@ export class Chapter2 {
       add('story:c2statue', this.sky.statue, L('ดูรูปปั้นเด็กหนุ่มคุกเข่า', 'Look at the statue of the kneeling boy'), 3.2);
     }
     if (this.stage === 4 && this.feather === 1 && !this.wave) add('story:c2flock', S.pasture, L('เฝ้าฝูงแกะ', 'Keep watch over the flock'), 6);
+    out.push(...this.rooms.spots());
     const K = this.live.colossus;
     if (this.stage === 6 && K?.knelt && K.crownAt) add('story:c2crown', K.crownAt, L('สวมมงกุฎหินให้ราชา', 'Crown the King with the stone crown'), 16);
     return out;
@@ -151,6 +157,7 @@ export class Chapter2 {
 
   inspect(id) {
     const g = this.g;
+    if (id.startsWith('story:c2rooms')) return this.rooms.inspect(id);
     switch (id) {
       case 'story:c2chain': return this.say([
         [N, L('โซ่ทั้งเส้นนอนขดอยู่บนฝั่ง ข้อแต่ละข้อใหญ่กว่าตัวคน เหล็กยังเย็นเฉียบทั้งที่ตกลงมาทั้งคืน', 'The whole chain lies coiled on the shore, each link bigger than a man. The iron is still ice-cold, though it has lain here all night.')],
@@ -471,6 +478,7 @@ export class Chapter2 {
       g.onQuestChanged();
     }
     if (this.climbing) this.updateClimb(dt);
+    this.rooms.update(dt);
     if (!this.ambient) this.spawnAmbient();
     const near = (v, r) => Math.hypot(p.pos.x - v.x, p.pos.z - v.z) < r;
     // raised as you come near, so a reload never loses them
@@ -528,6 +536,7 @@ export class Chapter2 {
   // after a load: anything mid-fight starts over (the update raises them again as you come near)
   restore() {
     this.applyWorld();
+    this.rooms.restore();
     this.headAsleep(true);
     if (this.wave) this.wave = 0;
   }

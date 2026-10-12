@@ -1169,7 +1169,7 @@ class Game {
     this.updateBuffs(dt);
     this.checkDiscoveries();
     const v = this.village.indoor;
-    const inside = p.pos.x > v.minX && p.pos.x < v.maxX && p.pos.z > v.minZ && p.pos.z < v.maxZ && p.pos.y < v.maxY;
+    const inside = (p.pos.x > v.minX && p.pos.x < v.maxX && p.pos.z > v.minZ && p.pos.z < v.maxZ && p.pos.y < v.maxY) || !!this.quests?.ch2?.rooms?.inside;
     this.indoor += ((inside ? 1 : 0) - this.indoor) * Math.min(1, dt * 4);
     if (p.hp <= 0) this.die();
 
@@ -1254,6 +1254,7 @@ class Game {
     this.rain.update(this.camera.position, rainI * (1 - this.indoor));
     this.audio.setRain(rainI * (1 - this.indoor * 0.75));
     this.applyDayNight(dt, rainI, w.flash);
+    if (!ARENA) this.quests.ch2?.rooms?.atmosphere();       // the Waiting Halls keep their own air
     this.hurtFlash = Math.max(0, (this.hurtFlash || 0) - dt * 2);
     this.pipeline.uniforms.uHurt.value = Math.max(this.hurtFlash * 0.8, p.hp < 30 && this.state === 'play' ? 0.25 + Math.sin(this.time * 4) * 0.1 : 0);
     // over the shoulder: a camera on a boom behind the hero; the game still aims from the eye

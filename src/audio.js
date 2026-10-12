@@ -409,6 +409,11 @@ export class AudioSys {
       this.burst({ dur: w ? 0.5 : 0.9, freq: 2400, q: 2, gain: 0.12, sweep: w ? 1.5 : 0.7, ...P });
       this.metal({ freq: w ? 330 : 220, dur: w ? 0.8 : 1.6, gain: 0.07, partials: [1, 2.76, 5.4], ...P });
     }
+    if (type === 'wendigo') {
+      // a scream like a stag's, too long and too human; a dry clicking of teeth before it strikes
+      if (w) { for (let i = 0; i < 5; i++) this.burst({ dur: 0.025, freq: 1800 + Math.random() * 900, q: 8, gain: 0.25, delay: i * 0.07, ...P }); this.voice({ freq: 210, dur: 0.5, gain: 0.1, slide: 1.6, formant: 1500, q: 4, vibrato: 18, ...P }); }
+      else { this.voice({ freq: 540, dur: 2.2, gain: 0.16, slide: 0.45, formant: 1700, q: 6, vibrato: 9, verb: 0.9, ...P }); this.voice({ freq: 270, dur: 2.0, gain: 0.08, slide: 0.5, formant: 900, q: 3, vibrato: 13, delay: 0.1, verb: 0.9, ...P }); }
+    }
     if (type === 'knight') {
       this.burst({ dur: w ? 0.9 : 1.5, freq: 160, q: 0.8, type: 'lowpass', gain: 0.35, ...P });
       this.metal({ freq: 180, dur: 1.2, gain: 0.06, partials: [1, 2.4, 3.9], ...P });
@@ -435,6 +440,7 @@ export class AudioSys {
     if (type === 'wisp') { this.tone({ freq: 900, dur: 0.8, type: 'sine', gain: 0.15, slide: 2.5, verb: 0.8, ...P }); this.burst({ dur: 0.6, freq: 3000, q: 3, gain: 0.12, sweep: 0.3, ...P }); return; }
     if (type === 'wolf') this.voice({ freq: 520, dur: 0.7, gain: 0.12, slide: 0.5, vibrato: 9, formant: 900, ...P });
     if (type === 'gaunt' || type === 'crawler' || type === 'brute') this.voice({ freq: type === 'brute' ? 90 : 180, dur: 1.0, gain: 0.12, slide: 0.4, vibrato: 20, formant: type === 'brute' ? 300 : 800, ...P });
+    if (type === 'wendigo') this.voice({ freq: 380, dur: 2.6, gain: 0.14, slide: 0.25, vibrato: 7, formant: 1400, q: 5, verb: 0.8, ...P });
     if (type === 'weeper') this.voice({ freq: 700, dur: 1.8, gain: 0.1, slide: 0.3, vibrato: 6, formant: 2000, type: 'triangle', ...P });
     if (type === 'knight') { this.slam(pos); this.voice({ freq: 55, dur: 2.5, gain: 0.15, slide: 0.6, formant: 220, ...P }); }
     if (type !== 'straw') this.thump({ freq: 90, dur: 0.4, gain: 0.3, delay: type === 'brute' ? 0.6 : 0.35, ...P });     // the body hits the ground

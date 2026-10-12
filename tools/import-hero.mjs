@@ -88,6 +88,21 @@ const PROFILES = {
   },
 };
 
+PROFILES.wendigo = {
+  // "Wendingo" by sultan (https://sketchfab.com/waxemen), CC-BY-4.0: a gaunt antlerless wendigo with a
+  // skull face, arms hanging to its knees and long claws, already textured. It faces +x in the file,
+  // so it is turned to face +z first. Bones are given turned, with y measured from its feet.
+  textured: true, raw: true, turn: -Math.PI / 2, groundBones: true,
+  bones: {
+    hips: [0.03, 1.0, 0.04], spine: [0.03, 1.3, 0.02], chest: [0.03, 1.65, -0.02], neck: [0.03, 1.98, 0.06], head: [0.03, 2.14, 0.2],
+    shL: [0.4, 1.9, -0.05], elL: [0.7, 1.32, -0.05], haL: [0.88, 0.8, -0.05],
+    shR: [-0.34, 1.9, -0.05], elR: [-0.64, 1.32, -0.05], haR: [-0.82, 0.8, -0.05],
+    hiL: [0.18, 0.96, 0.0], knL: [0.21, 0.52, 0.02], anL: [0.22, 0.1, -0.02],
+    hiR: [-0.12, 0.96, 0.0], knR: [-0.15, 0.52, 0.02], anR: [-0.16, 0.1, -0.02],
+  },
+  regions: [{ name: 'body', test: () => true, grp: 'tex' }],
+};
+
 const prof = PROFILES[kind];
 if (!prof || !src) { console.error('usage: node tools/import-hero.mjs <kind> <model.glb> [triangles]'); process.exit(1); }
 const target = +(targetArg || 3600);
@@ -216,6 +231,11 @@ function importTextured() {
       T.push({ v, mesh: m.name });
     }
   }
+  // turned to face +z (about y)
+  if (prof.turn) {
+    const cs = Math.cos(prof.turn), sn = Math.sin(prof.turn);
+    for (const tri of T) for (const c of tri.v) { const [x, y, z] = c.p; c.p = [x * cs + z * sn, y, -x * sn + z * cs]; }
+  }
   // arms down out of the A-pose: rotate about the shoulder, blended in across the armpit
   if (prof.arms) {
     const A = prof.arms;
@@ -241,7 +261,7 @@ function importTextured() {
   hx /= hn; hz /= hn;
   for (const tri of T) for (const c of tri.v) c.p = [c.p[0] - hx, c.p[1] - minY, c.p[2] - hz];
   const B = {};
-  for (const [k, [x, y, z]] of Object.entries(prof.bones)) B[k] = [x - hx, y - minY, z - hz];
+  for (const [k, [x, y, z]] of Object.entries(prof.bones)) B[k] = [x - hx, y + (prof.groundBones ? minY : 0) - minY, z - hz];
   console.log(`${T.length} triangles, ${height.toFixed(2)} tall, head at ${hx.toFixed(3)},${hz.toFixed(3)}`);
 
   const parent = { spine: 'hips', chest: 'spine', neck: 'chest', head: 'neck', shL: 'chest', elL: 'shL', haL: 'elL', shR: 'chest', elR: 'shR', haR: 'elR', hiL: 'hips', knL: 'hiL', anL: 'knL', hiR: 'hips', knR: 'hiR', anR: 'knR' };
