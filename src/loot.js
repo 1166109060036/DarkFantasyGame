@@ -7,6 +7,7 @@ import { rng } from './noise.js';
 import { regionWeights } from './terrain.js';
 import { wildChests } from './wilds.js';
 import { L } from './i18n.js';
+import { propObject, propBox } from './props.js';
 import { RIVER, TEMPLE, TOAD, HEAD, CASTLE, RIBCAGE, PATHS, PASTURE, FENCE_R, TAVERN, HOUSES, CANYON_ARCH_Z } from './layout.js';
 
 const C = (r, g, b) => new THREE.Color(r, g, b);
@@ -34,22 +35,20 @@ const NODE_TYPES = {
 
 const KIND_GLOW = { use: C(0.5, 0.18, 0.16), mat: C(0.22, 0.32, 0.5), treasure: C(0.55, 0.42, 0.14), weapon: C(0.6, 0.6, 0.66), armour: C(0.6, 0.6, 0.66) };
 
-function chestGeometry() {
-  const wood = C(0.62, 0.45, 0.32), band = C(0.55, 0.55, 0.6);
-  const body = mergeGeometries([
-    part(new THREE.BoxGeometry(1.0, 0.55, 0.62), wood, { pos: [0, 0.275, 0] }),
-    part(new THREE.BoxGeometry(1.04, 0.08, 0.66), band, { pos: [0, 0.08, 0] }),
-    part(new THREE.BoxGeometry(0.08, 0.57, 0.66), band, { pos: [-0.36, 0.28, 0] }),
-    part(new THREE.BoxGeometry(0.08, 0.57, 0.66), band, { pos: [0.36, 0.28, 0] }),
-  ]);
-  // lid pivots on its back edge (z = -0.31)
-  const lid = mergeGeometries([
-    part(new THREE.CylinderGeometry(0.31, 0.31, 1.0, 8, 1, false, 0, Math.PI), wood, { pos: [0, 0, 0.31], rot: [0, 0, Math.PI / 2] }),
-    part(new THREE.BoxGeometry(0.08, 0.34, 0.66), band, { pos: [-0.36, 0.14, 0.31] }),
-    part(new THREE.BoxGeometry(0.08, 0.34, 0.66), band, { pos: [0.36, 0.14, 0.31] }),
-    part(new THREE.BoxGeometry(0.14, 0.18, 0.06), C(0.85, 0.7, 0.3), { pos: [0, -0.02, 0.64] }),
-  ]);
-  return { body, lid };
+// a chest: the kit's model (src/props.js), its lid on a hinge along the back edge
+export function makeChest() {
+  const group = new THREE.Group();
+  const lidPivot = new THREE.Group();
+  const lid = propObject('Chest_Lid');
+  lidPivot.add(lid);
+  group.add(propObject('Chest'), lidPivot);
+  // the hinge: the top of the box (the lid's latch hangs lower), at the lid's back edge
+  Promise.all([propBox('Chest'), propBox('Chest_Lid')]).then(([body, b]) => {
+    if (!body || !b) return;
+    lidPivot.position.set(0, body.max.y, b.min.z);
+    lid.position.set(0, -body.max.y, -b.min.z);
+  });
+  return { group, lidPivot };
 }
 
 export class Loot {
@@ -309,21 +308,13 @@ export class Loot {
       ['ruin-far-east', 244, 46, [['watch', 1]]],
       ...wildChests(),
     ];
-    const geo = chestGeometry();
     for (const [id, x, z, contents, reach = 1.2] of list) {
       const p = this.freeSpot(x, z, 0.8, false, reach);
-      const group = new THREE.Group();
-      const body = new THREE.Mesh(geo.body, this.g.M.wood);
-      const lidPivot = new THREE.Group();
-      lidPivot.position.set(0, 0.55, -0.31);
-      const lid = new THREE.Mesh(geo.lid, this.g.M.wood);
-      lid.position.set(0, 0, -0.31);
-      lidPivot.add(lid);
-      group.add(body, lidPivot);
+      const { group, lidPivot } = makeChest();
       group.rotation.y = (id.length % 4) * (Math.PI / 2);
       group.position.copy(p);
       this.g.scene.add(group);
-      this.g.collision.addBox(p.x, p.y + 0.3, p.z, 0.5, 0.3, 0.31, group.rotation.y);
+      this.g.collision.addBox(p.x, p.y + 0.3, p.z, 0.44, 0.3, 0.27, group.rotation.y);
       this.chests.push({ id, pos: p, group, lidPivot, contents, open: false, openT: 0 });
     }
   }
@@ -377,7 +368,7 @@ export class Loot {
     if (cull) for (const ch of this.chests) ch.group.visible = ch.pos.distanceToSquared(cam) < 110 * 110;
     for (const ch of this.chests) {
       if (ch.open && ch.openT < 1) ch.openT = Math.min(1, ch.openT + dt * 2.5);
-      ch.lidPivot.rotation.x = -ch.openT * 1.9 * (ch.open ? 1 : 0);
+      ch.lidPivot.rotation.x = -ch.openT * 1.6 * (ch.open ? 1 : 0);
     }
   }
 

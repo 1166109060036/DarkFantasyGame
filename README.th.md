@@ -472,6 +472,7 @@ src/
   stoneborn.js      ร่างหิน: ผู้หลงทางที่กลายเป็นหิน
   backrooms.js      ห้องโถงรอเฝ้า: เขาวงกต 14x14 ห้อง (สุ่มจาก seed) ลอยสูงเหนือมุมไกลของโลก วาดลายผนังหิน/พื้นอิฐ/เพดานในโค้ด แสงอบลงจุดยอด ไฟกะพริบ ไฟดับ เสียงหึ่ง และการหาทางที่เวนดิโกใช้
   wendigo.js        เวนดิโก: โมเดลมีกระดูกที่นำเข้ามาผูกกับโครงกระดูกของเกม (ขี้อาย: ถูกจ้องแล้วคืบช้า)
+  props.js          โมเดลเฟอร์นิเจอร์ (ชุดของแต่งขนาด PS2): ของที่อยู่นิ่งรวมเป็นเมชไม่กี่ชิ้นตามวัสดุ หีบและบอร์ดค่าหัวเป็นวัตถุแยก
   rigpose.js        ตัวช่วยโหลดโมเดล .glb ที่มีกระดูกแล้วจัดท่าจากโค้ด (ใช้กับผู้หลงทางและชุดเกราะ)
   critters.js       สัตว์ในโลก (หมู: โมเดล .glb + ท่าเดินจากโค้ด, เดินเล่น ก้มกิน วิ่งหนี)
   quests.js         เควสต์และบทสนทนา (ภาษาไทย)
@@ -482,6 +483,7 @@ src/
   (assets/heroes/)  โมเดลฮีโร่ที่นำเข้าจากไฟล์ .glb ด้วย tools/import-hero.mjs (ตอนนี้: ผู้พเนจร, หมอปลิง, สัปเหร่อแบกโลง — โมเดลที่มีเท็กซ์เจอร์อยู่แล้วจะเก็บ UV/เท็กซ์เจอร์เดิม และจัดแขนจากท่า A-pose / T-pose ให้ห้อยลงก่อนผูกกระดูก)
   (assets/enemies/colossus.glb)  ร่างศิลาของราชาหิน สร้างด้วย tools/build-colossus.py (Python + numpy + Pillow): ชิ้นส่วน low-poly สไตล์ PS2 (~1,400 เหลี่ยม ผิวเรียบแต่คงสันคม) ลายหินระบายมือ 128 px และเงาที่ระบายลงสีจุดยอด — สั่ง `python3 tools/build-colossus.py` เพื่อสร้างใหม่
   (assets/npcs/kowak.glb)  โกวัก ผู้เลี้ยงแกะ (และรูปปั้นหินของเขาที่วิหาร) สร้างด้วย tools/build-kowak.py (~1,100 เหลี่ยม ลายผ้าระบายมือ) ส่วนเครื่องมือกลางสำหรับสร้างโมเดลอยู่ใน tools/ps2model.py
+  (assets/props/interior.glb)  เฟอร์นิเจอร์และบอร์ดค่าหัว สร้างด้วย tools/import-props.mjs จากชุดโมเดล Sketchfab สองชุด (ดูเครดิตด้านล่าง): แต่ละชิ้นตั้งบน y = 0 หน่วยเมตร ลดโพลิกอนด้วย meshoptimizer (ต้องมี `npm i meshoptimizer` และ Pillow เฉพาะตอนรันเครื่องมือ) เท็กซ์เจอร์ 128 px
   heroes.js         ฮีโร่ 5 วิถีที่ผู้เล่นคนอื่นเห็นในโหมดออนไลน์ (rig 16 กระดูก, ผ้าสีทีม, ท่าเดิน/ฟัน/ป้องกัน)
   arena.js          แผนที่สนามศึก: พื้นที่, ถนน + ตะเกียง, ป้ายบอกทาง, ลานราชาคุกเข่า, แคมป์สัตว์ป่า (`?arena`)
   net.js            เครือข่าย WebRTC ผ่าน PeerJS (สร้าง/เข้าห้องด้วยรหัส 5 ตัว)
@@ -533,6 +535,8 @@ docs/model-refs/    ภาพอ้างอิงตัวละครทุก
 - โมเดล **"Low Poly Micolash"** โดย [ratmeaty](https://sketchfab.com/ratmeaty) ([Sketchfab](https://sketchfab.com/3d-models/low-poly-micolash-35dd000256d74cf596d79067b5c304c8)) ใช้ภายใต้สัญญาอนุญาต [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · ใช้เป็นร่างของสัปเหร่อแบกโลง จัดแขนลง ผูกเข้ากับโครงกระดูกของเกม เพิ่มโลงศพและผ้าสีทีม
 - โมเดล **"BOUNTY HUNTER"** โดย [EZ-GAZI](https://sketchfab.com/EZ-GAZI) ([Sketchfab](https://sketchfab.com/3d-models/bounty-hunter-1b78c05dd09245a9a2b2906e12b1dc08)) ใช้ภายใต้สัญญาอนุญาต [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · ใช้เป็นร่างของนายพรานโอเรน สร้างโครงกระดูกและท่าทางทั้งหมดในโค้ด เพิ่มมีดแล่หนัง
 - โมเดล **"Wendingo"** โดย [sultan](https://sketchfab.com/waxemen) ([Sketchfab](https://sketchfab.com/3d-models/wendingo-506a307d0beb41e1b8dd92a840789a26)) ใช้ภายใต้สัญญาอนุญาต [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · ใช้เป็นเวนดิโกในห้องโถงรอเฝ้า ผูกเข้ากับโครงกระดูกของเกม ย่อเท็กซ์เจอร์เหลือ 256 px ท่าทางทั้งหมดทำในโค้ด
+- ชุดโมเดล **"Fantasy Interior Items"** โดย [tediuminteractive](https://sketchfab.com/tediuminteractive) ([Sketchfab](https://sketchfab.com/3d-models/fantasy-interior-items-6542c39c66394888994d7343fd03fdef)) ใช้ภายใต้สัญญาอนุญาต [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · โต๊ะ ม้านั่ง เก้าอี้ ถังไม้ ขวด ถ้วย เชิงเทียน ชั้นหนังสือ ผ้าแขวน โล่และดาบในโรงเตี๊ยม ของรกในร้านช่างตีเหล็ก หีบสมบัติทุกใบ และเฟอร์นิเจอร์กับกระดูกในห้องโถงรอเฝ้า ลดจำนวนโพลิกอนให้อยู่ในงบแบบ PS2 (32,500 → 8,400 สามเหลี่ยม) และย่อเท็กซ์เจอร์เหลือ 128 px
+- โมเดล **"Notice board low-poly"** โดย [Viktor_](https://sketchfab.com/Viktor.Zhuravlev) ([Sketchfab](https://sketchfab.com/3d-models/notice-board-low-poly-c7253f06bb8c49b0afcd60a509a8240c)) ใช้ภายใต้สัญญาอนุญาต [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · บอร์ดประกาศค่าหัวหน้าโรงเตี๊ยม ย่อเท็กซ์เจอร์เหลือ 256 px
 - โมเดล **"Knight Set Dark Souls 1 - PS1 Style"** โดย [MoiDev](https://sketchfab.com/moidev) ([Sketchfab](https://sketchfab.com/3d-models/knight-set-dark-souls-1-ps1-style-cded980e88324f758f5ca32033a71548)) ใช้ภายใต้สัญญาอนุญาต [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/) · ใช้เป็นร่างของผู้พเนจร จัดแขนลงจากท่า T ผูกเข้ากับโครงกระดูกของเกม เพิ่มดาบยาว ตะเกียง และผ้าสีทีม
 - [three.js](https://threejs.org) และ GLTFLoader / SkeletonUtils (MIT) · [PeerJS](https://peerjs.com) (MIT)
 

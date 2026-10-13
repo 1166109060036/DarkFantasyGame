@@ -6,6 +6,7 @@ import { block, slab, r } from './builder.js';
 import { gable, cyl } from './giants.js';
 import { TAVERN, HOUSES, SMITH, PIGPEN } from './layout.js';
 import { createCandleHead, createPatron, createSmith } from './characters.js';
+import { PropBatch } from './props.js';
 
 const C = (r_, g, b) => new THREE.Color(r_, g, b);
 const WARM = C(1.25, 0.62, 0.24);
@@ -115,28 +116,66 @@ export function buildVillage(B, Cw, terrain, scene, M, fx) {
   scene.add(fire);
   fx.fires.push({ s: fire, base: 2.2, ph: 0 });
 
-  // bar counter, shelves, bottles, barrels
+  // bar counter and the board behind it; the furniture and clutter are models (src/props.js)
   slab(B, Cw, 'wood', tx - 1, tz + 3.0, 7, 0.9, y0, y0 + 1.15, { color: C(0.55, 0.42, 0.35) });
   block(B, Cw, 'wood', { x: tx - 1, y: y0 + 1.2, z: tz + 3.0, w: 7.3, h: 0.1, d: 1.1, color: C(0.35, 0.25, 0.2), collide: false });
   block(B, Cw, 'wood', { x: tx - 1, y: y0 + 1.6, z: tz + 4.75, w: 6, h: 3.2, d: 0.4, color: C(0.45, 0.35, 0.3) });
-  for (let i = 0; i < 14; i++) {
-    const col = [C(0.2, 0.45, 0.25), C(0.55, 0.35, 0.12), C(0.35, 0.2, 0.45)][i % 3];
-    B.add('plain', part(new THREE.CylinderGeometry(0.07, 0.09, 0.32, 6), col, { pos: [tx - 3.6 + (i % 7) * 0.85, y0 + 1.45 + Math.floor(i / 7) * 0.95, tz + 4.45] }));
+  const P = new PropBatch(scene);
+  const top = y0 + 1.25;                         // the counter's top
+  const candle = (x, y, z, size = 0.8) => {
+    const s = new THREE.Sprite(M.candleSprite);
+    s.position.set(x, y, z);
+    s.scale.setScalar(size);
+    scene.add(s);
+    fx.fires.push({ s, base: size, ph: x * 1.7 + z });
+  };
+  // shelves of bottles behind the bar
+  for (const [k, sy] of [[0, 1.3], [1, 2.25]]) {
+    for (const sx of [-0.95, 0.95]) P.add('Shelf', tx - 1 + sx, y0 + sy, tz + 4.38, Math.PI, [1, 1, 0.7]);
+    for (let i = 0; i < 9; i++) {
+      const bx = tx - 2.7 + i * 0.42 + ((i * 7 + k * 3) % 5) * 0.03;
+      P.add(i % 3 === 1 ? 'Bottle' : 'Bottle_2', bx, y0 + sy + 0.23, tz + 4.35, i * 0.7, 1, [[1, 1, 1], [1.2, 0.8, 0.5], [0.8, 0.7, 1.1]][(i + k) % 3]);
+    }
   }
-  for (const [bx, bz, lying] of [[-6.3, 4.3, 0], [-6.3, 3.0, 0], [-5.1, 4.4, 0], [-6.2, 3.6, 1]]) {
-    const y = lying ? y0 + 1.65 : y0 + 0.55;
-    B.add('wood', part(cyl(0.55, 0.55, 1.1, 10, 1.5), C(0.6, 0.45, 0.35), { pos: [tx + bx, y, tz + bz], rot: [lying ? Math.PI / 2 : 0, 0, 0] }));
-    if (!lying) Cw.addCircle(tx + bx, tz + bz, 0.6);
-  }
-  // tables, benches and mugs
+  // on the counter: goblets, a bottle, a guttering candle
+  for (const [cx, kind, ry] of [[-3.4, 'Goblet', 0], [-2.9, 'Goblet', 1], [-1.6, 'Bottle_2', 0.3], [0.6, 'Goblet', 2], [1.0, 'Plate', 0], [1.8, 'Candle_2', 0]]) P.add(kind, tx + cx, top, tz + 2.75, ry);
+  candle(tx + 1.8, top + 0.12, tz + 2.75, 0.5);
+  // barrels in the corner, one lying on two others
+  for (const [bx, bz] of [[-6.3, 4.3], [-6.3, 3.0], [-5.1, 4.4]]) { P.add('Barrel', tx + bx, y0, tz + bz, bx * bz); Cw.addCircle(tx + bx, tz + bz, 0.4); }
+  P.add('Barrel', tx - 6.3, y0 + 0.93 + 0.36, tz + 3.18, [Math.PI / 2, 0, 0]);
+  // crates and a bucket at the other end of the bar
+  P.add('Crate', tx + 4.4, y0, tz + 4.4, 0.1).add('Crate', tx + 4.35, y0 + 0.47, tz + 4.45, -0.2).add('Bucket', tx + 3.3, y0, tz + 4.5);
+  Cw.addCircle(tx + 4.4, tz + 4.4, 0.55);
+  // round tables, each with a candle, stools (the patrons sit on them) and a chair
   const tables = [[-3.6, -2.0], [3.0, -2.2], [3.2, 1.1], [-3.4, 1.0]];
-  for (const [lx, lz] of tables) {
-    B.add('wood', part(cyl(0.85, 0.85, 0.09, 12, 1), C(0.55, 0.42, 0.32), { pos: [tx + lx, y0 + 0.8, tz + lz] }));
-    B.add('wood', part(cyl(0.1, 0.12, 0.8, 6, 1), C(0.4, 0.3, 0.25), { pos: [tx + lx, y0 + 0.4, tz + lz] }));
-    for (const s of [-1, 1]) block(B, Cw, 'wood', { x: tx + lx, y: y0 + 0.22, z: tz + lz + s * 1.15, w: 1.7, h: 0.44, d: 0.4, color: C(0.5, 0.38, 0.3), collide: false });
-    for (let m = 0; m < 2; m++) B.add('wood', part(cyl(0.07, 0.07, 0.17, 7, 1), C(0.55, 0.4, 0.25), { pos: [tx + lx + (m - 0.5) * 0.7, y0 + 0.93, tz + lz + (m - 0.5) * 0.3] }));
-    Cw.addCircle(tx + lx, tz + lz, 0.95);
+  tables.forEach(([lx, lz], n) => {
+    const x = tx + lx, z = tz + lz, t = y0 + 0.79;
+    P.add('Table_-_Round', x, y0, z, n * 0.8);
+    for (const s of [-1, 1]) P.add('Stool', x, y0, z + s * 1.15, n + s);
+    P.add('Chair', x + 1.25, y0, z + 0.1, Math.PI / 2 + (n - 1.5) * 0.15);
+    P.add('Candlestick_Table', x, t, z);
+    candle(x, t + 0.34, z, 0.55);
+    P.add('Goblet', x - 0.35, t, z - 0.3, n).add('Goblet', x + 0.3, t, z + 0.35, n + 2);
+    if (n % 2) P.add('Plate', x + 0.32, t, z - 0.28).add('Knife', x + 0.32, t + 0.02, z - 0.28, 0.6).add('Spoon', x + 0.22, t + 0.02, z - 0.22, -0.4);
+    else P.add('Bottle', x - 0.1, t, z + 0.42, n).add('Book', x + 0.4, t + 0.03, z, [0, 0.4, Math.PI / 2]);
+    Cw.addCircle(x, z, 0.78);
+  });
+  // a bookshelf by the door with a skull on it, a tapestry, the inn's shield over the hearth
+  P.add('Bookshelf', tx - 3.4, y0, tz - 4.76, 0).add('Skull', tx - 3.0, y0 + 2.32, tz - 4.8, 0.3);
+  for (const [i, by] of [[0, 0.62], [1, 1.22], [2, 1.8]]) {
+    for (let k = 0; k < 4 + i; k++) P.add('Book', tx - 4.2 + k * 0.14 + i * 0.3, y0 + by, tz - 4.78, [0, 0, (k % 3 === 2) ? 0.25 : 0], 1, [[1, 1, 1], [0.7, 0.9, 1.2], [1.2, 0.8, 0.7]][(k + i) % 3]);
   }
+  P.add('Book_Open', tx - 2.7, y0 + 1.22, tz - 4.76, 0.1).add('Scroll', tx - 2.6, y0 + 0.62, tz - 4.76, Math.PI / 2);
+  Cw.addCircle(tx - 3.4, tz - 4.76, 0.3);
+  P.add('Tapestry', tx + 3.0, y0 + 2.0, tz - 4.97, 0, 1, [1.1, 0.75, 0.6]);
+  P.add('Shield', tx + 5.85, y0 + 2.1, tz, -Math.PI / 2);
+  for (const s of [-1, 1]) P.add('Sword', tx + 5.88, y0 + 1.95, tz + s * 0.31, [0, -Math.PI / 2, s * 0.6]);
+  // candles on the walls and two tall ones by the door
+  for (const [lx, lz, ry] of [[-6.95, -2.0, Math.PI / 2], [-6.95, 1.0, Math.PI / 2], [6.95, 3.2, -Math.PI / 2], [-1.6, 4.52, Math.PI]]) {
+    P.add('Candlestick_Wall', tx + lx, y0 + 1.7, tz + lz, ry);
+    candle(tx + lx + Math.sin(ry) * 0.1, y0 + 1.7 + 0.42, tz + lz + Math.cos(ry) * 0.1, 0.6);
+  }
+  for (const lx of [-1.9, 1.9]) { P.add('Candlestick_Floor', tx + lx, y0, tz - 4.55); candle(tx + lx, y0 + 1.42, tz - 4.55, 0.7); Cw.addCircle(tx + lx, tz - 4.55, 0.15); }
   // candle chandeliers
   for (const lx of [-2.6, 2.8]) {
     const cy = y0 + 4.3;
@@ -225,6 +264,13 @@ export function buildVillage(B, Cw, terrain, scene, M, fx) {
   smith.rotation.y = Math.PI / 2;
   scene.add(smith);
   Cw.addCircle(sx, sz, 0.55);
+
+  // the smith's clutter: a quenching bucket, a barrel, a crate of scrap
+  const H2 = (x, z) => terrain.getHeight(x, z);
+  P.add('Bucket', sx + 0.9, H2(sx + 0.9, sz + 1.9), sz + 1.9, 0.4, 1, [0.9, 0.9, 0.9]);
+  P.add('Barrel', sx + 2.4, H2(sx + 2.4, sz - 1.2), sz - 1.2, 1.1);
+  P.add('Crate', sx - 4.7, H2(sx - 4.7, sz + 2.3), sz + 2.3, 0.5).add('Crate', sx - 4.7, H2(sx - 4.7, sz + 2.3) + 0.47, sz + 2.3, 0.2);
+  for (const [x, z, r] of [[sx + 2.4, sz - 1.2, 0.4], [sx - 4.7, sz + 2.3, 0.55]]) Cw.addCircle(x, z, r);
 
   pigPen(B, Cw, terrain);
 

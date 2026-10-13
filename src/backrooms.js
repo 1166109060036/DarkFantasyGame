@@ -16,6 +16,8 @@ import { clamp, part, mergeGeometries } from './util.js';
 import { castleL, islandLocal, surfaceAt, onIsland } from './skycastle.js';
 import { pathWeapons } from './equipment.js';
 import { preloadWendigo } from './wendigo.js';
+import { PropBatch } from './props.js';
+import { makeChest } from './loot.js';
 
 export const ROOMS = { x: -700, z: -730, y: 600, n: 14, cell: 6, h: 3.2 };
 const { x: X0, z: Z0, y: Y0, n: N, cell: CELL, h: H } = ROOMS;
@@ -374,15 +376,10 @@ export class Backrooms {
     this.mats = { stoneMat, brickMat, ceilMat, panelMat, flickMat };
 
     // things left behind: chairs turned to face the wall, days scratched into the stone, notes
-    const wood = [];
-    const chairAt = (x, z, ry, fallen = false) => {
-      const C = new THREE.Color(0.5, 0.36, 0.22), rot = fallen ? [Math.PI / 2, ry, 0] : [0, ry, 0];
-      const parts = [part(new THREE.BoxGeometry(0.5, 0.06, 0.5), C, { pos: [0, 0.48, 0] }), part(new THREE.BoxGeometry(0.5, 0.6, 0.06), C, { pos: [0, 0.8, -0.22] })];
-      for (const [lx, lz] of [[-0.21, -0.21], [0.21, -0.21], [-0.21, 0.21], [0.21, 0.21]]) parts.push(part(new THREE.BoxGeometry(0.05, 0.48, 0.05), C, { pos: [lx, 0.24, lz] }));
-      const m = mergeGeometries(parts);
-      m.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...rot)).setPosition(x, Y0 + (fallen ? 0.25 : 0), z));
-      wood.push(m);
-    };
+    const P = new PropBatch(this.group);            // the furniture: models (src/props.js)
+    const DIM = [0.75, 0.75, 0.72];
+    // (the kit's chair is sat on facing -z, so it is turned half round)
+    const chairAt = (x, z, ry, fallen = false) => P.add('Chair', x, Y0 + (fallen ? 0.31 : 0), z, fallen ? [Math.PI / 2, ry, 0] : ry + Math.PI, 1, DIM);
     const faceWall = (i, j) => {
       // a chair up against one of this room's walls, facing it
       const { wallE: E, wallS: S } = this.maze;
@@ -399,7 +396,30 @@ export class Backrooms {
     }
     chairAt(cx(9) + 1, cz(8), 0.7, true);
     chairAt(cx(3) - 1, cz(3) + 1, 2.1, true);
-    this.group.add(new THREE.Mesh(mergeGeometries(wood), M.wood));
+    // the court's last feast in the first great hall: a long table laid with empty plates, and what is
+    // left of them (set between a row of pillars and the way the wendigos walk, so it blocks no one)
+    {
+      const fx = X0 + 29, fz = Z0 + 22.05, t = Y0 + 0.79;
+      P.add('Table_-_Rectangular', fx, Y0, fz, 0, 1, DIM).add('Table_-_Rectangular', fx + 1.9, Y0, fz, 0, 1, DIM);
+      col.addBox(fx + 0.95, Y0 + 0.4, fz, 1.9, 0.4, 0.5, 0);
+      for (let k = 0; k < 4; k++) {
+        const x = fx - 0.6 + k * 1.05;
+        P.add('Plate', x, t, fz - 0.22).add('Plate', x, t, fz + 0.22);
+        P.add('Knife', x + 0.2, t + 0.02, fz - 0.22, 0.2).add('Goblet', x - 0.2, t, fz + 0.3, k, 1, DIM);
+        P.add('Chair', x, Y0, fz + 0.85, (k - 1.5) * -0.1, 1, DIM);
+      }
+      P.add('Skull', fx + 0.45, t + 0.03, fz - 0.22, 2.6).add('Bone', fx + 1.55, t + 0.03, fz + 0.2, 0.7);
+      P.add('Candlestick_Table', fx - 0.9, t, fz).add('Candlestick_Table', fx + 2.8, t, fz);
+      P.add('Bone', fx + 0.4, Y0, fz + 1.3, 2.1).add('Bone', fx + 0.7, Y0, fz + 1.35, 0.4).add('Skull', fx + 2.3, Y0, fz + 1.3, -0.8);
+    }
+    // bones in the dark rooms, a book dropped open, a tall candlestick long gone out
+    for (const [i, j, what, ry] of [[5, 5, 'Skull', 0.4], [5, 5, 'Bone', 1.2], [11, 3, 'Bone', 2.2], [6, 11, 'Skull', -2], [12, 10, 'Bone', 0.3], [1, 2, 'Skull', 2.8], [3, 8, 'Book_Open', 0.5], [10, 5, 'Scroll', 1.4]]) {
+      P.add(what, cx(i) + (r() - 0.5) * 3, Y0 + (what === 'Book_Open' ? 0.03 : 0), cz(j) + (r() - 0.5) * 3, ry, 1, DIM);
+    }
+    for (const [i, j] of [[3, 2], [11, 7], [2, 10]]) P.add('Candlestick_Floor', cx(i) + 2.2, Y0, cz(j) - 2.2, 0, 1, DIM);
+    P.add('Barrel', cx(13) - 1.6, Y0, cz(13) + 1.9, 0.5, 1, DIM).add('Crate', cx(0) + 1.8, Y0, cz(0) - 2.0, 0.2, 1, DIM);
+    col.addCircle(cx(13) - 1.6, cz(13) + 1.9, 0.4, Y0 - 1, Y0 + 2);
+    col.addCircle(cx(0) + 1.8, cz(0) - 2.0, 0.5, Y0 - 1, Y0 + 2);
     const decal = (map, w, h, x, y, z, ry) => {
       const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), ps2ify(new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false, color: new THREE.Color(0.85, 0.8, 0.7) })));
       m.position.set(x, y, z); m.rotation.y = ry;
@@ -442,18 +462,11 @@ export class Backrooms {
 
     // ---- the courtiers' hoard: a chest by the far door
     this.chestAt = new THREE.Vector3(cx(END[0]) - 0.4, Y0, cz(END[1]) + 1.9);
-    const cb = new THREE.Color(0.4, 0.28, 0.16), band = new THREE.Color(0.45, 0.42, 0.4);
-    const box = mergeGeometries([
-      part(new THREE.BoxGeometry(1.0, 0.5, 0.6), cb, { pos: [0, 0.25, 0] }),
-      part(new THREE.BoxGeometry(1.04, 0.08, 0.64), band, { pos: [0, 0.1, 0] }),
-      part(new THREE.BoxGeometry(1.04, 0.08, 0.64), band, { pos: [0, 0.42, 0] }),
-    ]);
-    this.chestBox = new THREE.Mesh(box, M.wood);
+    const chest = makeChest();
+    this.chestBox = chest.group;
+    this.chestLid = chest.lidPivot;
     this.chestBox.position.copy(this.chestAt);
     this.chestBox.rotation.y = Math.PI;
-    this.chestLid = new THREE.Mesh(mergeGeometries([part(new THREE.BoxGeometry(1.0, 0.18, 0.6), cb, { pos: [0, 0.09, 0.3] })]), M.wood);
-    this.chestLid.position.set(0, 0.5, -0.3);
-    this.chestBox.add(this.chestLid);
     this.group.add(this.chestBox);
     col.addBox(this.chestAt.x, Y0 + 0.3, this.chestAt.z, 0.5, 0.3, 0.3, 0);
 
@@ -584,7 +597,7 @@ export class Backrooms {
     const g = this.g;
     if (this.chest) return;
     this.chest = true;
-    this.chestLid.rotation.x = -1.9;
+    this.chestLid.rotation.x = -1.6;
     g.audio.chest?.();
     g.addCoins(260);
     if (g.bag.add('potion_big', 2) > 0) g.loot.dropNearPlayer('potion_big', 1);
@@ -779,7 +792,7 @@ export class Backrooms {
   // after a load
   restore() {
     if (!this.group) return;
-    this.chestLid.rotation.x = this.chest ? -1.9 : 0;
+    this.chestLid.rotation.x = this.chest ? -1.6 : 0;
     this.inside = false;
     this.clear();
   }

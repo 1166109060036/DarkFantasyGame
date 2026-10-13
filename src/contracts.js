@@ -11,7 +11,8 @@
 //   stone  - light blows glance off; only heavy ones bite
 // The hand-written contracts come first; after that the board makes up new ones.
 import * as THREE from 'three';
-import { part, mergeGeometries } from './util.js';
+import { part } from './util.js';
+import { propObject } from './props.js';
 import { ITEMS } from './items.js';
 import { pathWeapons } from './equipment.js';
 import { ENEMY_TYPES } from './combat.js';
@@ -99,6 +100,7 @@ const PROC_PLACES = [
 const TYPE_NAMES = { gaunt: L('ร่างซูบ', 'Gaunt'), crawler: L('ร่างคลาน', 'Crawler'), wolf: L('หมาป่า', 'Wolf'), straw: L('หุ่นฟาง', 'Strawman'), brute: L('ยักษ์ซูบ', 'Brute'), hollow: L('ผู้หลงทาง', 'Lost One') };
 
 export const BOARD = { x: TAVERN.x + 5, z: TAVERN.z - 9 };
+const BOARD_FACE = 0.1;       // how far the board's planks stand in front of its posts (where the notices pin)
 
 export class Contracts {
   constructor(game) {
@@ -116,30 +118,27 @@ export class Contracts {
     const g = this.g, M = g.M, { x, z } = BOARD;
     const y = g.terrain.getHeight(x, z);
     const grp = new THREE.Group();
-    grp.add(new THREE.Mesh(mergeGeometries([
-      part(new THREE.BoxGeometry(0.14, 2.6, 0.14), C(0.4, 0.3, 0.22), { pos: [-0.9, 1.3, 0] }),
-      part(new THREE.BoxGeometry(0.14, 2.6, 0.14), C(0.4, 0.3, 0.22), { pos: [0.9, 1.3, 0] }),
-      part(new THREE.BoxGeometry(1.9, 1.15, 0.08), C(0.48, 0.36, 0.26), { pos: [0, 1.55, 0] }),
-      part(new THREE.BoxGeometry(2.3, 0.08, 0.6), C(0.32, 0.24, 0.18), { pos: [0, 2.6, 0.05], rot: [0.25, 0, 0] }),
-    ]), M.wood));
+    // the board is a model (src/props.js; its front faces +x, so it is turned to face +z here)
+    const model = propObject('Notice_Board');
+    model.rotation.y = -Math.PI / 2;
+    grp.add(model);
     // pinned notices
     this.papers = [];
     for (let i = 0; i < 3; i++) {
       const m = new THREE.Mesh(part(new THREE.PlaneGeometry(0.44, 0.58), C(0.62, 0.56, 0.42)), M.plain);
-      m.position.set(-0.58 + i * 0.58, 1.56 + (i % 2) * 0.05, 0.05);
+      m.position.set(-0.62 + i * 0.62, 1.72 + (i % 2) * 0.06, BOARD_FACE);
       m.rotation.z = (i - 1) * 0.06;
       grp.add(m);
       this.papers.push(m);
     }
     const lamp = new THREE.Sprite(M.candleSprite);
-    lamp.position.set(1.05, 2.25, 0.25);
+    lamp.position.set(1.5, 2.3, 0.3);
     lamp.scale.setScalar(0.9);
     grp.add(lamp);
     grp.position.set(x, y, z);
     grp.rotation.y = Math.PI * 0.9;
     g.scene.add(grp);
-    g.collision.addCircle(x - 0.9, z, 0.2);
-    g.collision.addCircle(x + 0.9, z, 0.2);
+    for (const s of [-1, 1]) g.collision.addCircle(x + Math.cos(grp.rotation.y) * s * 1.25, z - Math.sin(grp.rotation.y) * s * 1.25, 0.2);
     this.board = grp;
     this.boardPos = new THREE.Vector3(x, y, z);
   }
