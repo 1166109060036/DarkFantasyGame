@@ -1,5 +1,5 @@
 // The Waiting Halls (ห้องโถงรอเฝ้า): a small door in the keep of Sky-Hung Castle opens onto
-// rooms that should not fit inside it. Mustard wallpaper, damp carpet, a ceiling of stained tiles
+// rooms that should not fit inside it. Walls of mossy stone, a floor of wet brick, a ceiling of stained tiles
 // and buzzing light panels, the same room over and over, and the hum that never stops. The court
 // waited here three hundred years for the Crown-Bearer to come back; the hungriest of them still
 // walk the halls (the wendigo, src/wendigo.js).
@@ -53,36 +53,61 @@ function noise2(seed, cells) {
   };
 }
 
-function wallpaperTex() {
-  // mustard paper with thin stripes and a faint chevron, damp stains creeping up from the skirting
-  const W = 128, Hh = 256, n1 = noise2(11, 8), n2 = noise2(12, 24), stain = noise2(13, 4);
+const hash = (a, b) => { const v = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return v - Math.floor(v); };
+const MOSS = [0.24, 0.36, 0.16], MOSS_DARK = [0.12, 0.2, 0.09];
+const mixc = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+
+function stoneWallTex() {
+  // grey castle stone in courses (one width of texture = 1.8 m, its height the whole wall): each
+  // block its own shade, lit along its top, shadowed under; damp and moss climbing from the floor
+  const W = 128, Hh = 256, ROW = 32, n1 = noise2(11, 8), n2 = noise2(12, 32), damp = noise2(13, 4), mossN = noise2(14, 12);
   const c = paint(W, Hh, (x, y) => {
     const u = x / W, v = y / Hh, up = 1 - v;                       // up: 0 at the floor
-    let k = 0.92 + (n1(u, v) - 0.5) * 0.12 + (n2(u, v) - 0.5) * 0.06;
-    const stripe = (x % 32);
-    if (stripe < 2) k *= 0.86; else if (stripe > 14 && stripe < 17) k *= 0.93;
-    const chev = Math.abs(((x % 16) - 8)) + (y % 16);
-    if (chev % 16 < 1.2 && stripe > 3 && stripe < 30) k *= 0.95;
-    let col = [0.74 * k, 0.68 * k, 0.45 * k];
-    // damp: a brown tide line that wanders, darker below it
-    const tide = 0.12 + stain(u, 0.3) * 0.22;
-    if (up < tide) { const d = 1 - up / tide; col = col.map((c0, i) => c0 * (1 - 0.35 * d) - [0.02, 0.04, 0.06][i] * d); }
-    if (Math.abs(up - tide) < 0.012) col = col.map((c0) => c0 * 0.78);
-    // the skirting board
-    if (up < 0.045) col = [0.36, 0.28, 0.17].map((c0) => c0 * (0.9 + n2(u, v) * 0.2));
-    else if (up < 0.052) col = [0.5, 0.42, 0.27];
+    const row = Math.floor(y / ROW), ly = y % ROW;
+    const bw = W / 3, off = (row % 2) * bw / 2, bx = ((x + off) % W), blk = Math.floor(bx / bw), lx = bx - blk * bw;
+    const h = hash(row, blk);
+    let k = 0.82 + h * 0.22 + (n1(u, v) - 0.5) * 0.16 + (n2(u, v) - 0.5) * 0.14;
+    if (hash(row * 7 + blk, 3) < 0.12) k *= 0.85;                    // a few darker, older stones
+    let col = [0.52 * k, 0.52 * k, 0.5 * k];
+    // mortar, and the light across each block's face
+    const mortar = ly < 2 || lx < 2;
+    if (mortar) col = [0.2, 0.2, 0.19];
+    else if (ly < 4) col = col.map((c0) => c0 * 1.12);
+    else if (ly > ROW - 4) col = col.map((c0) => c0 * 0.78);
+    if (!mortar && n2(u * 2, v * 2) > 0.8) col = col.map((c0) => c0 * 0.7);   // chips and pits
+    // water running down from the joints: darker streaks
+    const streak = n1(u * 6, 0.1) > 0.72 ? clamp((0.8 - up) * 1.2, 0, 1) * 0.25 : 0;
+    col = col.map((c0) => c0 * (1 - streak));
+    // damp near the floor, then moss: thick in the low courses and the joints, thinning upward
+    const wet = clamp((0.35 + damp(u, 0.5) * 0.25 - up) * 3, 0, 1);
+    col = col.map((c0, i) => c0 * (1 - wet * 0.3) - [0.02, 0.0, 0.03][i] * wet);
+    const m = clamp((0.3 + mossN(u, v) * 0.3 - up) * 3 + (mortar ? 0.3 : 0) + (mossN(u * 3, v * 3) - 0.65) * 1.5, 0, 1);
+    if (m > 0.05) col = mixc(col, mixc(MOSS_DARK, MOSS, n2(u * 3, v * 3)), m * 0.8);
     return col;
   });
   return tex(c);
 }
 
-function carpetTex() {
-  const S = 64, n1 = noise2(21, 6), n2 = noise2(22, 32), wet = noise2(23, 3);
+function brickFloorTex() {
+  // old brick pavers (one texture = 2 m), worn and wet, moss in the joints and spreading in patches
+  const S = 128, BW = 32, BH = 16, n1 = noise2(21, 6), n2 = noise2(22, 32), wetN = noise2(23, 3), mossN = noise2(24, 5);
   return tex(paint(S, S, (x, y) => {
     const u = x / S, v = y / S;
-    const k = 0.85 + (n1(u, v) - 0.5) * 0.2 + (n2(u, v) - 0.5) * 0.25 + ((x + y) % 2) * 0.03;
-    const w = clamp((wet(u, v) - 0.55) * 4, 0, 1);
-    return [0.5 * k * (1 - w * 0.35), 0.45 * k * (1 - w * 0.33), 0.32 * k * (1 - w * 0.3)];
+    const row = Math.floor(y / BH), ly = y % BH, off = (row % 2) * BW / 2, bx = (x + off) % S, blk = Math.floor(bx / BW), lx = bx - blk * BW;
+    const h = hash(row, blk);
+    let k = 0.78 + h * 0.3 + (n1(u, v) - 0.5) * 0.15 + (n2(u, v) - 0.5) * 0.2;
+    let col = [0.46 * k, 0.31 * k, 0.24 * k];
+    if (hash(blk, row * 3) < 0.15) col = [0.36 * k, 0.3 * k, 0.27 * k];   // a greyer brick here and there
+    const joint = ly < 2 || lx < 2;
+    if (joint) col = [0.15, 0.14, 0.12];
+    else if (ly < 3 || lx < 3) col = col.map((c0) => c0 * 1.1);           // worn, rounded edges catch the light
+    // wet: dark, glossy puddles
+    const w = clamp((wetN(u, v) - 0.5) * 3.5, 0, 1);
+    col = col.map((c0) => c0 * (1 - w * 0.4));
+    // moss: in every joint, and creeping over the bricks where it is wettest
+    const m = clamp((joint ? 0.4 : 0) + (mossN(u, v) - 0.6) * 2.4 + w * 0.25 + (n2(u * 2, v * 2) - 0.5) * 0.7, 0, 1);
+    if (m > 0.05) col = mixc(col, mixc(MOSS_DARK, MOSS, n2(u * 4, v * 4) * 1.2), m * 0.75);
+    return col;
   }));
 }
 
@@ -117,7 +142,7 @@ function panelTex() {
 }
 
 function tallyTex() {
-  // days counted with a fingernail in the paper: groups of four struck through
+  // days scratched into the stone: groups of four struck through
   const c = canvas(128, 64), x = c.getContext('2d'), r = rng(41);
   x.strokeStyle = 'rgba(60,40,20,0.85)'; x.lineWidth = 2;
   for (let row = 0; row < 3; row++) for (let gI = 0; gI < 5; gI++) {
@@ -246,11 +271,11 @@ export class Backrooms {
       }
       let k = clamp(0.08 + s * 0.62, 0, 0.88) * base;
       if (floorAO) k *= 0.72 + 0.28 * clamp((y - Y0) / 0.6, 0, 1);    // darker down at the skirting
-      return [k, k * 0.97, k * 0.86];
+      return [k, k * 0.98, k * 0.9];
     };
 
-    // the walls: runs merged along each grid line, both faces papered
-    const walls = new Build(), U = 1.8;              // one width of wallpaper every 1.8 m
+    // the walls: runs merged along each grid line, both faces faced with stone
+    const walls = new Build(), U = 1.8;              // one width of the stone texture every 1.8 m
     const wallRun = (ax, az, bx, bz) => {
       const along = ax === bx ? 'z' : 'x';
       const len = Math.hypot(bx - ax, bz - az);
@@ -314,8 +339,8 @@ export class Backrooms {
         walls.quad([b[0], Y0, b[1]], [a[0], Y0, a[1]], [a[0], Y0 + H, a[1]], [b[0], Y0 + H, b[1]], [[0, 0], [0.5, 0], [0.5, 1], [0, 1]], light());
       }
     }
-    const paperMat = ps2ify(new THREE.MeshBasicMaterial({ map: wallpaperTex(), vertexColors: true }));
-    this.group.add(new THREE.Mesh(walls.geometry(), paperMat));
+    const stoneMat = ps2ify(new THREE.MeshBasicMaterial({ map: stoneWallTex(), vertexColors: true }));
+    this.group.add(new THREE.Mesh(walls.geometry(), stoneMat));
 
     // floor and ceiling, three quads to a room so the light pools
     const floor = new Build(), ceil = new Build(), sub = 3, q = CELL / sub;
@@ -326,9 +351,9 @@ export class Backrooms {
       const cu = [[x0 / 2.4, z0 / 2.4], [x1 / 2.4, z0 / 2.4], [x1 / 2.4, z1 / 2.4], [x0 / 2.4, z1 / 2.4]];
       ceil.quad([x0, Y0 + H, z0], [x1, Y0 + H, z0], [x1, Y0 + H, z1], [x0, Y0 + H, z1], cu, light(1.05, false));
     }
-    const carpetMat = ps2ify(new THREE.MeshBasicMaterial({ map: carpetTex(), vertexColors: true }));
+    const brickMat = ps2ify(new THREE.MeshBasicMaterial({ map: brickFloorTex(), vertexColors: true }));
     const ceilMat = ps2ify(new THREE.MeshBasicMaterial({ map: ceilingTex(), vertexColors: true }));
-    this.group.add(new THREE.Mesh(floor.geometry(), carpetMat), new THREE.Mesh(ceil.geometry(), ceilMat));
+    this.group.add(new THREE.Mesh(floor.geometry(), brickMat), new THREE.Mesh(ceil.geometry(), ceilMat));
     const half = (N * CELL) / 2;
     col.addBox(X0 + half, Y0 - 0.5, Z0 + half, half + 1, 0.5, half + 1, 0);        // the floor
     col.addBox(X0 + half, Y0 + H + 0.5, Z0 + half, half + 1, 0.5, half + 1, 0);    // (for the third-person camera)
@@ -346,9 +371,9 @@ export class Backrooms {
       lists[!p.lit ? 'off' : p.flicker ? 'flick' : 'on'].push(geo);
     }
     for (const [k, mat] of [['on', panelMat], ['flick', flickMat], ['off', deadMat]]) if (lists[k].length) this.group.add(new THREE.Mesh(mergeGeometries(lists[k]), mat));
-    this.mats = { paperMat, carpetMat, ceilMat, panelMat, flickMat };
+    this.mats = { stoneMat, brickMat, ceilMat, panelMat, flickMat };
 
-    // things left behind: chairs turned to face the wall, days scratched into the paper, notes
+    // things left behind: chairs turned to face the wall, days scratched into the stone, notes
     const wood = [];
     const chairAt = (x, z, ry, fallen = false) => {
       const C = new THREE.Color(0.5, 0.36, 0.22), rot = fallen ? [Math.PI / 2, ry, 0] : [0, ry, 0];
@@ -486,7 +511,7 @@ export class Backrooms {
       return say([[N_, L('ลมเย็นของท้องฟ้าพัดเข้ามาทางช่องประตู... เจ้าก้าวออกไปโดยไม่หันหลังกลับ', 'The cold sky-wind blows in through the gap... you step out without looking back.')]], () => this.leave());
     }
     if (id === 'story:c2rooms_back') {
-      return say([[N_, L('เจ้าเปิดประตูบานเดิม... หลังประตูไม่ใช่ลานบัลลังก์ แต่เป็นกำแพงกระดาษสีเหลือง เมื่อหันกลับมาอีกที ประตูก็หายไปแล้ว', 'You open the door you came in by... behind it is no throne terrace, only yellow wallpaper. When you look again, the door is gone.')]], () => { this.doorGone = true; this.inDoor.visible = false; g.audio.sting(); });
+      return say([[N_, L('เจ้าเปิดประตูบานเดิม... หลังประตูไม่ใช่ลานบัลลังก์ แต่เป็นกำแพงหินชื้น ๆ เมื่อหันกลับมาอีกที ประตูก็หายไปแล้ว', 'You open the door you came in by... behind it is no throne terrace, only damp stone wall. When you look again, the door is gone.')]], () => { this.doorGone = true; this.inDoor.visible = false; g.audio.sting(); });
     }
     if (id === 'story:c2rooms_chest') return this.openChest();
     if (id.startsWith('story:c2rooms_note')) {
@@ -681,7 +706,7 @@ export class Backrooms {
       this.bright += ((this.flick ?? 1) - this.bright) * Math.min(1, dt * 30);
     }
     const b = this.bright, M = this.mats;
-    for (const m of [M.paperMat, M.carpetMat, M.ceilMat]) m.color.setScalar(b);
+    for (const m of [M.stoneMat, M.brickMat, M.ceilMat]) m.color.setScalar(b);
     M.panelMat.color.setRGB(1.35, 1.3, 1.1).multiplyScalar(b);
     const fl = Math.random() < 0.15 ? 0.15 : 1;
     if (Math.random() < dt * 8) M.flickMat.color.setRGB(1.35, 1.3, 1.1).multiplyScalar(b * fl);
@@ -693,7 +718,7 @@ export class Backrooms {
     const k = this.k;
     if (k < 0.002) { if (this.dirty) { this.dirty = false; this.g.pipeline.uniforms.uGrain.value = 0.03; } return; }
     const g = this.g, fog = g.scene.fog, b = this.bright;
-    TMP.setRGB(0.3, 0.28, 0.19).multiplyScalar(0.12 + 0.88 * b);
+    TMP.setRGB(0.24, 0.26, 0.2).multiplyScalar(0.12 + 0.88 * b);
     fog.color.lerp(TMP, k);
     g.scene.background.copy(fog.color);
     fog.density += (0.05 + (1 - b) * 0.08 - fog.density) * k;

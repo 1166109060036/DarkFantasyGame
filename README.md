@@ -376,7 +376,7 @@ Opens once Chapter 1 is over. The chain that snapped, the Stone King's open eyes
 
 **New foe — the Petrified:** people the creeping stone has taken; slow and heavy, light blows only chip them, and until you drink the Stoneskin Draught each blow stiffens you (you slow down for 2 s).
 
-**The Waiting Halls (once you reach the castle):** a small door in the keep, beside the throne terrace, with a pale yellow light under it and a hum behind it. Inside, the castle is far bigger than it is: a maze of 196 identical rooms of mustard wallpaper, damp carpet and buzzing light panels, where the court waited three hundred years for the Crown-Bearer to come back. The door you came in by is gone when you look back; the way out is the farthest door to the east, beside **the courtiers' hoard** (coins, two Great Healing Draughts and the best weapon of your path you do not have yet). Notes on the floor tell what happened. The lights flicker, and sometimes go out altogether.
+**The Waiting Halls (once you reach the castle):** a small door in the keep, beside the throne terrace, with a pale yellow light under it and a hum behind it. Inside, the castle is far bigger than it is: a maze of 196 identical rooms of mossy stone walls, wet brick floors green with moss, and buzzing light panels, where the court waited three hundred years for the Crown-Bearer to come back. The door you came in by is gone when you look back; the way out is the farthest door to the east, beside **the courtiers' hoard** (coins, two Great Healing Draughts and the best weapon of your path you do not have yet). Notes on the floor tell what happened. The lights flicker, and sometimes go out altogether.
 - **Wendigo** — the hungriest of the court, tall and thin with a stag's skull: three of them walk the halls (four once the hoard is opened) and find their way to you round the walls. **While you look straight at one it can only creep; turn your back and it runs.** Both claws come up before it rakes. Dying in the halls wakes you on the throne terrace.
 **Rewards:** Regent's Plate (−22% damage, never staggered), Crown-Bearer's Mantle (−20% damage, faster stamina, healing), coins and experience — and Sky-Hung Castle stays open, up the chain.
 
@@ -482,7 +482,7 @@ src/
   regent.js         the Handless Regent boss (combos, leap, whirl, chain lash)
   colossus.js       the Stone King's Colossus: shown 8x the model's size, arms solved with fixed-length bones, fingers / back of the hand / beard walkable while down, three seals
   stoneborn.js      the Petrified: the Lost turned to stone
-  backrooms.js      the Waiting Halls: a seeded 14x14 maze high above the world's far corner, painted wallpaper/carpet/ceiling textures, baked vertex light, flicker and blackouts, the hum, the route-finding the wendigos use
+  backrooms.js      the Waiting Halls: a seeded 14x14 maze high above the world's far corner, painted stone-wall/brick-floor/ceiling textures, baked vertex light, flicker and blackouts, the hum, the route-finding the wendigos use
   wendigo.js        the wendigo: an imported skinned model on the heroes' rig (shy: it creeps while watched)
   rigpose.js        helper that loads rigged .glb models and poses them from code (used for the Lost and the armour)
   critters.js       animals in the world (pigs: .glb model + walk cycle in code; wander, graze, flee)
